@@ -1,0 +1,321 @@
+{
+    // ======== UI ========================
+    "workbench.activityBar.location": "top",
+    // theme
+    "workbench.colorTheme": "Dracula",
+    "workbench.iconTheme": "material-icon-theme",
+    // animations
+    "animations.Install-Method": "Apc Customize UI++",
+    "apc.imports": [
+        "file:///Users/tudoroancea/.vscode-insiders/extensions/brandonkirbyson.vscode-animations-2.0.1/dist/updateHandler.js"
+    ],
+    // top bar
+    "workbench.editor.showTabs": "none", // hide tabs
+    "breadcrumbs.enabled": false, // hides breadcrumb path at top of window
+    "window.commandCenter": false, // hides command center at the top of the window. Use cmd+shift+p instead
+    "workbench.layoutControl.enabled": false, // hides those little squares on the top right of the window
+    // bottom bar
+    // minimap
+    "editor.minimap.renderCharacters": false, // make minimap blockish (low level of detail)
+    "editor.hideCursorInOverviewRuler": true, // don't highlight current line in scrollbar
+    "editor.minimap.autohide": true, // shows minimap only on hoverworkbench.editor.editorActionsLocation": "hidden", // hides the "format" and ellipsis buttons on the top right of the window
+    // fonts
+    "editor.fontFamily": "JetBrains Mono, Menlo, Monaco, 'Courier New', monospace",
+    "apc.font.family": "JetBrains Mono", // apply font to ALL the UI, requires APC extension
+    "terminal.integrated.fontFamily": "JetBrains Mono",
+    "editor.fontLigatures": true,
+    // cursor
+    "editor.cursorBlinking": "expand",
+    "editor.cursorSmoothCaretAnimation": "on",
+    // editor
+    "editor.stickyScroll.enabled": true, // keep block name fixed at top when scrolling
+    "gitlens.mode.active": "zen", // toggle with command palette, zen mode hides gitlens stuff for when you don't need it
+    "editor.wordWrap": "off", // wrap text instead of scrolling horizontally
+    "editor.inlineSuggest.enabled": true,
+    "editor.lineNumbers": "relative",
+    "editor.minimap.enabled": false,
+    "editor.wordBasedSuggestions": "matchingDocuments", // to inspect
+    // ========== vim ========================
+    "vim.enableNeovim": true,
+    "vim.foldfix": true,
+    "vim.useSystemClipboard": true,
+   "vim.leader": "<space>",
+    "vim.easymotion": true,
+    "vim.incsearch": true,
+    "extensions.experimental.affinity": {
+        "vscodevim.vim": 1
+    },
+    "vim.normalModeKeyBindings": [
+        {
+            "before": [
+                ":"
+            ],
+            "commands": [
+                "workbench.action.showCommands",
+            ],
+            "silent": true
+        },
+        {
+            "before": [
+                "<leader>",
+                "w",
+            ],
+            "commands": [
+                "workbench.action.files.save"
+            ],
+        },
+        {
+            "before": [
+                "<leader>",
+                "c"
+            ],
+            "commands": [
+                "workbench.action.closeActiveEditor"
+            ],
+        },
+        {
+            "before": [
+                "<leader>",
+                "t"
+            ],
+            "commands": [
+                "workbench.view.testing.focus"
+            ],
+        },
+        // {
+        //     "before": [
+        //         "<leader>",
+        //         "f"
+        //     ],
+        //     "commands": [
+        //         "editor.action.formatDocument"
+        //     ],
+        // },
+        {
+            "before": [
+                "<leader>",
+                "/"
+            ],
+            "commands": [
+                "editor.action.commentLine"
+            ],
+        },
+        {
+            "before": [
+                "<leader>",
+                "e",
+            ],
+            "commands": [
+                "workbench.view.explorer"
+            ],
+        },
+        {
+            "before": [
+                "K"
+            ],
+            "commands": [
+                "editor.action.showHover"
+            ],
+        },
+        {
+            "before": [
+                "g",
+                "r",
+            ],
+            "commands": [
+                "editor.action.goToReferences"
+            ],
+        },
+        {
+            "before": [
+                "<leader>",
+                "f",
+                "f",
+            ],
+            "commands": [
+                "find-it-faster.findFiles"
+            ]
+        },
+        {
+            "before": [
+                "<leader>",
+                "f",
+                "w",
+            ],
+            "commands": [
+                "find-it-faster.findWithinFiles"
+            ]
+        },
+    ],
+    "vim.visualModeKeyBindings": [
+        {
+            "before": [
+                "<leader>",
+                "/"
+            ],
+            "commands": [
+                "editor.action.commentLine"
+            ],
+        },
+    ],
+    // ======== git ========================
+    "git.autofetch": true,
+    "git.confirmSync": true,
+    "git.enableSmartCommit": true,
+    "git.enableStatusBarSync": false,
+    "git.openRepositoryInParentFolders": "always",
+    "git.showActionButton": {
+        "commit": true,
+        "publish": true,
+        "sync": false
+    },
+    "git.smartCommitChanges": "tracked",
+    "git.suggestSmartCommit": true,
+    "gitlens.graph.avatars": false,
+    "gitlens.graph.layout": "editor",
+    "gitlens.graph.minimap.enabled": false,
+    "gitlens.graph.statusBar.enabled": true,
+    "gitlens.telemetry.enabled": false,
+    // ======== Languages ========================
+    // zig
+    "zig.initialSetupDone": true,
+    "zig.path": "",
+    "zig.zls.path": "/Users/tudoroancea/Library/Application Support/Code - Insiders/User/globalStorage/ziglang.vscode-zig/zls_install/zls",
+    "zig.zls.warnStyle": true,
+    // python
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.formatOnSaveMode": "file",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+        }
+    },
+    "python.defaultInterpreterPath": "/Users/tudoroancea/miniforge3/envs/gsp",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "off",
+    "ruff.path": [
+        "/opt/homebrew/bin/ruff"
+    ],
+    "ruff.enable": true,
+    "ruff.organizeImports": true,
+    // c++
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "C_Cpp.autocomplete": "default",
+    "C_Cpp.clang_format_fallbackStyle": "WebKit",
+    "C_Cpp.clang_format_sortIncludes": true,
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.codeAnalysis.clangTidy.config": "${workspaceFolder}/.clang-tidy",
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "C_Cpp.codeFolding": "enabled",
+    "C_Cpp.default.compilerPath": "/usr/bin/clang",
+    "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+    "C_Cpp.formatting": "default",
+    // cmake
+    "cmake.configureOnStart": false,
+    "cmake.options.advanced": {
+        "configure": {
+            "projectStatusVisibility": "visible"
+        },
+        "folder": {
+            "statusBarVisibility": "visible"
+        },
+        "variant": {
+            "statusBarVisibility": "visible"
+        },
+        "kit": {
+            "statusBarVisibility": "icon"
+        },
+        "ctest": {
+            "statusBarVisibility": "hidden"
+        },
+        "cpack": {
+            "statusBarVisibility": "hidden"
+        },
+        "workflow": {
+            "statusBarVisibility": "hidden"
+        },
+        "build": {
+            "statusBarVisibility": "visible"
+        },
+        "buildTarget": {
+            "statusBarVisibility": "compact"
+        },
+        "launch": {
+            "statusBarVisibility": "hidden"
+        },
+        "debug": {
+            "statusBarVisibility": "hidden"
+        },
+        "launchTarget": {
+            "statusBarVisibility": "hidden"
+        },
+    },
+    // typst
+    "typst-lsp.experimentalFormatterMode": "on",
+    "typst-lsp.semanticTokens": "enable",
+    "typst-lsp.exportPdf": "onSave",
+    "typst-lsp.trace.server": "messages",
+    // ======= meta =========
+    "workbench.settings.editor": "json",
+    "workbench.startupEditor": "none",
+    "telemetry.telemetryLevel": "off",
+    "dotnetAcquisitionExtension.enableTelemetry": false,
+    "update.mode": "manual",
+    "vsicons.dontShowNewVersionMessage": true,
+    "debug.onTaskErrors": "abort",
+    "debug.toolBarLocation": "docked",
+    "editor.accessibilitySupport": "off",
+    "editor.formatOnSaveMode": "modifications",
+    "files.autoSave": "onFocusChange",
+    "cmake.options.statusBarVisibility": "compact",
+    "redhat.telemetry.enabled": false,
+    "security.promptForLocalFileProtocolHandling": false,
+    "sonarlint.rules": {
+        "python:S116": {
+            "level": "off"
+        },
+        "python:S117": {
+            "level": "off"
+        },
+        "python:S1542": {
+            "level": "off"
+        },
+        "python:S3776": {
+            "level": "off"
+        },
+        "c:S995": {
+            "level": "off"
+        },
+        "c:S1659": {
+            "level": "off"
+        },
+        "c:S107": {
+            "level": "off"
+        },
+        "cpp:S3776": {
+            "level": "off"
+        }
+    },
+    "terminal.external.osxExec": "Warp.app",
+    "terminal.integrated.inheritEnv": false,
+    "diffEditor.hideUnchangedRegions.enabled": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "[typst]": {
+        "editor.defaultFormatter": "nvarner.typst-lsp"
+    },
+    "cSpell.enabled": true,
+    "cmake.showOptionsMovedNotification": false,
+    "workbench.sideBar.location": "right",
+    "supermaven.allowGitignore": true,
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
+    "supermaven.enable": {
+        "*": true
+    },
+    "continue.enableTabAutocomplete": true
+}
