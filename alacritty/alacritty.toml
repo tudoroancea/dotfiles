@@ -1,5 +1,5 @@
 # remember to clone the themes repo with `git clone https://github.com/alacritty/alacritty-theme`
-import = ["~/.config/alacritty/themes/themes/dracula.toml"]
+import = ["~/.config/alacritty/alacritty-theme/themes/dracula.toml"]
 # import = ["~/.config/alacritty/rose-pine-moon.toml"]
 
 [cursor]
