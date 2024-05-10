@@ -25,6 +25,7 @@
     "apc.font.family": "JetBrains Mono", // apply font to ALL the UI, requires APC extension
     "terminal.integrated.fontFamily": "JetBrains Mono",
     "editor.fontLigatures": true,
+    "editor.fontSize": 12,
     // cursor
     "editor.cursorBlinking": "expand",
     "editor.cursorSmoothCaretAnimation": "on",
@@ -194,7 +195,7 @@
     },
     "python.defaultInterpreterPath": "/Users/tudoroancea/miniforge3/envs/gsp",
     "python.analysis.autoImportCompletions": true,
-    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "off",
     "ruff.path": [
         "/opt/homebrew/bin/ruff"
     ],
