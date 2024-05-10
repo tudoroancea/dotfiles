@@ -3,15 +3,7 @@ return {
   opts = function(_, config)
     config.filesystem.filtered_items = {
       always_show = { ".gitignore", ".gitmodules", ".venv", ".vscode", ".github", ".idea", ".zshrc", ".tmux.conf" },
+      hide_hidden = false,
     }
-    -- require("neo-tree").setup {
-    --   filesystem = {
-    --     filtered_items = {
-    --       always_show = { ".gitignore", ".gitmodules", ".venv", ".vscode" },
-    --       -- visible = true,
-    --       -- hide_hidden = false,
-    --     },
-    --   },
-    -- }
   end,
 }
