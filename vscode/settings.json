@@ -10,10 +10,11 @@
         "file:///Users/tudoroancea/.vscode-insiders/extensions/brandonkirbyson.vscode-animations-2.0.1/dist/updateHandler.js"
     ],
     // top bar
-    "workbench.editor.showTabs": "none", // hide tabs
-    "breadcrumbs.enabled": false, // hides breadcrumb path at top of window
+    "window.density.editorTabHeight": "compact",
+    "workbench.editor.showTabs": "multiple",
+    "breadcrumbs.enabled": true, // hides breadcrumb path at top of window
     "window.commandCenter": false, // hides command center at the top of the window. Use cmd+shift+p instead
-    "workbench.layoutControl.enabled": false, // hides those little squares on the top right of the window
+    "workbench.layoutControl.enabled": true, // those little squares on the top right of the window
     // bottom bar
     // minimap
     "editor.minimap.renderCharacters": false, // make minimap blockish (low level of detail)
@@ -39,7 +40,7 @@
     "vim.enableNeovim": true,
     "vim.foldfix": true,
     "vim.useSystemClipboard": true,
-   "vim.leader": "<space>",
+    "vim.leader": "<space>",
     "vim.easymotion": true,
     "vim.incsearch": true,
     "extensions.experimental.affinity": {
@@ -193,7 +194,7 @@
     },
     "python.defaultInterpreterPath": "/Users/tudoroancea/miniforge3/envs/gsp",
     "python.analysis.autoImportCompletions": true,
-    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.typeCheckingMode": "basic",
     "ruff.path": [
         "/opt/homebrew/bin/ruff"
     ],
@@ -201,7 +202,7 @@
     "ruff.organizeImports": true,
     // c++
     "[cpp]": {
-        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+        "editor.defaultFormatter": "xaver.clang-format"
     },
     "C_Cpp.autocomplete": "default",
     "C_Cpp.clang_format_fallbackStyle": "WebKit",
@@ -217,16 +218,16 @@
     "cmake.configureOnStart": false,
     "cmake.options.advanced": {
         "configure": {
-            "projectStatusVisibility": "visible"
+            "projectStatusVisibility": "hidden"
         },
         "folder": {
-            "statusBarVisibility": "visible"
+            "statusBarVisibility": "hidden"
         },
         "variant": {
-            "statusBarVisibility": "visible"
+            "statusBarVisibility": "compact"
         },
         "kit": {
-            "statusBarVisibility": "icon"
+            "statusBarVisibility": "hidden"
         },
         "ctest": {
             "statusBarVisibility": "hidden"
@@ -238,19 +239,19 @@
             "statusBarVisibility": "hidden"
         },
         "build": {
-            "statusBarVisibility": "visible"
+            "statusBarVisibility": "icon"
         },
         "buildTarget": {
             "statusBarVisibility": "compact"
         },
         "launch": {
-            "statusBarVisibility": "hidden"
+            "statusBarVisibility": "icon"
         },
         "debug": {
-            "statusBarVisibility": "hidden"
+            "statusBarVisibility": "icon"
         },
         "launchTarget": {
-            "statusBarVisibility": "hidden"
+            "statusBarVisibility": "compact"
         },
     },
     // typst
