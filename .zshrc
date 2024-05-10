@@ -8,13 +8,13 @@ for dump in ~/.zcompdump(N.mh+24); do
 done
 compinit -C
 
-# set locale 
+# set locale
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
 # functions and aliases ====================================================
 # minimal list
-alias reloadzsh="source ~/.ZShrc"
+alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
 alias l="ls -lah"
 alias cdt="cd ~/tmp"
@@ -27,7 +27,7 @@ mcd() {
 }
 waw() {
   echo "  where :"
-  where "$1" 
+  where "$1"
   echo "  which :"
   which "$1"
   echo " version :"
@@ -35,16 +35,16 @@ waw() {
 }
 alias rmr="rm -r"
 alias rmrf="rm -rf"
-alias zrc="vim ~/.zshrc"
-alias vimrc="vim ~/.vimrc"
-alias nvimrc="nvim ~/.config/nvim/lua/user"
+alias zrc="$EDITOR ~/.zshrc"
+alias vimrc="$EDITOR ~/.vimrc"
 alias py="python3"
 alias lg=lazygit
 alias nv=nvim
 ccopy() {
     cat "$1" | pbcopy
 }
-# custom mkv 
+alias dotf="cd ~/dotfiles && nvim"
+# custom mkv
 # mkv () {
 # 	local name="${1:-venv}"
 # 	local venvpath="${name:P}"
@@ -105,7 +105,7 @@ export FSDS="$HOME/Formula-Student-Driverless-Simulator"
 # MOSEK path
 export PATH=/Users/tudoroancea/mosek/10.1/tools/platform/osxaarch64/bin:$PATH
 
-# zig path 
+# zig path
 export PATH="$HOME/zig:$PATH"
 
 # ikos path
@@ -134,7 +134,7 @@ fi
 # <<< conda initialize <<<
 
 # (oh my) zsh customization ===================================
-export EDITOR="zed"
+export EDITOR="nvim"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
@@ -151,7 +151,7 @@ plugins=(
 )
 source $ZSH/oh-my-zsh.sh
 
-# starship prompt 
+# starship prompt
 eval "$(starship init zsh)"
 
 
