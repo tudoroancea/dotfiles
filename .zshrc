@@ -139,6 +139,7 @@ export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
 VSCODE=code-insiders # vscode flavor used by oh my zsh plugin
+export PYTHON_VENV_NAME=".venv" # customize the default venv name used by vrun
 
 # oh my zsh plugins
 plugins=(
