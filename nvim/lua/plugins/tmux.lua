@@ -48,7 +48,7 @@ return {
       },
       resize = {
         -- enables default keybindings (A-hjkl) for normal mode
-        enable_default_keybindings = true,
+        enable_default_keybindings = false,
 
         -- sets resize steps for x axis
         resize_step_x = 1,

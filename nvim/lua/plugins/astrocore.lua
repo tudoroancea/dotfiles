@@ -44,15 +44,18 @@ return {
       n = {
         -- second key is the lefthand side of the map
 
-        -- navigate buffer tabs with `H` and `L`
-        L = {
+        -- navigate buffer tabs with `Alt-H` and `Alt-L`
+        ["<M-l>"] = {
           function() require("astrocore.buffer").nav(vim.v.count > 0 and vim.v.count or 1) end,
           desc = "Next buffer",
         },
-        H = {
+        ["<M-h>"] = {
           function() require("astrocore.buffer").nav(-(vim.v.count > 0 and vim.v.count or 1)) end,
           desc = "Previous buffer",
         },
+
+        -- go to first function on line
+        ["<Leader>a"] = { "^t(", desc = "Go to first function on line" },
 
         -- mappings seen under group name "Buffer"
         ["<Leader>bD"] = {
@@ -66,6 +69,7 @@ return {
         -- tables with just a `desc` key will be registered with which-key if it's installed
         -- this is useful for naming menus
         ["<Leader>b"] = { desc = "Buffers" },
+
         -- quick save
         ["<C-s>"] = { ":w!<cr>", desc = "Save File" }, -- change description but the same command
       },

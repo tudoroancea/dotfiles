@@ -41,7 +41,7 @@ save_to_clipboard = true
 
 [window]
 blur = true
-opacity = 0.7
+# opacity = 0.7
 
 [window.dimensions]
 columns = 110
