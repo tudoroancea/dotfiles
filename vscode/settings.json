@@ -1,8 +1,6 @@
 {
     // ======== UI ========================
     "workbench.activityBar.location": "top",
-    // theme
-    "workbench.colorTheme": "Dracula",
     "workbench.iconTheme": "material-icon-theme",
     // animations
     "animations.Install-Method": "Apc Customize UI++",
@@ -178,6 +176,7 @@
     "gitlens.graph.minimap.enabled": false,
     "gitlens.graph.statusBar.enabled": true,
     "gitlens.telemetry.enabled": false,
+    "scm.experimental.showHistoryGraph": true,
     // ======== Languages ========================
     // zig
     "zig.initialSetupDone": true,
@@ -319,5 +318,7 @@
     "supermaven.enable": {
         "*": true
     },
-    "continue.enableTabAutocomplete": true
+    "continue.enableTabAutocomplete": true,
+    "github.copilot.editor.enableAutoCompletions": true,
+    "workbench.colorTheme": "Dracula Theme"
 }

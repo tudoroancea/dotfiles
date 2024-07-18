@@ -68,6 +68,7 @@ alias mup='mamba update'
 alias min='mamba install'
 alias miny='mamba install -y'
 alias mind='mamba install -d'
+alias up='uv pip'
 
 export ROS_DOMAIN_ID=69
 alias pave='mamba deactivate && mamba activate pave_gnc && cd ~/Developer/pave_gnc && . install/setup.sh'
