@@ -1,9 +1,18 @@
 return {
   "nvim-neo-tree/neo-tree.nvim",
-  opts = function(_, config)
-    config.filesystem.filtered_items = {
-      always_show = { ".gitignore", ".gitmodules", ".venv", ".vscode", ".github", ".idea", ".zshrc", ".tmux.conf" },
-      hide_hidden = false,
-    }
-  end,
+  opts = {
+    filesystem = {
+      filtered_items = {
+        visible = true,
+        show_hidden_count = true,
+        hide_dotfiles = false,
+        hide_gitignored = true,
+        hide_by_name = {
+          ".git",
+          ".DS_Store",
+        },
+        never_show = {},
+      },
+    },
+  },
 }
