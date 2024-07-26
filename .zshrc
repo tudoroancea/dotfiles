@@ -166,6 +166,7 @@ eval "$(starship init zsh)"
 # bun completions
 # [ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
 
+. "$HOME/api_keys.sh"
 
 # run zsh profiling
 # zprof
