@@ -51,4 +51,6 @@ lines = 30
 [keyboard]
 bindings = [
 { key = "N", mods="Control", action="CreateNewWindow"},
+{ key = "H", mods="Command", action="ReceiveChar"},
+{ key = "H", mods="Command|Alt", action="ReceiveChar"},
 ]
