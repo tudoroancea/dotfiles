@@ -47,3 +47,9 @@ ln -s ~/dotfiles/vscode/keybindings.json ~/.config/Code/User/keybindings.json
 ln -s ~/dotfiles/vscode/settings.json ~/Library/Application\ Support/Code/User/settings.json
 ln -s ~/dotfiles/vscode/keybindings.json ~/Library/Application\ Support/Code/User/keybindings.json
 ```
+
+## AI completions
+
+For them to work you have to provide env vars for the desired providers (either `GROQ_API_KEY`, `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`). 
+The safest way to do that is 
+

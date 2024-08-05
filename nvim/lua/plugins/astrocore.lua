@@ -80,6 +80,7 @@ return {
 
         -- quick save
         ["<C-s>"] = { ":noa w<cr>", desc = "Save File" }, -- change description but the same command
+        ["<D-s>"] = { ":noa w<cr>", desc = "Save File" }, -- change description but the same command
       },
       t = {
         -- setting a mapping to false will disable it
