@@ -5,8 +5,8 @@ return {
     require("supermaven-nvim").setup {
       keymaps = {
         accept_suggestion = "<C-l>", -- accept suggestion with <Tab> built
-        clear_suggestion = "<C-j>",
-        accept_word = "<C-k>",
+        clear_suggestion = "<C-h>",
+        accept_word = "<C-;>",
       },
       -- ignore_filetypes = { cpp = true }, -- ignore filetypes
       color = {
