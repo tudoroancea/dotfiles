@@ -1,6 +1,6 @@
 return {
   "yacineMTB/dingllm.nvim",
-  enabled = true,
+  enabled = false,
   dependencies = { "nvim-lua/plenary.nvim" },
   config = function()
     local system_prompt =
