@@ -7,6 +7,8 @@ return {
   "AstroNvim/astrocommunity",
   { import = "astrocommunity.pack.lua" },
   { import = "astrocommunity.pack.typst" },
+  { import = "astrocommunity.pack.toml" },
+  { import = "astrocommunity.pack.yaml" },
 
   { import = "astrocommunity.colorscheme.everforest" },
   { import = "astrocommunity.colorscheme.tokyonight-nvim" },
