@@ -8,7 +8,6 @@ return {
         clear_suggestion = "<C-h>",
         accept_word = "<C-;>",
       },
-      -- ignore_filetypes = { cpp = true }, -- ignore filetypes
       color = {
         suggestion_color = "#6571A0",
         cterm = 244,
