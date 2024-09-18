@@ -45,6 +45,11 @@ ccopy() {
     cat "$1" | pbcopy
 }
 alias dotf="cd ~/dotfiles && nvim"
+alias purge="./scripts/purge.sh"
+alias build="./scripts/build.sh"
+# alias test="./scripts/test.sh"
+alias env_update="./scripts/env_update.sh"
+
 # custom mkv
 # mkv () {
 # 	local name="${1:-venv}"
