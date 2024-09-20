@@ -85,6 +85,9 @@ submodule_rm() {
   rm -rf .git/modules/"$1"
 }
 
+eval "$(uv generate-shell-completion zsh)"
+export UV_PYTHON_PREFERENCE=only-managed
+
 # general shell config ================================================
 # rosetta terminal setup
 if [ $(arch) = "i386" ]; then
