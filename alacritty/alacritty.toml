@@ -1,6 +1,7 @@
 # remember to clone the themes repo with `git clone https://github.com/alacritty/alacritty-theme`
-import = ["~/.config/alacritty/alacritty-theme/themes/dracula.toml"]
+# import = ["~/.config/alacritty/alacritty-theme/themes/dracula.toml"]
 # import = ["~/.config/alacritty/rose-pine-moon.toml"]
+import = ["~/.config/alacritty/rose-pine-dawn.toml"]
 
 [cursor]
 thickness = 0.2
@@ -50,7 +51,7 @@ lines = 30
 
 [keyboard]
 bindings = [
-{ key = "N", mods="Control", action="CreateNewWindow"},
-{ key = "H", mods="Command", action="ReceiveChar"},
-{ key = "H", mods="Command|Alt", action="ReceiveChar"},
+  { key = "N", mods = "Control", action = "CreateNewWindow" },
+  { key = "H", mods = "Command", action = "ReceiveChar" },     # Disable hide window
+  { key = "H", mods = "Command|Alt", action = "ReceiveChar" }, # Disable hide other windows 
 ]
