@@ -96,9 +96,14 @@ return {
         -- this is useful for naming menus
         ["<Leader>b"] = { desc = "Buffers" },
 
-        -- quick save
-        ["<C-s>"] = { ":noa w<cr>", desc = "Save File" }, -- change description but the same command
-        ["<D-s>"] = { ":noa w<cr>", desc = "Save File" }, -- change description but the same command
+        -- save without formatting
+        ["<Leader>W"]= { ":noa w<CR>", desc = "Save without formatting" },
+
+        -- global search
+        ["g/"] = {
+          function() require("telescope.builtin").live_grep() end,
+          desc = "Search",
+        },
       },
       t = {
         -- setting a mapping to false will disable it
