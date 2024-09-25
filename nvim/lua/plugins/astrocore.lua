@@ -80,6 +80,12 @@ return {
           desc = "Previous buffer",
         },
 
+        -- Astro reload
+        ["<Leader>R"] = { "<cmd>AstroReload<cr>", desc = "Reload AstroNvim" },
+
+        -- go to all references of the symbol under the cursor
+        ["gr"] = { "<cmd>Telescope lsp_references<cr>", desc = "Go to all references" },
+
         -- go to first function on line
         ["<Leader>a"] = { "^t(", desc = "Go to first function on line" },
 
@@ -97,7 +103,7 @@ return {
         ["<Leader>b"] = { desc = "Buffers" },
 
         -- save without formatting
-        ["<Leader>W"]= { ":noa w<CR>", desc = "Save without formatting" },
+        ["<Leader>W"] = { ":noa w<CR>", desc = "Save without formatting" },
 
         -- global search
         ["g/"] = {
