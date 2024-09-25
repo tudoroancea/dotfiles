@@ -88,6 +88,27 @@ submodule_rm() {
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 
+tmux_pymanopt() {
+  SESSION="pymanopt"
+  SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
+  # Only create tmux SESSION if it doesn't already exist
+  if [ "$SESSIONEXISTS" = "" ]
+  then
+      tmux new-session -d -s $SESSION
+
+      tmux rename-window -t 0 'nv'
+      tmux send-keys -t 'nv' 'cd ~/Developer/pymanopt; nvim' C-m ' H' C-m
+
+      tmux new-window -t $SESSION:1 -n 'term'
+      tmux send-keys -t 'term' 'cd ~/Developer/pymanopt; source .venv/bin/activate' C-m
+
+      tmux new-window -t $SESSION:2 -n 'btop'
+      tmux send-keys -t 'btop' 'btop' C-m
+  fi
+
+  tmux attach-session -t $SESSION:0
+}
+
 # general shell config ================================================
 # rosetta terminal setup
 if [ $(arch) = "i386" ]; then
