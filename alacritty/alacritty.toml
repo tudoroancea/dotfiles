@@ -42,7 +42,8 @@ save_to_clipboard = true
 
 [window]
 blur = true
-opacity = 0.7
+opacity = 1.0
+# opacity = 0.7
 option_as_alt = "OnlyLeft"
 
 [window.dimensions]
