@@ -16,7 +16,7 @@ return {
   { import = "astrocommunity.colorscheme.rose-pine" },
   { import = "astrocommunity.colorscheme.catppuccin" },
 
-  -- { import = "astrocommunity.completion.copilot-lua" },
+  { import = "astrocommunity.color.transparent-nvim" },
 
   { import = "astrocommunity.utility.noice-nvim" },
 }
