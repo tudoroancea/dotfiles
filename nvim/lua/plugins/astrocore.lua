@@ -87,7 +87,7 @@ return {
         ["gr"] = { "<cmd>Telescope lsp_references<cr>", desc = "Go to all references" },
 
         -- go to first function on line
-        ["<Leader>a"] = { "^t(", desc = "Go to first function on line" },
+        ["ga"] = { "^t(", desc = "Go to first function on line" },
 
         -- mappings seen under group name "Buffer"
         ["<Leader>bD"] = {

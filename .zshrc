@@ -76,8 +76,7 @@ alias miny='mamba install -y'
 alias mind='mamba install -d'
 alias up='uv pip'
 
-export ROS_DOMAIN_ID=69
-alias pave='mamba deactivate && mamba activate pave_gnc && cd ~/Developer/pave_gnc && . install/setup.sh'
+alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
 
 submodule_rm() {
   git submodule deinit -f -- "$1"
