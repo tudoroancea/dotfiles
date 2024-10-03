@@ -62,6 +62,23 @@ return {
       n = {
         -- second key is the lefthand side of the map
 
+        -- Show alpha.nvim when closing last buffer
+        ["<Leader>c"] = {
+          function()
+            local bufs = vim.fn.getbufinfo { buflisted = true }
+            require("astrocore.buffer").close(0)
+            if require("astrocore").is_available "alpha-nvim" and not bufs[2] then require("alpha").start() end
+          end,
+          desc = "Close buffer",
+        },
+        ["<Leader>bC"] = {
+          function()
+            require("astrocore.buffer").close_all(false)
+            if require("astrocore").is_available "alpha-nvim" then require("alpha").start() end
+          end,
+          desc = "Close all buffers",
+        },
+
         -- navigate buffer tabs with `Alt-H` and `Alt-L` and `Cmd-H` and `Cmd-L` on macOS.
         ["<A-l>"] = {
           function() require("astrocore.buffer").nav(vim.v.count > 0 and vim.v.count or 1) end,
