@@ -105,6 +105,9 @@ return {
 
         -- go to first function on line
         ["ga"] = { "^t(", desc = "Go to first function on line" },
+        ["g("] = { "^t(", desc = "Go to first (" },
+        ["g["] = { "^t[", desc = "Go to first [" },
+        ["g{"] = { "^t{", desc = "Go to first {" },
 
         -- mappings seen under group name "Buffer"
         ["<Leader>bD"] = {
