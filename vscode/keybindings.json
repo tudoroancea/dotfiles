@@ -125,5 +125,15 @@
         "key": "cmd+l",
         "command": "-expandLineSelection",
         "when": "textInputFocus"
+    },
+    {
+        "key": "ctrl+j",
+        "command": "selectNextCodeAction",
+        "when": "codeActionMenuVisible"
+    },
+    {
+        "key": "ctrl+k",
+        "command": "selectPrevCodeAction",
+        "when": "codeActionMenuVisible"
     }
 ]

@@ -45,6 +45,24 @@
     "extensions.experimental.affinity": {
         "vscodevim.vim": 1
     },
+    "vim.insertModeKeyBindingsNonRecursive": [
+        {
+            "before": [
+                "<C-l>"
+            ],
+            "commands": [
+                "editor.action.accessibleViewAcceptInlineCompletion"
+            ]
+        },
+        {
+            "before": [
+                "<C-;>"
+            ],
+            "commands": [
+                "editor.action.inlineSuggest.acceptNextWord"
+            ]
+        }
+    ],
     "vim.normalModeKeyBindings": [
         {
             "before": [
@@ -82,15 +100,16 @@
                 "workbench.view.testing.focus"
             ],
         },
-        // {
-        //     "before": [
-        //         "<leader>",
-        //         "f"
-        //     ],
-        //     "commands": [
-        //         "editor.action.formatDocument"
-        //     ],
-        // },
+        {
+            "before": [
+                "<leader>",
+                "l",
+                "f"
+            ],
+            "commands": [
+                "editor.action.formatDocument"
+            ],
+        },
         {
             "before": [
                 "<leader>",
@@ -113,8 +132,19 @@
             "before": [
                 "K"
             ],
-            "commands": [
+            "after": [
                 "editor.action.showHover"
+            ],
+        },
+        {
+            "before": [
+                "g",
+                "a",
+            ],
+            "after": [
+                "0",
+                "t",
+                "("
             ],
         },
         {
