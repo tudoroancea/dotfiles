@@ -108,6 +108,37 @@ tmux_pymanopt() {
   tmux attach-session -t $SESSION:0
 }
 
+# function to create a light and dark wallpaper for macOS
+ldwallpaper() {
+	if [ $# -lt 3 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+		echo "Creates a light and dark wallpaper for macOS."
+		echo "Usage: ldwallpaper [-h] [--help] light_image dark_image out_heic"
+		echo ""
+		return 129
+	fi
+	command -v "exiv2" >/dev/null 2>&1 || { echo "exiv2 is not installed." >&2; return 1; }
+	command -v "heif-enc" >/dev/null 2>&1 || { echo "libheif is not installed." >&2; return 1; }
+	test -s "$1" || { echo "Light image does not exist." >&2; return 1; }
+	test -s "$2" || { echo "Dark image does not exist." >&2; return 1; }
+	test ! -e "$3" || { echo "Output image already exists." >&2; return 1; }
+	f="$(basename "$1")"; n="${f%.*}"; e="${f##*.}"
+	tmp="$(mktemp -d)"
+	cp "$1" "$tmp/$f"
+	cat << EOF > "$tmp/$n.xmp"
+<?xpacket?>
+<x:xmpmeta xmlns:x="adobe:ns:meta">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns">
+<rdf:Description xmlns:apple_desktop="http://ns.apple.com/namespace/1.0"
+apple_desktop:apr=
+"YnBsaXN0MDDSAQMCBFFsEAFRZBAACA0TEQ/REMOVE/8BAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAFQ=="/>
+</rdf:RDF>
+</x:xmpmeta>
+EOF
+	exiv2 -i X in "$tmp/$f"
+	{ test "$e" = "png" && heif-enc -L "$tmp/$f" "$2" -o "$3"; } || heif-enc "$tmp/$f" "$2" -o "$3"
+	rm -r "$tmp"
+}
+
 # general shell config ================================================
 # rosetta terminal setup
 if [ $(arch) = "i386" ]; then
