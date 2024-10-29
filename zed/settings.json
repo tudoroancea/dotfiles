@@ -1,0 +1,110 @@
+{
+  // Editor
+  "soft_wrap": "none",
+  "relative_line_numbers": true,
+  "inlay_hints": {
+    "enabled": true,
+    "show_type_hits": true,
+    "show_parameter_hints": true,
+    "show_other_hints": true
+  },
+  // Key map
+  "vim_mode": true,
+  "base_keymap": "VSCode",
+  // Color theme
+  "theme": {
+    "mode": "system",
+    "light": "Rosé Pine Dawn",
+    "dark": "Rosé Pine Moon"
+  },
+  "vim": {
+    "use_system_clipboard": "always",
+    "use_multiline_find": true,
+    "use_smartcase_find": true
+  },
+  // LSP
+  "enable_language_server": true,
+  "languages": {
+    "Python": {
+      "show_inline_completions": true,
+      "language_servers": [
+        "basedpyright",
+        "!pyright",
+        // "pyright",
+        "ruff"
+      ],
+      "format_on_save": "on",
+      "formatter": [
+        {
+          "code_actions": {
+            "source.organizeImports.ruff": false,
+            "source.fixAll.ruff": false
+          }
+        },
+        {
+          "language_server": {
+            "name": "ruff"
+          }
+        }
+      ]
+    },
+    "C": {
+      "format_on_save": "on"
+    }
+  },
+  "lsp": {
+    "pyright": {
+      "settings": {
+        "python.analysis": { "typeCheckingMode": "off" },
+        "python": {
+          "pythonPath": ".venv/bin/python"
+        }
+      }
+    },
+    "basedpyright": {
+      "settings": {
+        "python.analysis": { "typeCheckingMode": "off" },
+        "python": {
+          "pythonPath": ".venv/bin/python"
+        }
+      }
+    }
+  },
+  // AI
+  "features": {
+    "inline_completion_provider": "copilot"
+  },
+  "assistant": {
+    "default_model": {
+      "provider": "zed.dev",
+      "model": "claude-3-5-sonnet-latest"
+    },
+    "version": "2"
+  },
+  // Fonts
+  "buffer_font_size": 12,
+  "ui_font_size": 14,
+  "buffer_font_family": "GeistMono Nerd Font",
+  "ui_font_family": "GeistMono Nerd Font",
+  "terminal": {
+    "font_family": "GeistMono Nerd Font"
+  },
+  // Git
+  "git": {
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "enabled": true,
+      "delay_ms": 500
+    }
+  },
+  // Misc
+  "task": {
+    "show_status_indicator": true
+  },
+  "telemetry": {
+    "diagnostics": true,
+    "metrics": false
+  },
+  "auto_update": true,
+  "autosave": "on_focus_change"
+}

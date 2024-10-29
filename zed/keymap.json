@@ -1,0 +1,92 @@
+[
+  {
+    "bindings": {
+      "cmd-h": "pane::ActivatePrevItem",
+      "cmd-l": "pane::ActivateNextItem",
+      // "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
+      // "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
+      // "ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
+      // "ctrl-j": ["workspace::ActivatePaneInDirection", "Down"],
+      "ctrl-k": "menu::SelectPrev",
+      "ctrl-j": "menu::SelectNext",
+      "alt-g": ["task::Spawn", { "task_name": "lazygit" }],
+      "alt-shift-g": ["task::Rerun", { "task_name": "lazygit" }],
+      "cmd-shift-r": "workspace::Reload"
+    }
+  },
+  {
+    "context": "!menu", // || Terminal || Assistant || false",
+    "bindings": {
+      "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
+      "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
+      "ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
+      "ctrl-j": ["workspace::ActivatePaneInDirection", "Down"]
+    }
+  },
+  {
+    "context": "Editor && menu",
+    "bindings": {
+      "ctrl-k": "editor::ContextMenuPrev",
+      "ctrl-j": "editor::ContextMenuNext"
+    }
+  },
+  {
+    "context": "ProjectPanel && not_editing",
+    "bindings": {
+      "a": "project_panel::NewFile",
+      "A": "project_panel::NewDirectory",
+      "l": "project_panel::OpenPermanent",
+      "space o": "project_panel::ToggleFocus"
+    }
+  },
+  {
+    "context": "Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu",
+    "bindings": {
+      "space e": "workspace::ToggleLeftDock",
+      "space w": "workspace::Save",
+      "space W": "workspace::SaveWithoutFormat",
+      "space c": "pane::CloseActiveItem",
+      "space o": "project_panel::ToggleFocus",
+      "space /": "editor::ToggleComments",
+      "space f f": "file_finder::Toggle",
+      "space l f": "editor::Format",
+      "space t": "workspace::NewCenterTerminal",
+      "g r": "editor::FindAllReferences",
+      "space a e": "assistant::InlineAssist",
+      "space a a": "assistant::NewContext",
+      "space a t": "assistant::ToggleFocus"
+    }
+  },
+  {
+    "context": "Editor && vim_mode == normal && !VimWaiting && !menu",
+    "bindings": {
+      "down": ["workspace::SendKeystrokes", "4 j"],
+      "up": ["workspace::SendKeystrokes", "4 k"],
+      "g a": ["workspace::SendKeystrokes", "^ t ("],
+      "g (": ["workspace::SendKeystrokes", "^ t ("],
+      "g [": ["workspace::SendKeystrokes", "^ t ["],
+      "g {": ["workspace::SendKeystrokes", "^ t {"],
+      "space s j": "pane::SplitDown",
+      "space s k": "pane::SplitUp",
+      "space s h": "pane::SplitLeft",
+      "space s l": "pane::SplitRight",
+      "space s s": "pane::SplitHorizontal",
+      "space s v": "pane::SplitVertical"
+    }
+  },
+  {
+    "context": "Editor && inline_completion && !showing_completions",
+    "bindings": {
+      "tab": null,
+      "ctrl-l": "editor::AcceptInlineCompletion",
+      "ctrl-;": "editor::AcceptPartialInlineCompletion"
+    }
+  },
+  {
+    "context": "OutlinePanel",
+    "bindings": {
+      "space h": "outline_panel::CollapseSelectedEntry",
+      "space l": "outline_panel::ExpandSelectedEntry"
+    }
+  }
+]
