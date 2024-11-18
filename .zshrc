@@ -86,6 +86,7 @@ submodule_rm() {
 
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
+export UV_PYTHON=3.12
 
 tmux_pymanopt() {
   SESSION="pymanopt"

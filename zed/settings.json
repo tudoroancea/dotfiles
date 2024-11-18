@@ -8,6 +8,14 @@
     "show_parameter_hints": true,
     "show_other_hints": true
   },
+  "tab_bar": {
+    "show": true,
+    "show_nav_history_buttons": false
+  },
+  "toolbar": {
+    "breadcrumbs": true,
+    "quick_actions": true
+  },
   // Key map
   "vim_mode": true,
   "base_keymap": "VSCode",
@@ -26,7 +34,6 @@
   "enable_language_server": true,
   "languages": {
     "Python": {
-      "show_inline_completions": true,
       "language_servers": [
         "basedpyright",
         "!pyright",
@@ -71,23 +78,24 @@
     }
   },
   // AI
+  // "inline_completions": ,
   "features": {
-    "inline_completion_provider": "copilot"
+    "inline_completion_provider": "supermaven"
   },
   "assistant": {
     "default_model": {
-      "provider": "zed.dev",
-      "model": "claude-3-5-sonnet-latest"
+      "provider": "copilot_chat",
+      "model": "o1-mini"
     },
     "version": "2"
   },
   // Fonts
   "buffer_font_size": 12,
   "ui_font_size": 14,
-  "buffer_font_family": "GeistMono Nerd Font",
-  "ui_font_family": "GeistMono Nerd Font",
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "ui_font_family": "JetBrainsMono Nerd Font",
   "terminal": {
-    "font_family": "GeistMono Nerd Font"
+    "font_family": "JetBrainsMono Nerd Font"
   },
   // Git
   "git": {

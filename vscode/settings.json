@@ -51,7 +51,7 @@
                 "<C-l>"
             ],
             "commands": [
-                "editor.action.accessibleViewAcceptInlineCompletion"
+                "editor.action.inlineSuggest.commit"
             ]
         },
         {
@@ -226,7 +226,7 @@
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "off",
     "ruff.path": [
-        "/opt/homebrew/bin/ruff"
+        "/Users/tudoroancea/.local/bin/ruff"
     ],
     "ruff.enable": true,
     "ruff.organizeImports": true,
@@ -350,5 +350,12 @@
     },
     "continue.enableTabAutocomplete": true,
     "github.copilot.editor.enableAutoCompletions": true,
-    "workbench.colorTheme": "Rosé Pine Dawn"
+    "workbench.colorTheme": "Rosé Pine Dawn",
+    "terminal.integrated.commandsToSkipShell": [
+        "matlab.interrupt"
+    ],
+    "jupyter.widgetScriptSources": [
+        "jsdelivr.com",
+        "unpkg.com"
+    ]
 }

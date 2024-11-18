@@ -15,7 +15,7 @@
     }
   },
   {
-    "context": "!menu", // || Terminal || Assistant || false",
+    "context": "!Menu", // || Terminal || Assistant || false",
     "bindings": {
       "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
       "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
@@ -54,7 +54,8 @@
       "g r": "editor::FindAllReferences",
       "space a e": "assistant::InlineAssist",
       "space a a": "assistant::NewContext",
-      "space a t": "assistant::ToggleFocus"
+      "space a t": "assistant::ToggleFocus",
+      "space l s": "outline::Toggle"
     }
   },
   {
@@ -71,7 +72,8 @@
       "space s h": "pane::SplitLeft",
       "space s l": "pane::SplitRight",
       "space s s": "pane::SplitHorizontal",
-      "space s v": "pane::SplitVertical"
+      "space s v": "pane::SplitVertical",
+      "space l d": "editor::GoToDiagnostic"
     }
   },
   {
