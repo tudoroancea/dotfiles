@@ -6,15 +6,14 @@ return {
   lazy = false,
   version = false, -- set this if you want to always pull the latest change
   opts = {
-    provider = "openai",
+    provider = "claude",
     system_prompt = "You are a helpful assistant programmer with extensive knowledge in all languages and frameworks. You will answer questions to the point with as much code as possible and only the required explanations.",
+    claude = {
+      model = "claude-3-5-sonnet-latest",
+    },
     openai = {
-      endpoint = "https://api.openai.com/v1",
       model = "gpt-4o",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 4096,
-      ["local"] = false,
+      -- ["local"] = false,
     },
     mappings = {
       submit = {
