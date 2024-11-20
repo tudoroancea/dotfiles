@@ -1,33 +1,27 @@
 [
   {
     "bindings": {
-      "cmd-h": "pane::ActivatePrevItem",
-      "cmd-l": "pane::ActivateNextItem",
-      // "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
-      // "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
-      // "ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
-      // "ctrl-j": ["workspace::ActivatePaneInDirection", "Down"],
-      "ctrl-k": "menu::SelectPrev",
-      "ctrl-j": "menu::SelectNext",
       "alt-g": ["task::Spawn", { "task_name": "lazygit" }],
       "alt-shift-g": ["task::Rerun", { "task_name": "lazygit" }],
-      "cmd-shift-r": "workspace::Reload"
+      "cmd-shift-r": "workspace::Reload",
+      "cmd-h": "pane::ActivatePrevItem",
+      "cmd-l": "pane::ActivateNextItem"
     }
   },
   {
-    "context": "!Menu", // || Terminal || Assistant || false",
+    "context": "Picker > (Editor && mode == single_line)",
+    "bindings": {
+      "ctrl-k": "menu::SelectPrev",
+      "ctrl-j": "menu::SelectNext"
+    }
+  },
+  {
+    "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
     "bindings": {
       "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
       "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
       "ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
       "ctrl-j": ["workspace::ActivatePaneInDirection", "Down"]
-    }
-  },
-  {
-    "context": "Editor && menu",
-    "bindings": {
-      "ctrl-k": "editor::ContextMenuPrev",
-      "ctrl-j": "editor::ContextMenuNext"
     }
   },
   {
