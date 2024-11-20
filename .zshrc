@@ -12,6 +12,9 @@ compinit -C
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
+# source cargo installation (for uv)
+. "$HOME/.local/bin/env"
+
 # functions and aliases ====================================================
 # minimal list
 alias reloadzsh="source ~/.zshrc"
@@ -35,8 +38,6 @@ waw() {
 }
 alias rmr="rm -r"
 alias rmrf="rm -rf"
-alias zrc="$EDITOR ~/.zshrc"
-alias vimrc="$EDITOR ~/.vimrc"
 alias py="python3"
 alias pdb="python3 -m pdb"
 alias lg=lazygit
@@ -49,15 +50,6 @@ alias purge="./scripts/purge.sh"
 alias build="./scripts/build.sh"
 # alias test="./scripts/test.sh"
 alias env_update="./scripts/env_update.sh"
-
-# custom mkv
-# mkv () {
-# 	local name="${1:-venv}"
-# 	local venvpath="${name:P}"
-# 	uv venv "${name}" || return
-# 	echo "Created venv in '${venvpath}'" >&2
-# 	vrun "${name}"
-# }
 
 # advanced aliases
 alias fda='fd -u'
@@ -140,12 +132,6 @@ EOF
 	rm -r "$tmp"
 }
 
-# general shell config ================================================
-# rosetta terminal setup
-if [ $(arch) = "i386" ]; then
-    alias brew86="/usr/local/bin/brew"
-fi
-
 # homebrew config =====================================================
 eval "$(/opt/homebrew/bin/brew shellenv)"
 if type brew &>/dev/null
@@ -158,11 +144,11 @@ export PATH=/opt/homebrew:$PATH
 
 
 # brains config
-export BRAINS_ROOT_DIR="$HOME/brains"
-export BRAINS_EXTERNAL_ROOT_DIR="$HOME/brains_external"
-source $BRAINS_ROOT_DIR/aliases.sh
-source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
-export FSDS="$HOME/Formula-Student-Driverless-Simulator"
+# export BRAINS_ROOT_DIR="$HOME/brains"
+# export BRAINS_EXTERNAL_ROOT_DIR="$HOME/brains_external"
+# source $BRAINS_ROOT_DIR/aliases.sh
+# source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
+# export FSDS="$HOME/Formula-Student-Driverless-Simulator"
 
 # MOSEK path
 export PATH=/Users/tudoroancea/mosek/10.1/tools/platform/osxaarch64/bin:$PATH
@@ -203,7 +189,7 @@ export EDITOR="nvim"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
-VSCODE=code-insiders # vscode flavor used by oh my zsh plugin
+VSCODE=code # vscode flavor used by oh my zsh plugin
 export PYTHON_VENV_NAME=".venv" # customize the default venv name used by vrun
 
 # 0, 1 - Blinking block
@@ -237,15 +223,7 @@ source $ZSH/oh-my-zsh.sh
 eval "$(starship init zsh)"
 
 
-# source cargo installation
-. "$HOME/.cargo/env"
-
-# bun
-# export BUN_INSTALL="$HOME/.bun"
-# export PATH="$BUN_INSTALL/bin:$PATH"
-# bun completions
-# [ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
-
+# API keys for OpenAI and Anthropic
 . "$HOME/api_keys.sh"
 
 # run zsh profiling
