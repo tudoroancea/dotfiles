@@ -66,6 +66,10 @@ alias mup='mamba update'
 alias min='mamba install'
 alias miny='mamba install -y'
 alias mind='mamba install -d'
+
+
+alias bat='batcat --theme=ansi'
+
 alias up='uv pip'
 
 alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
@@ -143,7 +147,7 @@ export EDITOR="nvim"
 export ZSH="$HOME/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
-VSCODE=code # vscode flavor used by oh my zsh plugin
+# VSCODE=code # vscode flavor used by oh my zsh plugin
 export PYTHON_VENV_NAME=".venv" # customize the default venv name used by vrun
 
 # 0, 1 - Blinking block

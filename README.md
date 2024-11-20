@@ -7,6 +7,10 @@ and then follow the following steps to install the different components:
 
 ## zsh
 ```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+curl -sS https://starship.rs/install.sh | sh
 ln -s ~/dotfiles/.zshrc ~/.zshrc
 ```
 

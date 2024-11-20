@@ -1,3 +1,5 @@
+# import = ["~/.config/alacritty/rose-pine-moon.toml"]
+import = ["~/.config/alacritty/rose-pine-dawn.toml"]
 
 [cursor]
 thickness = 0.2
@@ -52,7 +54,3 @@ bindings = [
   { key = "H", mods = "Command", action = "None" },            # Disable hide window
   { key = "H", mods = "Command|Alt", action = "None" },        # Disable hide other windows 
 ]
-
-[general]
-# import = ["~/.config/alacritty/rose-pine-moon.toml"]
-import = ["~/.config/alacritty/rose-pine-dawn.toml"]
