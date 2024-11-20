@@ -1,7 +1,3 @@
-# remember to clone the themes repo with `git clone https://github.com/alacritty/alacritty-theme`
-# import = ["~/.config/alacritty/alacritty-theme/themes/dracula.toml"]
-# import = ["~/.config/alacritty/rose-pine-moon.toml"]
-import = ["~/.config/alacritty/rose-pine-dawn.toml"]
 
 [cursor]
 thickness = 0.2
@@ -31,11 +27,11 @@ family = "JetBrainsMono Nerd Font"
 [[hints.enabled]]
 command = "open"
 post_processing = true
+hyperlinks = true
 regex = "(ipfs:|ipns:|magnet:|mailto:|gemini:|gopher:|https:|http:|news:|file:|git:|ssh:|ftp:)[^\u0000-\u001F\u007F-<>\"\\s{-}\\^⟨⟩`]+"
-
-[hints.enabled.mouse]
-enabled = true
-mods = "Control"
+persist = false
+mouse.enabled = true
+binding = { key = "O", mods = "Control|Shift" }
 
 [selection]
 save_to_clipboard = true
@@ -56,3 +52,7 @@ bindings = [
   { key = "H", mods = "Command", action = "None" },            # Disable hide window
   { key = "H", mods = "Command|Alt", action = "None" },        # Disable hide other windows 
 ]
+
+[general]
+# import = ["~/.config/alacritty/rose-pine-moon.toml"]
+import = ["~/.config/alacritty/rose-pine-dawn.toml"]
