@@ -34,7 +34,15 @@
     }
   },
   {
-    "context": "Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu",
+    "context": "Editor && showing_completions",
+    "bindings": {
+      "ctrl-j": "editor::ContextMenuNext",
+      "ctrl-k": "editor::ContextMenuPrev"
+    }
+  },
+  {
+    // "context": "Pane > (Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu)",
+    "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
     "bindings": {
       "space e": "workspace::ToggleLeftDock",
       "space w": "workspace::Save",
@@ -76,13 +84,6 @@
       "tab": null,
       "ctrl-l": "editor::AcceptInlineCompletion",
       "ctrl-;": "editor::AcceptPartialInlineCompletion"
-    }
-  },
-  {
-    "context": "OutlinePanel",
-    "bindings": {
-      "space h": "outline_panel::CollapseSelectedEntry",
-      "space l": "outline_panel::ExpandSelectedEntry"
     }
   }
 ]
