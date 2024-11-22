@@ -34,14 +34,19 @@
     }
   },
   {
-    "context": "Editor && showing_completions",
+    "context": "Editor",
+    "bindings": {
+      "ctrl-space": "editor::ShowCompletions"
+    }
+  },
+  {
+    "context": "Editor && (showing_completions || showing_code_actions)",
     "bindings": {
       "ctrl-j": "editor::ContextMenuNext",
       "ctrl-k": "editor::ContextMenuPrev"
     }
   },
   {
-    // "context": "Pane > (Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu)",
     "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
     "bindings": {
       "space e": "workspace::ToggleLeftDock",
@@ -57,11 +62,13 @@
       "space a e": "assistant::InlineAssist",
       "space a a": "assistant::NewContext",
       "space a t": "assistant::ToggleFocus",
-      "space l s": "outline::Toggle"
+      "space l s": "outline::Toggle",
+      "space l d": "editor::GoToDiagnostic",
+      "space l r": "editor::Rename"
     }
   },
   {
-    "context": "Editor && vim_mode == normal && !VimWaiting && !menu",
+    "context": "Editor && VimControl && vim_mode == normal && !menu",
     "bindings": {
       "down": ["workspace::SendKeystrokes", "4 j"],
       "up": ["workspace::SendKeystrokes", "4 k"],
@@ -74,8 +81,13 @@
       "space s h": "pane::SplitLeft",
       "space s l": "pane::SplitRight",
       "space s s": "pane::SplitHorizontal",
-      "space s v": "pane::SplitVertical",
-      "space l d": "editor::GoToDiagnostic"
+      "space s v": "pane::SplitVertical"
+    }
+  },
+  {
+    "context": "Editor && VimControl && vim_mode == insert && !menu",
+    "bindings": {
+      "ctrl-p": ["workspace::SendKeystrokes", "right"]
     }
   },
   {
