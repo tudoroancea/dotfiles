@@ -34,7 +34,7 @@ disabled = true
 disabled = false
 
 [conda]
-disabled = true
+disabled = false
 
 [cmake]
 disabled = true
