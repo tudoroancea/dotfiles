@@ -19,9 +19,9 @@
     "editor.hideCursorInOverviewRuler": true, // don't highlight current line in scrollbar
     "editor.minimap.autohide": true, // shows minimap only on hoverworkbench.editor.editorActionsLocation": "hidden", // hides the "format" and ellipsis buttons on the top right of the window
     // fonts
-    "editor.fontFamily": "JetBrains Mono, Menlo, Monaco, 'Courier New', monospace",
-    "apc.font.family": "JetBrains Mono", // apply font to ALL the UI, requires APC extension
-    "terminal.integrated.fontFamily": "JetBrains Mono",
+    "editor.fontFamily": "JetBrainsMono Nerd Font",
+    "apc.font.family": "JetBrainsMono NerdFont", // apply font to ALL the UI, requires APC extension
+    "terminal.integrated.fontFamily": "JetBrainsMono NerdFont",
     "editor.fontLigatures": true,
     "editor.fontSize": 12,
     // cursor
@@ -206,25 +206,19 @@
     "gitlens.graph.minimap.enabled": false,
     "gitlens.graph.statusBar.enabled": true,
     "gitlens.telemetry.enabled": false,
-    "scm.experimental.showHistoryGraph": true,
     // ======== Languages ========================
-    // zig
-    "zig.initialSetupDone": true,
-    "zig.path": "",
-    "zig.zls.path": "/Users/tudoroancea/Library/Application Support/Code - Insiders/User/globalStorage/ziglang.vscode-zig/zls_install/zls",
-    "zig.zls.warnStyle": true,
     // python
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
-        "editor.formatOnSaveMode": "file",
+        "editor.formatOnSaveMode": "modifications",
         "editor.codeActionsOnSave": {
             "source.organizeImports": "explicit",
         }
     },
-    "python.defaultInterpreterPath": "/Users/tudoroancea/miniforge3/envs/gsp",
-    "python.analysis.autoImportCompletions": true,
-    "python.analysis.typeCheckingMode": "off",
+    "basedpyright.analysis.autoImportCompletions": true,
+    "basedpyright.analysis.diagnosticMode": "openFilesOnly",
+    "basedpyright.analysis.typeCheckingMode": "off",
     "ruff.path": [
         "/Users/tudoroancea/.local/bin/ruff"
     ],
@@ -285,17 +279,19 @@
         },
     },
     // typst
-    "typst-lsp.experimentalFormatterMode": "on",
-    "typst-lsp.semanticTokens": "enable",
-    "typst-lsp.exportPdf": "onSave",
-    "typst-lsp.trace.server": "messages",
+    "tinymist.semanticTokens": "enable",
+    "tinymist.exportPdf": "onSave",
+    "tinymist.trace.server": "messages",
+    "tinymist.formatterMode": "typstfmt",
+    "[typst-code]": {
+        "editor.formatOnSave": true,
+    },
     // ======= meta =========
     "workbench.settings.editor": "json",
     "workbench.startupEditor": "none",
     "telemetry.telemetryLevel": "off",
     "dotnetAcquisitionExtension.enableTelemetry": false,
     "update.mode": "manual",
-    "vsicons.dontShowNewVersionMessage": true,
     "debug.onTaskErrors": "abort",
     "debug.toolBarLocation": "docked",
     "editor.accessibilitySupport": "off",
@@ -330,16 +326,12 @@
             "level": "off"
         }
     },
-    "terminal.external.osxExec": "Warp.app",
+    "terminal.external.osxExec": "Alacritty.app",
     "terminal.integrated.inheritEnv": false,
     "diffEditor.hideUnchangedRegions.enabled": true,
     "diffEditor.ignoreTrimWhitespace": false,
-    "[typst]": {
-        "editor.defaultFormatter": "nvarner.typst-lsp"
-    },
     "cSpell.enabled": true,
     "cmake.showOptionsMovedNotification": false,
-    "workbench.sideBar.location": "right",
     "supermaven.allowGitignore": true,
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
@@ -348,8 +340,13 @@
     "supermaven.enable": {
         "*": true
     },
-    "continue.enableTabAutocomplete": true,
-    "github.copilot.editor.enableAutoCompletions": true,
+    "github.copilot.editor.enableAutoCompletions": false,
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
     "workbench.colorTheme": "Rosé Pine Dawn",
     "terminal.integrated.commandsToSkipShell": [
         "matlab.interrupt"
