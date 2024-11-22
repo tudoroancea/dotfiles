@@ -88,3 +88,6 @@ and on Linux:
 ```shell
 ln -s ~/dotfiles/lazygit/config.yml ~/.config/lazygit/config.yml
 ```
+
+# SSH configuration on Linux
+see the following [tutorial](https://hostman.com/tutorials/how-to-install-and-configure-ssh-on-ubuntu-22-04/)
