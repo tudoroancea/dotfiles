@@ -70,9 +70,9 @@
             }
         },
         "basedpyright": {
-            "binary": {
-                "path": ".venv/bin/basedpyright"
-            },
+            // "binary": {
+            //     "path": ".venv/bin/basedpyright"
+            // },
             "settings": {
                 "python.analysis": { "typeCheckingMode": "off" },
                 "python": {
