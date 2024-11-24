@@ -1,6 +1,23 @@
 {
     // Editor
-    "tab_size": 4,
+    // "tab_size": 4,
+    "ssh_connections": [
+    {
+      "host": "thebeauty",
+      "projects": [
+        {
+          "paths": [
+            "~/dev/tadam"
+          ]
+        },
+        {
+          "paths": [
+            "~/dev/tinygrad"
+          ]
+        }
+      ]
+    }
+  ],
     "soft_wrap": "none",
     "relative_line_numbers": true,
     "inlay_hints": {
