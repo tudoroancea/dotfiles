@@ -3,8 +3,8 @@ return {
   "yetone/avante.nvim",
   event = "VeryLazy",
   enabled = true,
-  lazy = false,
-  version = false, -- set this if you want to always pull the latest change
+  lazy = true,
+  version = "*",
   opts = {
     provider = "claude",
     system_prompt = "You are a helpful assistant programmer with extensive knowledge in all languages and frameworks. You will answer questions to the point with as much code as possible and only the required explanations.",
@@ -20,6 +20,9 @@ return {
         insert = "<C-CR>",
       },
     },
+  },
+  keys = {
+    -- { "<leader>a", desc = "avante" },
   },
   -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
   build = "make",

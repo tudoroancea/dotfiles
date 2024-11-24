@@ -6,6 +6,7 @@
 ---@type LazySpec
 return {
   "AstroNvim/astrocore",
+  version = "*",
   ---@type AstroCoreOpts
   opts = {
     autocmds = {
@@ -43,6 +44,8 @@ return {
     -- vim options can be configured here
     options = {
       opt = { -- vim.opt.<key>
+        -- showtabline = 0,
+        laststatus = 0,
         relativenumber = true, -- sets vim.opt.relativenumber
         number = true, -- sets vim.opt.number
         spell = false, -- sets vim.opt.spell
@@ -118,8 +121,10 @@ return {
           end,
           desc = "Pick to close",
         },
+
         -- tables with just a `desc` key will be registered with which-key if it's installed
         -- this is useful for naming menus
+        ["<leader>a"] = { desc = "avante" },
         ["<Leader>b"] = { desc = "Buffers" },
 
         -- save without formatting

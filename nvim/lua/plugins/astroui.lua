@@ -6,10 +6,10 @@
 ---@type LazySpec
 return {
   "AstroNvim/astroui",
+  version = "*",
   ---@type AstroUIOpts
   opts = {
     -- change colorscheme
-    -- colorscheme = "dracula",
     colorscheme = "rose-pine-dawn",
     -- AstroUI allows you to easily modify highlight groups easily for any and all colorschemes
     highlights = {

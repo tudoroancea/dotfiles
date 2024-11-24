@@ -1,6 +1,7 @@
 return {
   "supermaven-inc/supermaven-nvim",
   enabled = true,
+  version = "*",
   config = function()
     require("supermaven-nvim").setup {
       keymaps = {

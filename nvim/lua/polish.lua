@@ -18,3 +18,5 @@ require("notify").setup {
   background_colour = "#1a1b26",
 }
 vim.g.transparent_groups = vim.list_extend(vim.g.transparent_groups or {}, { "NormalFloat", "TabLine" })
+-- vim.opt.laststatus = 2
+-- vim.opt.showtabline = 2
