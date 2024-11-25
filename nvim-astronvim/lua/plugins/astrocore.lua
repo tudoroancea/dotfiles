@@ -45,7 +45,7 @@ return {
     options = {
       opt = { -- vim.opt.<key>
         -- showtabline = 0,
-        laststatus = 0,
+        -- laststatus = 0,
         relativenumber = true, -- sets vim.opt.relativenumber
         number = true, -- sets vim.opt.number
         spell = false, -- sets vim.opt.spell
