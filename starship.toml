@@ -11,7 +11,6 @@ truncation_symbol = "…/"
 
 [line_break]
 disabled = false
-
 [git_status]
 untracked = "🤷"
 stashed = "📦"
