@@ -37,6 +37,7 @@ return {
   },
   { -- Neo-tree
     'nvim-neo-tree/neo-tree.nvim',
+    enabled = false,
     version = '*',
     dependencies = {
       'nvim-lua/plenary.nvim',
@@ -169,7 +170,8 @@ return {
     lazy = false,
     config = function()
       require('mini.notify').setup() -- notifications
-      require('mini.files').setup() -- neo-tree equivalent
+      require('mini.files').setup { windows = { preview = true }, mappings = { close = '<esc>' } } -- neo-tree equivalent
+
       local kwoht = [[
     █████                                                                        █████       ███
    ░░███                                                                        ░░███       ░░░
@@ -210,7 +212,20 @@ return {
       end
     end,
     keys = {
-      { '<leader>h', '<cmd>MiniStarter<cr>', desc = '[H]elp' },
+      {
+        '<leader>h',
+        function()
+          require('mini.starter').open()
+        end,
+        desc = '[H]ome',
+      },
+      {
+        '<leader>e',
+        function()
+          require('mini.files').open()
+        end,
+        desc = 'Files',
+      },
     },
   },
   { -- auto dark mode

@@ -3,6 +3,12 @@ return {
   version = "*",
   opts = {
     filesystem = {
+      window = {
+        mappings = {
+          ["<C-J>"] = "move_cursor_down",
+          ["<C-K>"] = "move_cursor_up",
+        },
+      },
       filtered_items = {
         visible = true,
         show_hidden_count = true,
