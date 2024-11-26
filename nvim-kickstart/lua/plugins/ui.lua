@@ -35,7 +35,7 @@ return {
     },
     ft = { 'markdown' },
   },
-  {
+  { -- Neo-tree
     'nvim-neo-tree/neo-tree.nvim',
     version = '*',
     dependencies = {
@@ -47,6 +47,10 @@ return {
       window = {
         mappings = {
           ['\\'] = 'close_window',
+          -- ['<C-J>'] = 'move_cursor_down',
+          -- ['<C-K>'] = 'move_cursor_up',
+          ['<C-H>'] = 'toggle_dotfiles',
+          ['l'] = 'open',
         },
       },
       filesystem = {
@@ -64,31 +68,8 @@ return {
       },
     },
     keys = {
-      { '<leader>e', ':Neotree reveal<cr>', desc = 'NeoTree reveal', silent = true },
-      -- { '<leader>o', ':Neotree reveal<cr>', desc = 'NeoTree reveal' },
-    },
-  },
-  {
-    'nvim-neo-tree/neo-tree.nvim',
-    version = '*',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-    opts = {
-      filesystem = {
-        filtered_items = {
-          visible = true,
-          show_hidden_count = true,
-          hide_dotfiles = false,
-          hide_gitignored = true,
-          hide_by_name = {
-            '.git',
-            '.DS_Store',
-          },
-          never_show = {},
-        },
-      },
-    },
-    keys = {
-      { '<leader>e', '<cmd>Neotree toggle<cr>', desc = 'NeoTree' },
+      { '<leader>e', ':Neotree toggle<cr>', desc = 'NeoTree toggle', silent = true },
+      { '<leader>o', ':Neotree focus<cr>', desc = 'NeoTree focus', silent = true },
     },
   },
   --- Nice UI elements
@@ -175,12 +156,10 @@ return {
       },
       spec = {
         { '<leader>a', group = '[A]vante' },
-        { '<leader>d', group = '[D]ocument' },
-        { '<leader>r', group = '[R]ename' },
+        { '<leader>l', group = '[L]SP' },
         { '<leader>s', group = '[S]earch' },
-        { '<leader>w', group = '[W]orkspace' },
-        { '<leader>t', group = '[T]oggle' },
         { '<leader>g', group = '[G]it' },
+        { '<leader>p', group = '[P]lugins' },
       },
     },
   },

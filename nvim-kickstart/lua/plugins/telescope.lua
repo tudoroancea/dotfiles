@@ -45,15 +45,25 @@ return { -- Fuzzy Finder (files, lsp, etc)
 
     -- [[ Configure Telescope ]]
     -- See `:help telescope` and `:help telescope.setup()`
-    require('telescope').setup {
+    local telescope = require 'telescope'
+    telescope.setup {
       -- You can put your default mappings / updates / etc. in here
       --  All the info you're looking for is in `:help telescope.setup()`
       --
-      -- defaults = {
-      --   mappings = {
-      --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-      --   },
-      -- },
+      defaults = {
+        mappings = {
+          i = {
+            ['<c-enter>'] = 'to_fuzzy_refine',
+            ['<C-J>'] = require('telescope.actions').move_selection_next,
+            ['<C-K>'] = require('telescope.actions').move_selection_previous,
+          },
+        },
+        pickers = {
+          find_files = {
+            find_command = { 'fd', '--hidden', '--glob', '' },
+          },
+        },
+      },
       -- pickers = {}
       extensions = {
         ['ui-select'] = {
@@ -103,4 +113,8 @@ return { -- Fuzzy Finder (files, lsp, etc)
       builtin.find_files { cwd = vim.fn.stdpath 'config' }
     end, { desc = '[S]earch [N]eovim files' })
   end,
+  keys = {
+    { '<leader>gb', require('telescope.builtin').git_branches, desc = '[G]it [B]ranches' },
+    { '<leader>gc', require('telescope.builtin').git_commits, desc = '[G]it [C]ommits' },
+  },
 }

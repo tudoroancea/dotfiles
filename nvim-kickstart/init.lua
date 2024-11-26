@@ -75,12 +75,10 @@ vim.opt.scrolloff = 5
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
--- Save, close, quit
+-- Save and quit
 vim.keymap.set('n', '<leader>w', ':w<cr>', { desc = 'Save file' })
 vim.keymap.set('n', '<leader>q', ':confirm q<cr>', { desc = 'Quit window' })
 vim.keymap.set('n', '<leader>Q', ':confirm qall<cr>', { desc = 'Quit Nvim' })
-vim.keymap.set('n', '<leader>c', ':Tabclose<cr>', { desc = 'Close tab' })
-vim.keymap.set('n', '<leader>C', ':Tabclose!<cr>', { desc = 'Close tab !' })
 
 -- Diagnostic keymaps
 -- vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -120,6 +118,7 @@ vim.keymap.set('n', 'g[', '0t[', { desc = '[G]o to first [[]' })
 vim.keymap.set('n', 'g{', '0t{', { desc = '[G]o to first [{]' })
 vim.keymap.set('n', 'gf', '0%%', { desc = '[G]o to first [{([]' })
 
+-- Comments
 vim.keymap.set('n', '<leader>/', 'gcc', { remap = true, desc = '[C]omment line' })
 vim.keymap.set('x', '<leader>/', 'gc', { remap = true, desc = '[C]omment' })
 
@@ -174,6 +173,42 @@ require('lazy').setup({
     },
   },
 })
+
+-- Lazy keymaps
+vim.keymap.set('n', '<leader>ps', ':Lazy<cr>', { desc = 'Lazy status' })
+vim.keymap.set('n', '<leader>pS', ':Lazy sync<cr>', { desc = 'Lazy sync' })
+vim.keymap.set('n', '<leader>pu', ':Lazy update<cr>', { desc = 'Lazy update' })
+vim.keymap.set('n', '<leader>pi', ':Lazy install<cr>', { desc = 'Lazy install' })
+vim.keymap.set('n', '<leader>pm', ':Mason<cr>', { desc = 'Mason' })
+
+-- Close buffer
+vim.keymap.set('n', '<leader>c', function()
+  local force = true
+  if not force and vim.bo[0].modified then
+    local bufname = vim.fn.expand '%'
+    local empty = bufname == ''
+    if empty then
+      bufname = 'Untitled'
+    end
+    local confirm = vim.fn.confirm(('Save changes to "%s"?'):format(bufname), '&Yes\n&No\n&Cancel', 1, 'Question')
+    if confirm == 1 then
+      if empty then
+        return
+      end
+      vim.cmd.write()
+    elseif confirm == 2 then
+      force = true
+    else
+      return
+    end
+  end
+  require('mini.bufremove').delete(0, true)
+  -- if there are no buffers left, open starter
+  local bufs = vim.fn.getbufinfo { buflisted = true }
+  if not bufs[2] then
+    require('mini.starter').open()
+  end
+end, { desc = '[C]lose buffer' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
