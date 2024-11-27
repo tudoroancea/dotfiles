@@ -10,7 +10,6 @@ return {
         "lua_ls",
         "clangd",
         "basedpyright",
-        "yaml-language-server",
       })
     end,
   },

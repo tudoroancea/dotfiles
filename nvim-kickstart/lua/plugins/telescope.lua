@@ -46,16 +46,49 @@ return { -- Fuzzy Finder (files, lsp, etc)
     -- [[ Configure Telescope ]]
     -- See `:help telescope` and `:help telescope.setup()`
     local telescope = require 'telescope'
+    local actions = require 'telescope.actions'
+    local function open_selected(prompt_bufnr)
+      local picker = require('telescope.actions.state').get_current_picker(prompt_bufnr)
+      local selected = picker:get_multi_selection()
+      if vim.tbl_isempty(selected) then
+        actions.select_default(prompt_bufnr)
+      else
+        actions.close(prompt_bufnr)
+        for _, file in pairs(selected) do
+          if file.path then
+            vim.cmd('edit' .. (file.lnum and ' +' .. file.lnum or '') .. ' ' .. file.path)
+          end
+        end
+      end
+    end
+    local function open_all(prompt_bufnr)
+      actions.select_all(prompt_bufnr)
+      open_selected(prompt_bufnr)
+    end
     telescope.setup {
       -- You can put your default mappings / updates / etc. in here
       --  All the info you're looking for is in `:help telescope.setup()`
-      --
       defaults = {
+        sorting_strategy = 'ascending',
+        layout_config = {
+          horizontal = { prompt_position = 'top', preview_width = 0.55 },
+          vertical = { mirror = false },
+          width = 0.87,
+          height = 0.80,
+          preview_cutoff = 120,
+        },
         mappings = {
           i = {
             ['<c-enter>'] = 'to_fuzzy_refine',
-            ['<C-J>'] = require('telescope.actions').move_selection_next,
-            ['<C-K>'] = require('telescope.actions').move_selection_previous,
+            ['<C-J>'] = actions.move_selection_next,
+            ['<C-K>'] = actions.move_selection_previous,
+            ['<CR>'] = open_selected,
+            ['<M-CR>'] = open_all,
+          },
+          n = {
+            q = actions.close,
+            ['<CR>'] = open_selected,
+            ['<M-CR>'] = open_all,
           },
         },
         pickers = {
@@ -64,7 +97,6 @@ return { -- Fuzzy Finder (files, lsp, etc)
           },
         },
       },
-      -- pickers = {}
       extensions = {
         ['ui-select'] = {
           require('telescope.themes').get_dropdown(),

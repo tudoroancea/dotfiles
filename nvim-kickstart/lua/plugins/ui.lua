@@ -1,22 +1,5 @@
 ---@class LazySpec
 return {
-  -- { -- You can easily change to a different colorscheme.
-  --     -- Change the name of the colorscheme plugin below, and then
-  --     -- change the command in the config to whatever the name of that colorscheme is.
-  --     --
-  --     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  --     'folke/tokyonight.nvim',
-  --     priority = 1000, -- Make sure to load this before all the other start plugins.
-  --     init = function()
-  --         -- Load the colorscheme here.
-  --         -- Like many other themes, this one has different styles, and you could load
-  --         -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  --         vim.cmd.colorscheme 'tokyonight-night'
-
-  --         -- You can configure highlights by doing something like:
-  --         vim.cmd.hi 'Comment gui=none'
-  --     end,
-  -- },
   {
     'rose-pine/neovim',
     name = 'rose-pine',
@@ -25,7 +8,7 @@ return {
     init = function()
       vim.cmd.colorscheme 'rose-pine'
       -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
+      -- vim.cmd.hi 'Comment gui=none'
     end,
   },
   { -- Make sure to set this up properly if you have lazy=true
@@ -78,13 +61,17 @@ return {
   {
     'folke/noice.nvim',
     version = '*',
+    dependencies = { 'hrsh7th/nvim-cmp' },
     opts = {
+      notify = {
+        enabled = false,
+      },
       lsp = {
         -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
         override = {
           ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
           ['vim.lsp.util.stylize_markdown'] = true,
-          -- ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+          ['cmp.entry.get_documentation'] = true, -- requires hrsh7th/nvim-cmp
         },
         signature = {
           enabled = false,
@@ -109,12 +96,14 @@ return {
       -- your configuration comes here
       -- or leave it empty to use the default settings
       -- refer to the configuration section below
-      signs = false,
+      -- NOTE
+      signs = true,
     },
   },
   { -- Keymap hints
     'folke/which-key.nvim',
     event = 'VimEnter',
+    -- enabled = false,
     lazy = false,
     version = '*',
     opts = {
@@ -164,14 +153,125 @@ return {
       },
     },
   },
-  { -- mini.nvim
-    'echasnovski/mini.nvim',
-    version = '*',
+  { -- notifications for errors, warnings, info, debug, and lsp
+    'echasnovski/mini.notify',
+    event = 'VeryLazy',
+    lazy = true,
+    config = function()
+      require('mini.notify').setup()
+      vim.notify = require('mini.notify').make_notify()
+    end,
+    keys = {
+      { '<leader>nh', require('mini.notify').show_history, desc = '[N]otifications' },
+    },
+  },
+  { -- indent scope hints
+    'echasnovski/mini.indentscope',
+    event = 'VeryLazy',
+    lazy = true,
+    config = function()
+      local indentscope = require 'mini.indentscope'
+      indentscope.setup { draw = { delay = 0, animation = indentscope.gen_animation.none() } }
+    end,
+  },
+  { -- mini.files
+    'echasnovski/mini.files',
+    event = 'VeryLazy',
+    lazy = true,
+    opts = { windows = { preview = true }, mappings = { close = '<esc>' } },
+    -- config = function()
+    --   local minifile = require 'mini.file'
+    --   minifile.setup {
+    --     -- default options
+    --     -- see `:h mini.file` for more details
+    --     default_options = {
+    --       -- the default width of the floating window
+    --       width = 0.8,
+    --       -- the default height of the floating window
+    --       height = 0.8,
+    --       -- the default border style of the floating window
+    --       border = 'rounded',
+    --       -- the default border highlight group of the floating window
+    --       border_hl = 'FloatBorder',
+    --       -- the default mapping of the floating window
+    --       mapping = '<CR>',
+    --       -- the default action of the floating window
+    --       action = 'edit',
+    --       -- the default autoclose of the floating window
+    --       autoclose = true,
+    --       -- the default autohide of the floating window
+    --       autohide = true,
+    --     },
+    --   }
+    -- end,
+    keys = {
+      { '<leader>f', require('mini.files').open, desc = '[F}ile explorer' },
+    },
+  },
+  { -- mini.clue
+    'echasnovski/mini.clue',
+    enabled = false,
     lazy = false,
     config = function()
-      require('mini.notify').setup() -- notifications
-      require('mini.files').setup { windows = { preview = true }, mappings = { close = '<esc>' } } -- neo-tree equivalent
+      local miniclue = require 'mini.clue'
+      miniclue.setup {
+        window = {
+          delay = 100,
+        },
+        triggers = {
+          -- Leader triggers
+          { mode = 'n', keys = '<Leader>' },
+          { mode = 'x', keys = '<Leader>' },
 
+          -- Built-in completion
+          -- { mode = 'i', keys = '<C-x>' },
+
+          -- `g` key
+          { mode = 'n', keys = 'g' },
+          { mode = 'x', keys = 'g' },
+
+          -- Marks
+          { mode = 'n', keys = "'" },
+          { mode = 'n', keys = '`' },
+          { mode = 'x', keys = "'" },
+          { mode = 'x', keys = '`' },
+
+          -- Registers
+          { mode = 'n', keys = '"' },
+          { mode = 'x', keys = '"' },
+          { mode = 'i', keys = '<C-r>' },
+          { mode = 'c', keys = '<C-r>' },
+
+          -- Window commands
+          { mode = 'n', keys = '<C-w>' },
+
+          -- `z` key
+          { mode = 'n', keys = 'z' },
+          { mode = 'x', keys = 'z' },
+        },
+
+        clues = {
+          -- Enhance this by adding descriptions for <Leader> mapping groups
+          miniclue.gen_clues.builtin_completion(),
+          miniclue.gen_clues.g(),
+          miniclue.gen_clues.marks(),
+          miniclue.gen_clues.registers(),
+          miniclue.gen_clues.windows(),
+          miniclue.gen_clues.z(),
+          { mode = { 'n', 'x' }, key = '<leader>h', action = 'MiniClue' },
+          { mode = { 'n', 'x' }, keys = '<leader>a', desc = '[A]vante' },
+          { mode = { 'n', 'x' }, keys = '<leader>l', desc = '[L]SP' },
+          { mode = { 'n', 'x' }, keys = '<leader>s', desc = '[S]earch' },
+          { mode = { 'n', 'x' }, keys = '<leader>g', desc = '[G]it' },
+          { mode = { 'n', 'x' }, keys = '<leader>p', desc = '[P]lugins' },
+        },
+      }
+    end,
+  },
+  { -- mini.starter
+    'echasnovski/mini.starter',
+    lazy = false,
+    config = function()
       local kwoht = [[
     █████                                                                        █████       ███
    ░░███                                                                        ░░███       ░░░
@@ -194,13 +294,24 @@ return {
                                                                                                         ░░██████
                                                                                                          ░░░░░░
                                            ]]
-      require('mini.starter').setup { header = kwoht } -- dashboard
-      require('mini.tabline').setup() -- tabline
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
+      require('mini.starter').setup { header = kwoht }
+    end,
+    keys = {
+      { '<leader>h', require('mini.starter').open, desc = '[H]ome' },
+    },
+  },
+  { -- tab line
+    'echasnovski/mini.tabline',
+    lazy = false,
+    opts = {
+      use_icons = vim.g.have_nerd_font,
+    },
+  },
+  { -- status line
+    'echasnovski/mini.statusline',
+    lazy = false,
+    config = function()
       local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
       statusline.setup { use_icons = vim.g.have_nerd_font }
 
       -- You can configure sections in the statusline by overriding their
@@ -211,22 +322,6 @@ return {
         return '%2l:%-2v'
       end
     end,
-    keys = {
-      {
-        '<leader>h',
-        function()
-          require('mini.starter').open()
-        end,
-        desc = '[H]ome',
-      },
-      {
-        '<leader>e',
-        function()
-          require('mini.files').open()
-        end,
-        desc = 'Files',
-      },
-    },
   },
   { -- auto dark mode
     'f-person/auto-dark-mode.nvim',

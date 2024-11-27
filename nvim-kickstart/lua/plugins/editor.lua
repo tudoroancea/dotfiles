@@ -1,20 +1,62 @@
 ---@class LazySpec
 return {
-  -- Detect tabstop and shiftwidth automatically
-  'tpope/vim-sleuth',
-  { -- Collection of various small independent plugins/modules
-    'echasnovski/mini.nvim',
-    version = '*',
-    lazy = false,
+  { -- Automatically add closing quotes, parenthesis, brackets, etc.
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    -- Optional dependency
+    dependencies = { 'hrsh7th/nvim-cmp' },
     config = function()
-      require('mini.ai').setup { n_lines = 500 }
-      require('mini.surround').setup()
-      require('mini.pairs').setup()
-      require('mini.comment').setup()
-      local bufremove = require 'mini.bufremove'
-      bufremove.setup()
+      local autopairs = require 'nvim-autopairs'
+      autopairs.setup {
+        check_ts = true,
+        ts_config = { java = false },
+        fast_wrap = {
+          map = '<M-e>',
+          chars = { '{', '[', '(', '"', "'" },
+          pattern = ([[ [%'%"%)%>%]%)%}%,] ]]):gsub('%s+', ''),
+          offset = 0,
+          end_key = '$',
+          keys = 'qwertyuiopzxcvbnmasdfghjkl',
+          check_comma = true,
+          highlight = 'PmenuSel',
+          highlight_grey = 'LineNr',
+        },
+      }
+      -- If you want to automatically add `(` after selecting a function or method
+      local cmp_autopairs = require 'nvim-autopairs.completion.cmp'
+      local cmp = require 'cmp'
+      cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+      -- add more custom autopairs configuration such as custom rules
+      local Rule = require 'nvim-autopairs.rule'
+      local cond = require 'nvim-autopairs.conds'
+      autopairs.add_rules(
+        {
+          Rule('$', '$', { 'tex', 'latex', 'typ', 'typst', 'markdown' })
+            -- don't add a pair if the next character is %
+            :with_pair(cond.not_after_regex '%%')
+            -- don't add a pair if  the previous character is xxx
+            :with_pair(cond.not_before_regex('xxx', 3))
+            -- don't move right when repeat character
+            :with_move(cond.none())
+            -- don't delete if the next character is xx
+            :with_del(cond.not_after_regex 'xx')
+            -- disable adding a newline when you press <cr>
+            :with_cr(cond.none()),
+        },
+        -- disable for .vim files, but it work for another filetypes
+        Rule('a', 'a', '-vim')
+      )
     end,
   },
+  -- Detect tabstop and shiftwidth automatically
+  'tpope/vim-sleuth',
+  -- Collection of various small independent plugins/modules
+  { 'echasnovski/mini.nvim', lazy = false },
+  { 'echasnovski/mini.ai', lazy = false, opts = { n_lines = 500 } },
+  { 'echasnovski/mini.surround', lazy = false },
+  { 'echasnovski/mini.pairs', lazy = false },
+  { 'echasnovski/mini.comment', lazy = false },
+  { 'echasnovski/mini.bufremove', lazy = false },
   { -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
@@ -55,7 +97,6 @@ return {
       },
     },
   },
-
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',
@@ -111,7 +152,7 @@ return {
           },
           { name = 'nvim_lsp' },
           { name = 'path' },
-          { name = 'supermaven' },
+          -- { name = 'supermaven' },
         },
       }
     end,

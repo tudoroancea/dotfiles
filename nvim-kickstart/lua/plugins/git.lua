@@ -1,29 +1,22 @@
 return {
-    {
-        "echasnovski/mini.nvim",
-        version = "*",
-        lazy = false,
-        config = function()
-            require('mini.git').setup()
-            require('mini.diff').setup()
-        end,
+  { 'echasnovski/mini-git', lazy = false },
+  { 'echasnovski/mini.diff', lazy = false },
+  {
+    'kdheepak/lazygit.nvim',
+    lazy = true,
+    cmd = {
+      'LazyGit',
+      'LazyGitConfig',
+      'LazyGitCurrentFile',
+      'LazyGitFilter',
+      'LazyGitFilterCurrentFile',
     },
-    {
-        "kdheepak/lazygit.nvim",
-        lazy = true,
-        cmd = {
-            "LazyGit",
-            "LazyGitConfig",
-            "LazyGitCurrentFile",
-            "LazyGitFilter",
-            "LazyGitFilterCurrentFile",
-        },
-        -- optional for floating window border decoration
-        dependencies = { "nvim-lua/plenary.nvim" },
-        -- setting the keybinding for LazyGit with 'keys' is recommended in
-        -- order to load the plugin when the command is run for the first time
-        keys = {
-            { "<leader>gg", ":LazyGit<cr>", desc = "LazyGit" }
-        }
-    }
+    -- optional for floating window border decoration
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    -- setting the keybinding for LazyGit with 'keys' is recommended in
+    -- order to load the plugin when the command is run for the first time
+    keys = {
+      { '<leader>gg', ':LazyGit<cr>', desc = 'LazyGit' },
+    },
+  },
 }
