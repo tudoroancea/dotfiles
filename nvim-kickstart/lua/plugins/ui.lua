@@ -20,7 +20,6 @@ return {
   },
   { -- Neo-tree
     'nvim-neo-tree/neo-tree.nvim',
-    enabled = false,
     version = '*',
     dependencies = {
       'nvim-lua/plenary.nvim',
@@ -52,7 +51,7 @@ return {
       },
     },
     keys = {
-      { '<leader>e', ':Neotree toggle<cr>', desc = 'NeoTree toggle', silent = true },
+      { '<leader>f', ':Neotree toggle<cr>', desc = 'NeoTree toggle', silent = true },
       { '<leader>o', ':Neotree focus<cr>', desc = 'NeoTree focus', silent = true },
     },
   },
@@ -153,6 +152,22 @@ return {
       },
     },
   },
+  {
+    'echasnovski/mini.hipatterns',
+    lazy = false,
+    opts = {
+      highlighters = {
+        -- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
+        fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
+        hack = { pattern = '%f[%w]()HACK()%f[%W]', group = 'MiniHipatternsHack' },
+        todo = { pattern = '%f[%w]()TODO()%f[%W]', group = 'MiniHipatternsTodo' },
+        note = { pattern = '%f[%w]()NOTE()%f[%W]', group = 'MiniHipatternsNote' },
+
+        -- Highlight hex color strings (`#rrggbb`) using that color
+        hex_color = require('mini.hipatterns').gen_highlighter.hex_color(),
+      },
+    },
+  },
   { -- notifications for errors, warnings, info, debug, and lsp
     'echasnovski/mini.notify',
     event = 'VeryLazy',
@@ -176,34 +191,10 @@ return {
   },
   { -- mini.files
     'echasnovski/mini.files',
+    enabled = false,
     event = 'VeryLazy',
     lazy = true,
     opts = { windows = { preview = true }, mappings = { close = '<esc>' } },
-    -- config = function()
-    --   local minifile = require 'mini.file'
-    --   minifile.setup {
-    --     -- default options
-    --     -- see `:h mini.file` for more details
-    --     default_options = {
-    --       -- the default width of the floating window
-    --       width = 0.8,
-    --       -- the default height of the floating window
-    --       height = 0.8,
-    --       -- the default border style of the floating window
-    --       border = 'rounded',
-    --       -- the default border highlight group of the floating window
-    --       border_hl = 'FloatBorder',
-    --       -- the default mapping of the floating window
-    --       mapping = '<CR>',
-    --       -- the default action of the floating window
-    --       action = 'edit',
-    --       -- the default autoclose of the floating window
-    --       autoclose = true,
-    --       -- the default autohide of the floating window
-    --       autohide = true,
-    --     },
-    --   }
-    -- end,
     keys = {
       { '<leader>f', require('mini.files').open, desc = '[F}ile explorer' },
     },

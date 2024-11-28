@@ -116,7 +116,7 @@ vim.keymap.set('n', '<D-l>', ':bnext<cr>', { desc = 'Next buffer' })
 vim.keymap.set('n', 'g(', '0t(', { desc = '[G]o to first [(]' })
 vim.keymap.set('n', 'g[', '0t[', { desc = '[G]o to first [[]' })
 vim.keymap.set('n', 'g{', '0t{', { desc = '[G]o to first [{]' })
-vim.keymap.set('n', 'gf', '0%%', { desc = '[G]o to first [{([]' })
+vim.keymap.set('n', 'ga', '0%%', { desc = '[G]o to first [{([]' })
 
 -- Comments
 vim.keymap.set('n', '<leader>/', 'gcc', { remap = true, desc = '[C]omment line' })
