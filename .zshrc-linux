@@ -142,6 +142,9 @@ export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 # fzf
 source <(fzf --zsh)
 
+# cuda
+export PATH=/usr/local/cuda-12.6/bin${PATH:+:${PATH}}
+
 # (oh my) zsh customization ===================================
 export EDITOR="nvim"
 export ZSH="$HOME/.oh-my-zsh"

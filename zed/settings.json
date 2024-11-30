@@ -99,7 +99,6 @@
         }
     },
     // AI
-    // "inline_completions": ,
     "features": {
         "inline_completion_provider": "supermaven"
     },
