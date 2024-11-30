@@ -42,6 +42,20 @@ alias py="python3"
 alias pdb="python3 -m pdb"
 alias lg=lazygit
 alias nv=nvim
+alias v=nvim
+alias va='NVIM_APPNAME=nvim-astronvim nvim'
+alias vk='NVIM_APPNAME=nvim-kickstart nvim'
+alias vs='NVIM_APPNAME=nvim-from-scratch nvim'
+vv() {
+  # Assumes all configs exist in directories named ~/.config/nvim-*
+  local config=$(fd --max-depth 1 --glob 'nvim*' ~/.config | fzf --prompt="Neovim Configs > " --height=~50% --layout=reverse --border --exit-0)
+ 
+  # If I exit fzf without selecting a config, don't open Neovim
+  [[ -z $config ]] && echo "No config selected" && return
+ 
+  # Open Neovim with the selected config
+  NVIM_APPNAME=$(basename $config) nvim $@
+}
 ccopy() {
     cat "$1" | pbcopy
 }
