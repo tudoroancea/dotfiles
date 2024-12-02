@@ -1,3 +1,4 @@
+[general]
 # import = ["~/.config/alacritty/rose-pine-moon.toml"]
 import = ["~/.config/alacritty/rose-pine-dawn.toml"]
 
@@ -51,6 +52,6 @@ lines = 30
 [keyboard]
 bindings = [
   { key = "N", mods = "Control", action = "CreateNewWindow" },
-  { key = "H", mods = "Command", action = "None" },            # Disable hide window
-  { key = "H", mods = "Command|Alt", action = "None" },        # Disable hide other windows 
+  { key = "H", mods = "Command", action = "ReceiveChar" },            # Disable hide window
+  { key = "H", mods = "Command|Alt", action = "ReceiveChar" },        # Disable hide other windows 
 ]

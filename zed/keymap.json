@@ -30,7 +30,7 @@
             "a": "project_panel::NewFile",
             "A": "project_panel::NewDirectory",
             "l": "project_panel::OpenPermanent",
-            "space o": "project_panel::ToggleFocus"
+            "space f f": "project_panel::ToggleFocus"
         }
     },
     {
@@ -51,13 +51,13 @@
         "bindings": {
             "ctrl-cmd-alt-up": "editor::AddSelectionAbove", // Insert cursor above
             "ctrl-cmd-alt-down": "editor::AddSelectionBelow", // Insert cursor below
-            "space e": "workspace::ToggleLeftDock",
+            "space f t": "workspace::ToggleLeftDock",
             "space w": "workspace::Save",
             "space W": "workspace::SaveWithoutFormat",
             "space c": "pane::CloseActiveItem",
             "space o": "project_panel::ToggleFocus",
             "space /": "editor::ToggleComments",
-            "space f f": "file_finder::Toggle",
+            "space s f": "file_finder::Toggle",
             "space l f": "editor::Format",
             "space t": "workspace::NewCenterTerminal",
             "g r": "editor::FindAllReferences",
@@ -74,8 +74,8 @@
         "bindings": {
             "down": ["workspace::SendKeystrokes", "4 j"],
             "up": ["workspace::SendKeystrokes", "4 k"],
-            "g a": ["workspace::SendKeystrokes", "^ t ("],
-            "g (": ["workspace::SendKeystrokes", "^ t ("],
+            "g a": ["workspace::SendKeystrokes", "^ % % h"],
+            "g (": ["workspace::SendKeystrokes", "^t ("],
             "g [": ["workspace::SendKeystrokes", "^ t ["],
             "g {": ["workspace::SendKeystrokes", "^ t {"],
             "space s j": "pane::SplitDown",
