@@ -108,15 +108,15 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- Move between tabs
 vim.keymap.set('n', '<A-h>', ':bprevious<cr>', { desc = 'Previous buffer' })
-vim.keymap.set('n', '<A-l>', ':bnext<cr>', { desc = 'Next buffer' })
 vim.keymap.set('n', '<D-h>', ':bprevious<cr>', { desc = 'Previous buffer' })
+vim.keymap.set('n', '<A-l>', ':bnext<cr>', { desc = 'Next buffer' })
 vim.keymap.set('n', '<D-l>', ':bnext<cr>', { desc = 'Next buffer' })
 
 -- Go to first occurence of paranthesis, bracket, brace, etc.
 vim.keymap.set('n', 'g(', '0t(', { desc = '[G]o to first [(]' })
 vim.keymap.set('n', 'g[', '0t[', { desc = '[G]o to first [[]' })
 vim.keymap.set('n', 'g{', '0t{', { desc = '[G]o to first [{]' })
-vim.keymap.set('n', 'ga', '0%%', { desc = '[G]o to first [{([]' })
+vim.keymap.set('n', 'ga', '0%%h', { desc = '[G]o to first [{([]' })
 
 -- Comments
 vim.keymap.set('n', '<leader>/', 'gcc', { remap = true, desc = '[C]omment line' })
@@ -143,6 +143,13 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
     if vim.o.filetype == 'help' then
       vim.cmd.wincmd 'L'
     end
+  end,
+})
+-- Set commentstring for typst files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'typst',
+  callback = function()
+    vim.bo.commentstring = '// %s'
   end,
 })
 

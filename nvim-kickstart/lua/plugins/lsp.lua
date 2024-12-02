@@ -214,6 +214,16 @@ return {
         },
         stylua = {},
         ruff = {},
+        tinymist = {
+          servers = {
+            tinymist = {
+              settings = {
+                exportPdf = 'onType',
+                outputPath = '$root/target/$dir/$name',
+              },
+            },
+          },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -257,5 +267,11 @@ return {
     opts = {
       ensure_installed = { 'clang-format' },
     },
+  },
+  { -- Typst preview plugin
+    'chomosuke/typst-preview.nvim',
+    ft = 'typst',
+    version = '1.*',
+    opts = {}, -- lazy.nvim will implicitly calls `setup {}`
   },
 }
