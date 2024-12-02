@@ -27,13 +27,28 @@ return {
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     opts = {
+      close_if_last_window = true,
+      popup_border_style = 'rounded',
+      enable_git_status = true,
+      enable_diagnostics = true,
       window = {
-        mappings = {
-          ['\\'] = 'close_window',
-          -- ['<C-J>'] = 'move_cursor_down',
-          -- ['<C-K>'] = 'move_cursor_up',
-          ['<C-H>'] = 'toggle_dotfiles',
-          ['l'] = 'open',
+        mappings = { ['l'] = 'open' },
+      },
+      default_component_configs = {
+        git_status = {
+          symbols = {
+            -- Change type
+            -- added = '', -- or "✚", but this is redundant info if you use git_status_colors on the name
+            -- modified = '', -- or "", but this is redundant info if you use git_status_colors on the name
+            deleted = '✖', -- this can only be used in the git_status source
+            renamed = '󰁕', -- this can only be used in the git_status source
+            -- Status type
+            untracked = '',
+            ignored = '',
+            unstaged = '󰄱',
+            staged = '',
+            conflict = '',
+          },
         },
       },
       filesystem = {
@@ -48,6 +63,11 @@ return {
           },
           never_show = {},
         },
+      },
+      follow_current_file = {
+        enabled = true, -- This will find and focus the file in the active buffer every time
+        --               -- the current file is changed while the tree is open.
+        leave_dirs_open = true, -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
       },
     },
     keys = {
@@ -361,14 +381,15 @@ return {
   },
   { -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
+    enabled = false,
     opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
+      -- signs = {
+      --   add = { text = '+' },
+      --   change = { text = '~' },
+      --   delete = { text = '_' },
+      --   topdelete = { text = '‾' },
+      --   changedelete = { text = '~' },
+      -- },
       on_attach = function(bufnr)
         local gitsigns = require 'gitsigns'
 
@@ -397,24 +418,24 @@ return {
 
         -- Actions
         -- visual mode
-        map('v', '<leader>hs', function()
+        map('v', '<leader>gs', function()
           gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' }
-        end, { desc = 'stage git hunk' })
-        map('v', '<leader>hr', function()
+        end, { desc = '[G]it: [s]tage hunk' })
+        map('v', '<leader>gr', function()
           gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' }
-        end, { desc = 'reset git hunk' })
+        end, { desc = '[G]it: [r]eset hunk' })
         -- normal mode
-        map('n', '<leader>hs', gitsigns.stage_hunk, { desc = 'git [s]tage hunk' })
-        map('n', '<leader>hr', gitsigns.reset_hunk, { desc = 'git [r]eset hunk' })
-        map('n', '<leader>hS', gitsigns.stage_buffer, { desc = 'git [S]tage buffer' })
-        map('n', '<leader>hu', gitsigns.undo_stage_hunk, { desc = 'git [u]ndo stage hunk' })
-        map('n', '<leader>hR', gitsigns.reset_buffer, { desc = 'git [R]eset buffer' })
-        map('n', '<leader>hp', gitsigns.preview_hunk, { desc = 'git [p]review hunk' })
-        map('n', '<leader>hb', gitsigns.blame_line, { desc = 'git [b]lame line' })
-        map('n', '<leader>hd', gitsigns.diffthis, { desc = 'git [d]iff against index' })
-        map('n', '<leader>hD', function()
+        map('n', '<leader>gs', gitsigns.stage_hunk, { desc = '[G]it: [s]tage hunk' })
+        map('n', '<leader>gr', gitsigns.reset_hunk, { desc = '[G]it: [r]eset hunk' })
+        map('n', '<leader>gS', gitsigns.stage_buffer, { desc = '[G]it: [S]tage buffer' })
+        map('n', '<leader>gu', gitsigns.undo_stage_hunk, { desc = '[G]it: [u]ndo stage hunk' })
+        map('n', '<leader>gR', gitsigns.reset_buffer, { desc = '[G]it: [R]eset buffer' })
+        map('n', '<leader>gp', gitsigns.preview_hunk, { desc = '[G]it: [p]review hunk' })
+        map('n', '<leader>gb', gitsigns.blame_line, { desc = '[G]it: [b]lame line' })
+        map('n', '<leader>gd', gitsigns.diffthis, { desc = '[G]it: [d]iff against index' })
+        map('n', '<leader>gD', function()
           gitsigns.diffthis '@'
-        end, { desc = 'git [D]iff against last commit' })
+        end, { desc = '[G]it: [D]iff against last commit' })
         -- Toggles
         map('n', '<leader>tb', gitsigns.toggle_current_line_blame, { desc = '[T]oggle git show [b]lame line' })
         map('n', '<leader>tD', gitsigns.toggle_deleted, { desc = '[T]oggle git show [D]eleted' })
