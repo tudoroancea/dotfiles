@@ -274,4 +274,12 @@ return {
     version = '1.*',
     opts = {}, -- lazy.nvim will implicitly calls `setup {}`
   },
+  { -- Markdown preview in the buffer
+    'MeanderingProgrammer/render-markdown.nvim',
+    lazy = true,
+    opts = {
+      file_types = { 'markdown' },
+    },
+    ft = { 'markdown' },
+  },
 }

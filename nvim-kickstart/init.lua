@@ -107,10 +107,10 @@ vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower win
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- Move between tabs
-vim.keymap.set('n', '<A-h>', ':bprevious<cr>', { desc = 'Previous buffer' })
-vim.keymap.set('n', '<D-h>', ':bprevious<cr>', { desc = 'Previous buffer' })
-vim.keymap.set('n', '<A-l>', ':bnext<cr>', { desc = 'Next buffer' })
-vim.keymap.set('n', '<D-l>', ':bnext<cr>', { desc = 'Next buffer' })
+vim.keymap.set('n', '<A-h>', ':bprevious<cr>', { desc = 'Previous buffer', silent = true })
+vim.keymap.set('n', '<D-h>', ':bprevious<cr>', { desc = 'Previous buffer', silent = true })
+vim.keymap.set('n', '<A-l>', ':bnext<cr>', { desc = 'Next buffer', silent = true })
+vim.keymap.set('n', '<D-l>', ':bnext<cr>', { desc = 'Next buffer', silent = true })
 
 -- Go to first occurence of paranthesis, bracket, brace, etc.
 vim.keymap.set('n', 'g(', '0t(', { desc = '[G]o to first [(]' })

@@ -281,6 +281,7 @@ return {
   },
   { -- mini.starter
     'echasnovski/mini.starter',
+    -- enabled = false,
     lazy = false,
     config = function()
       local kwoht = [[
@@ -306,25 +307,15 @@ return {
                                                                                                          ░░░░░░
                                            ]]
       require('mini.starter').setup { header = kwoht }
+      -- vim.api.nvim_create_autocmd('MiniStarterOpened', {
+      --   callback = function()
+      --     -- close starter
+      --     vim.keymap.set('n', '<leader>h', '<leader>c')
+      --   end,
+      -- })
     end,
     keys = {
-      {
-        '<leader>h',
-        function()
-          local starter = require 'mini.starter'
-          starter.open()
-          -- TODO: if starter is open, close it
-          -- if
-          -- local buf_id = vim.api.nvim_get_current_buf()
-          -- local is_starter_buf_id = type(buf_id) == 'number' and vim.tbl_contains(vim.tbl_keys(H.buffer_data), buf_id) and vim.api.nvim_buf_is_valid(buf_id)
-          -- if is_starter_buf_id then
-          --   starter.close()
-          -- else
-          --   starter.open()
-          -- end
-        end,
-        desc = '[H]ome',
-      },
+      { '<leader>h', require('mini.starter').open, desc = '[H]ome' },
     },
   },
   { -- tab line
