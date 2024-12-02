@@ -18,7 +18,16 @@ return {
     },
     ft = { 'markdown' },
   },
-  { -- Neo-tree
+  { -- File explorer: mini.files
+    'echasnovski/mini.files',
+    event = 'VeryLazy',
+    lazy = true,
+    opts = { windows = { preview = true }, mappings = { close = '<esc>' } },
+    keys = {
+      { '<leader>fm', require('mini.files').open, desc = '[F]ile explorer: [m]ini' },
+    },
+  },
+  { -- File explorer: Neo-tree
     'nvim-neo-tree/neo-tree.nvim',
     version = '*',
     dependencies = {
@@ -71,8 +80,8 @@ return {
       },
     },
     keys = {
-      { '<leader>f', ':Neotree toggle<cr>', desc = 'NeoTree toggle', silent = true },
-      { '<leader>o', ':Neotree focus<cr>', desc = 'NeoTree focus', silent = true },
+      { '<leader>ft', ':Neotree toggle<cr>', desc = '[F]ile explorer: [t]oggle', silent = true },
+      { '<leader>ff', ':Neotree focus<cr>', desc = '[F]ile explorer: [f]ocus', silent = true },
     },
   },
   --- Nice UI elements
@@ -165,6 +174,7 @@ return {
       },
       spec = {
         { '<leader>a', group = '[A]vante' },
+        { '<leader>f', group = '[F]ile explorer' },
         { '<leader>l', group = '[L]SP' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>g', group = '[G]it' },
@@ -208,16 +218,6 @@ return {
       local indentscope = require 'mini.indentscope'
       indentscope.setup { draw = { delay = 0, animation = indentscope.gen_animation.none() } }
     end,
-  },
-  { -- mini.files
-    'echasnovski/mini.files',
-    enabled = false,
-    event = 'VeryLazy',
-    lazy = true,
-    opts = { windows = { preview = true }, mappings = { close = '<esc>' } },
-    keys = {
-      { '<leader>f', require('mini.files').open, desc = '[F}ile explorer' },
-    },
   },
   { -- mini.clue
     'echasnovski/mini.clue',
@@ -308,7 +308,23 @@ return {
       require('mini.starter').setup { header = kwoht }
     end,
     keys = {
-      { '<leader>h', require('mini.starter').open, desc = '[H]ome' },
+      {
+        '<leader>h',
+        function()
+          local starter = require 'mini.starter'
+          starter.open()
+          -- TODO: if starter is open, close it
+          -- if
+          -- local buf_id = vim.api.nvim_get_current_buf()
+          -- local is_starter_buf_id = type(buf_id) == 'number' and vim.tbl_contains(vim.tbl_keys(H.buffer_data), buf_id) and vim.api.nvim_buf_is_valid(buf_id)
+          -- if is_starter_buf_id then
+          --   starter.close()
+          -- else
+          --   starter.open()
+          -- end
+        end,
+        desc = '[H]ome',
+      },
     },
   },
   { -- tab line
