@@ -1,138 +1,153 @@
 {
-    // Editor
-    // "tab_size": 4,
-    "ssh_connections": [
+  // Editor
+  // "tab_size": 4,
+  "ssh_connections": [
     {
       "host": "thebeauty",
       "projects": [
         {
-          "paths": [
-            "~/dev/tadam"
-          ]
+          "paths": ["~/dev/ngpt"]
         },
         {
-          "paths": [
-            "~/dev/tinygrad"
-          ]
+          "paths": ["~/dev/tadam"]
+        },
+        {
+          "paths": ["~/dev/tinygrad"]
         }
       ]
     }
   ],
-    "soft_wrap": "none",
-    "relative_line_numbers": true,
-    "inlay_hints": {
-        "enabled": true,
-        "show_type_hits": true,
-        "show_parameter_hints": true,
-        "show_other_hints": true
-    },
-    "tab_bar": {
-        "show": true,
-        "show_nav_history_buttons": false
-    },
-    "toolbar": {
-        "breadcrumbs": true,
-        "quick_actions": true
-    },
-    // Key map
-    "vim_mode": true,
-    "base_keymap": "VSCode",
-    // Color theme
-    "theme": {
-        "mode": "system",
-        "light": "Rosé Pine Dawn",
-        "dark": "Rosé Pine Moon"
-    },
-    "vim": {
-        "use_system_clipboard": "always",
-        "use_multiline_find": true,
-        "use_smartcase_find": true
-    },
-    // LSP
-    "enable_language_server": true,
-    "languages": {
-        "Python": {
-            "language_servers": [
-                "basedpyright",
-                "!pyright",
-                // "pyright",
-                "ruff"
-            ],
-            "format_on_save": "on",
-            "formatter": [
-                {
-                    "code_actions": {
-                        "source.organizeImports.ruff": false,
-                        "source.fixAll.ruff": false
-                    }
-                },
-                {
-                    "language_server": {
-                        "name": "ruff"
-                    }
-                }
-            ]
+  "soft_wrap": "none",
+  "relative_line_numbers": true,
+  "inlay_hints": {
+    "enabled": true,
+    "show_type_hits": true,
+    "show_parameter_hints": true,
+    "show_other_hints": true
+  },
+  // UI
+  "unstable.ui_density": "compact",
+  "tab_bar": {
+    "show": true,
+    "show_nav_history_buttons": false
+  },
+  "toolbar": {
+    "breadcrumbs": true,
+    "quick_actions": true
+  },
+  // Fonts
+  "buffer_font_size": 12,
+  "ui_font_size": 14,
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "ui_font_family": "JetBrainsMono Nerd Font",
+  "terminal": {
+    "font_family": "JetBrainsMono Nerd Font"
+  },
+  // Key map
+  "vim_mode": true,
+  "base_keymap": "VSCode",
+  // Color theme
+  "theme": {
+    "mode": "system",
+    "light": "Rosé Pine Dawn",
+    "dark": "Rosé Pine Moon"
+  },
+  "vim": {
+    "use_system_clipboard": "always",
+    "use_multiline_find": true,
+    "use_smartcase_find": true
+  },
+  // Extensions
+  "auto_install_extensions": {
+    "html": true,
+    "git-firefly": true,
+    "lua": true,
+    "log": true,
+    "toml": true,
+    "typst": true,
+    "matlab": true,
+    "ruff": true,
+    "basedpyright": true
+  },
+  // LSP
+  "enable_language_server": true,
+  "languages": {
+    "Python": {
+      "language_servers": [
+        "basedpyright",
+        "!pyright",
+        // "pyright",
+        "ruff"
+      ],
+      "format_on_save": "on",
+      "formatter": [
+        {
+          "code_actions": {
+            "source.organizeImports.ruff": false,
+            "source.fixAll.ruff": false
+          }
         },
-        "C": {
-            "format_on_save": "on"
+        {
+          "language_server": {
+            "name": "ruff"
+          }
         }
+      ]
     },
-    "lsp": {
-        "pyright": {
-            "settings": {
-                "python.analysis": { "typeCheckingMode": "off" },
-                "python": {
-                    "pythonPath": ".venv/bin/python"
-                }
-            }
-        },
-        "basedpyright": {
-            // "binary": {
-            //     "path": ".venv/bin/basedpyright"
-            // },
-            "settings": {
-                "python.analysis": { "typeCheckingMode": "off" },
-                "python": {
-                    "pythonPath": ".venv/bin/python"
-                }
-            }
+    "C": {
+      "format_on_save": "on"
+    }
+  },
+  "lsp": {
+    "pyright": {
+      "settings": {
+        "python.analysis": { "typeCheckingMode": "off" },
+        "python": {
+          "pythonPath": ".venv/bin/python"
         }
+      }
     },
-    // AI
-    "features": {
-        "inline_completion_provider": "supermaven"
-    },
-    "assistant": {
-        "default_model": {
-            "provider": "zed.dev",
-            "model": "claude-3-5-sonnet-latest"
-        },
-        "version": "2"
-    },
-    // Fonts
-    "buffer_font_size": 12,
-    "ui_font_size": 14,
-    "buffer_font_family": "JetBrainsMono Nerd Font",
-    "ui_font_family": "JetBrainsMono Nerd Font",
-    "terminal": {
-        "font_family": "JetBrainsMono Nerd Font"
-    },
-    // Git
-    "git": {
-        "git_gutter": "tracked_files",
-        "inline_blame": {
-            "enabled": true,
-            "delay_ms": 500
+    "basedpyright": {
+      // "binary": {
+      //     "path": ".venv/bin/basedpyright"
+      // },
+      "settings": {
+        "python.analysis": { "typeCheckingMode": "off" },
+        "python": {
+          "pythonPath": ".venv/bin/python"
         }
+      }
+    }
+  },
+  // AI
+  "features": {
+    "inline_completion_provider": "supermaven"
+  },
+  "assistant": {
+    "enable_experimental_live_diffs": true,
+    "default_model": {
+      "provider": "zed.dev",
+      "model": "claude-3-5-sonnet-latest"
     },
-    // Misc
-    "task": {
-        "show_status_indicator": true
-    },
-    "telemetry": {
-        "diagnostics": true,
-        "metrics": false
-    },
-    "auto_update": true,
-    "autosave": "on_focus_change"
+    "version": "2"
+  },
+  // Git
+  "git": {
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "enabled": true,
+      "show_commit_summary": true,
+      "delay_ms": 500
+    }
+  },
+  // Misc
+  "task": {
+    "show_status_indicator": true
+  },
+  "telemetry": {
+    "diagnostics": true,
+    "metrics": false
+  },
+  "auto_update": true,
+  "autosave": "on_focus_change"
 }

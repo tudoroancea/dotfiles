@@ -44,5 +44,12 @@
     "hide": "never",
     "allow_concurrent_runs": false,
     "use_new_terminal": false
+  },
+  {
+    "label": "Typst: preview file",
+    "command": "tinymist",
+    "args": ["preview", "\"$ZED_FILE\""],
+    "reveal": "never",
+    "hide": "always"
   }
 ]
