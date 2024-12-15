@@ -2,7 +2,7 @@ return {
   'aserowy/tmux.nvim',
   version = '*',
   -- event = 'VeryLazy',
-  lazy = true,
+  lazy = false,
   config = function()
     return require('tmux').setup {
       copy_sync = {
