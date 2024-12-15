@@ -374,6 +374,7 @@ return {
   },
   { -- auto dark mode
     'f-person/auto-dark-mode.nvim',
+    enabled = os.getenv 'SSH_TTY' == nil, -- disable auto dark mode in ssh sessions
     opts = {
       update_interval = 1000,
       set_dark_mode = function()
