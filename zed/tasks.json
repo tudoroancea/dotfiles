@@ -1,26 +1,4 @@
-// Static tasks configuration.
-//
-// Example:
 [
-  {
-    "label": "Example task",
-    "command": "bash",
-    // rest of the parameters are optional
-    "args": ["-c", "for i in {1..5}; do echo \"Hello $i/5\"; sleep 1; done"],
-    // Env overrides for the command, will be appended to the terminal's environment from the settings.
-    "env": { "foo": "bar" },
-    // Current working directory to spawn the command into, defaults to current project root.
-    //"cwd": "/path/to/working/directory",
-    // Whether to use a new terminal tab or reuse the existing one to spawn the process, defaults to `false`.
-    "use_new_terminal": false,
-    // Whether to allow multiple instances of the same task to be run, or rather wait for the existing ones to finish, defaults to `false`.
-    "allow_concurrent_runs": false
-  },
-  {
-    "label": "zig build",
-    "command": "zig",
-    "args": ["build"]
-  },
   {
     "label": "ruff format current file",
     "command": "ruff format $ZED_FILE",
@@ -29,21 +7,34 @@
   {
     "label": "ruff check workspace",
     "command": "ruff check",
-    "reveal": "always"
+    "reveal": "always",
+    "reveal_target": "center"
   },
   {
     "label": "ruff check current file",
     "command": "ruff check $ZED_FILE",
-    "reveal": "always"
+    "reveal": "always",
+    "reveal_target": "center"
   },
   {
     "label": "lazygit",
-    "tags": ["lazygit"],
     "command": "lazygit",
-    "reveal": "always",
-    "hide": "never",
+    "working_directory": "${ZED_WORKTREE_ROOT}",
+    "hide": "on_success",
+    "use_new_terminal": true,
     "allow_concurrent_runs": false,
-    "use_new_terminal": false
+    "reveal_target": "center",
+    "shell": {
+      "program": "zsh"
+    }
+  },
+  {
+    "label": "btop",
+    "command": "btop",
+    "hide": "on_success",
+    "use_new_terminal": true,
+    "reveal_target": "center",
+    "allow_concurrent_runs": false
   },
   {
     "label": "Typst: preview file",

@@ -168,7 +168,7 @@ export PATH=/opt/homebrew:$PATH
 export PATH=/Users/tudoroancea/mosek/10.1/tools/platform/osxaarch64/bin:$PATH
 
 # zig path
-export PATH="$HOME/zig:$PATH"
+# export PATH="$HOME/zig:$PATH"
 
 # ikos path
 export PATH="$PATH:$HOME/Developer/ikos/bin"

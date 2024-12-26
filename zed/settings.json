@@ -1,18 +1,29 @@
 {
   // Editor
   // "tab_size": 4,
+  "vim": {
+    "use_system_clipboard": "always",
+    "use_multiline_find": true,
+    "use_smartcase_find": true
+  },
+  "show_completions_on_input": true,
+  "show_completion_documentation": true,
+  "show_inline_completions": false,
   "ssh_connections": [
     {
       "host": "thebeauty",
       "projects": [
         {
+          "paths": ["~/dev/nanoGPT"]
+        },
+        {
           "paths": ["~/dev/ngpt"]
         },
         {
-          "paths": ["~/dev/tadam"]
+          "paths": ["~/dev/pymanopt"]
         },
         {
-          "paths": ["~/dev/tinygrad"]
+          "paths": ["~/dev/tadam"]
         }
       ]
     }
@@ -31,6 +42,7 @@
     "show": true,
     "show_nav_history_buttons": false
   },
+  "show_signature_help_after_edits": true,
   "toolbar": {
     "breadcrumbs": true,
     "quick_actions": true
@@ -52,10 +64,10 @@
     "light": "Rosé Pine Dawn",
     "dark": "Rosé Pine Moon"
   },
-  "vim": {
-    "use_system_clipboard": "always",
-    "use_multiline_find": true,
-    "use_smartcase_find": true
+  "experimental.theme_overrides": {
+    "syntax": {
+      "comment": {}
+    }
   },
   // Extensions
   "auto_install_extensions": {

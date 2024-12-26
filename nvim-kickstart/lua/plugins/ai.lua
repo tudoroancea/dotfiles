@@ -2,8 +2,6 @@
 return {
   {
     'yetone/avante.nvim',
-    event = 'VeryLazy',
-    enabled = true,
     lazy = true,
     version = '*',
     opts = {
@@ -22,7 +20,34 @@ return {
       },
     },
     keys = {
-      -- { "<leader>a", desc = "avante" },
+      {
+        '<leader>aa',
+        function()
+          require('avante.api').ask()
+        end,
+        desc = '[A]vante: [a]sk',
+      },
+      {
+        '<leader>ae',
+        function()
+          require('avante.api').edit()
+        end,
+        desc = '[A]vante: [e]dit',
+      },
+      -- {
+      --   '<leader>at',
+      --   function()
+      --     require('avante.api').toggle()
+      --   end,
+      --   desc = '[A]vante: [t]oggle',
+      -- },
+      -- {
+      --   '<leader>ar',
+      --   function()
+      --     require('avante.api').refresh()
+      --   end,
+      --   desc = '[A]vante: [r]efresh',
+      -- },
     },
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
     build = 'make',

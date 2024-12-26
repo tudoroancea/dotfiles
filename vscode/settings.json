@@ -332,11 +332,11 @@
     "diffEditor.ignoreTrimWhitespace": false,
     "cSpell.enabled": true,
     "cmake.showOptionsMovedNotification": false,
-    "supermaven.allowGitignore": true,
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"
     ],
+    "supermaven.allowGitignore": true,
     "supermaven.enable": {
         "*": true
     },

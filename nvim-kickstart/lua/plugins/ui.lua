@@ -307,12 +307,15 @@ return {
                                                                                                          ░░░░░░
                                            ]]
       require('mini.starter').setup { header = kwoht }
-      -- vim.api.nvim_create_autocmd('MiniStarterOpened', {
-      --   callback = function()
-      --     -- close starter
-      --     vim.keymap.set('n', '<leader>h', '<leader>c')
-      --   end,
-      -- })
+      vim.api.nvim_create_autocmd('MiniStarterOpened', {
+        callback = function()
+          -- close starter
+          vim.notify('closing starter', vim.log.levels.INFO)
+          vim.keymap.set('n', '<leader>h', function()
+            require('mini.bufremove').delete(0, true)
+          end)
+        end,
+      })
     end,
     keys = {
       { '<leader>h', require('mini.starter').open, desc = '[H]ome' },

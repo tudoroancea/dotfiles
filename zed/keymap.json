@@ -1,7 +1,8 @@
 [
   {
     "bindings": {
-      "alt-g": ["task::Spawn", { "task_name": "lazygit" }],
+      "alt-g": ["task::Spawn", { "task_name": "lazygit", "target": "center" }],
+      "alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
       "alt-shift-g": ["task::Rerun", { "task_name": "lazygit" }],
       "cmd-shift-r": "workspace::Reload",
       "cmd-h": "pane::ActivatePrevItem",
@@ -9,7 +10,7 @@
     }
   },
   {
-    "context": "Picker > (Editor && mode == single_line)",
+    "context": "(Picker > (Editor && mode == single_line)) || TabSwitcher",
     "bindings": {
       "ctrl-k": "menu::SelectPrev",
       "ctrl-j": "menu::SelectNext"
@@ -30,11 +31,13 @@
       "a": "project_panel::NewFile",
       "A": "project_panel::NewDirectory",
       "l": "project_panel::OpenPermanent",
-      "space f f": "project_panel::ToggleFocus"
+      "o": "project_panel::OpenWithSystem",
+      "space f t": "workspace::ToggleLeftDock"
+      // "space f f": "project_panel::ToggleFocus"
     }
   },
   {
-    "context": "Editor",
+    "context": "Editor && VimControl && vim_mode == insert",
     "bindings": {
       "ctrl-space": "editor::ShowCompletions"
     }
@@ -46,35 +49,35 @@
       "ctrl-k": "editor::ContextMenuPrev"
     }
   },
-  // TODO: make the context exclude editor while editing
-  // {
-  //   "context": "Workspace",
-  //   "bindings": {
-  //     "space l S": "outline_panel::ToggleFocus",
-  //     "space f f":
-  //   }
-  // },
   {
     "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
     "bindings": {
+      "space space ": "tab_switcher::Toggle",
       "ctrl-cmd-alt-up": "editor::AddSelectionAbove", // Insert cursor above
       "ctrl-cmd-alt-down": "editor::AddSelectionBelow", // Insert cursor below
-      "space f t": "workspace::ToggleLeftDock",
       "space w": "workspace::Save",
       "space W": "workspace::SaveWithoutFormat",
       "space c": "pane::CloseActiveItem",
       "space o": "project_panel::ToggleFocus",
       "space /": "editor::ToggleComments",
       "space s f": "file_finder::Toggle",
-      "space l f": "editor::Format",
       "space t": "workspace::NewCenterTerminal",
-      "g r": "editor::FindAllReferences",
       "space a e": "assistant::InlineAssist",
       "space a a": "assistant::NewContext",
       "space a t": "assistant::ToggleFocus",
+      "g r": "editor::FindAllReferences",
+      "space l f": "editor::Format",
       "space l s": "outline::Toggle",
+      "space l S": "outline_panel::ToggleFocus",
       "space l d": "editor::GoToDiagnostic",
-      "space l r": "editor::Rename"
+      "space l r": "editor::Rename",
+      "space f t": "workspace::ToggleLeftDock",
+      "space f f": "pane::RevealInProjectPanel",
+      "space g g": [
+        "task::Spawn",
+        { "task_name": "lazygit", "target": "center" }
+      ],
+      "space g b": "editor::ToggleGitBlame"
     }
   },
   {
@@ -85,25 +88,20 @@
       "g a": ["workspace::SendKeystrokes", "^ % % h"],
       "g (": ["workspace::SendKeystrokes", "^ t ("],
       "g [": ["workspace::SendKeystrokes", "^ t ["],
-      "g {": ["workspace::SendKeystrokes", "^ t {"],
-      "space s j": "pane::SplitDown",
-      "space s k": "pane::SplitUp",
-      "space s h": "pane::SplitLeft",
-      "space s l": "pane::SplitRight",
-      "space s s": "pane::SplitHorizontal",
-      "space s v": "pane::SplitVertical"
-    }
-  },
-  {
-    "context": "Editor && VimControl && vim_mode == insert && !menu",
-    "bindings": {
-      "ctrl-p": ["workspace::SendKeystrokes", "right"]
+      "g {": ["workspace::SendKeystrokes", "^ t {"]
+      // "space s j": "pane::SplitDown",
+      // "space s k": "pane::SplitUp",
+      // "space s h": "pane::SplitLeft",
+      // "space s l": "pane::SplitRight",
+      // "space s s": "pane::SplitHorizontal",
+      // "space s v": "pane::SplitVertical"
     }
   },
   {
     "context": "Editor && inline_completion && !showing_completions",
     "bindings": {
       "tab": null,
+      "ctrl-k": "editor::ToggleInlineCompletions",
       "ctrl-l": "editor::AcceptInlineCompletion",
       "ctrl-;": "editor::AcceptPartialInlineCompletion"
     }
