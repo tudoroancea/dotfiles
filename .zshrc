@@ -1,6 +1,13 @@
 # load zsh profiler
 # zmodload zsh/zprof
 
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # only check if we have to regenerate the zcompdump once a day
 autoload -Uz compinit
 for dump in ~/.zcompdump(N.mh+24); do
@@ -219,7 +226,7 @@ VI_MODE_CURSOR_INSERT=5
 VI_MODE_CURSOR_OPPEND=0
 MODE_INDICATOR="%F{white}+%f"
 INSERT_MODE_INDICATOR="%F{yellow}+%f"
-
+ZSH_THEME="powerlevel10k/powerlevel10k"
 # oh my zsh plugins
 plugins=(
   git  # for gst, gc, etc.
@@ -234,11 +241,15 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 
 # starship prompt
-eval "$(starship init zsh)"
+# eval "$(starship init zsh)"
 
 
 # API keys for OpenAI and Anthropic
 . "$HOME/api_keys.sh"
 
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
 # run zsh profiling
 # zprof
+
