@@ -22,8 +22,7 @@ export LC_ALL="en_US.UTF-8"
 # source cargo installation (for uv)
 . "$HOME/.local/bin/env"
 
-# functions and aliases ====================================================
-# minimal list
+# general functions and aliases ====================================================
 alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
 alias l="ls -lah"
@@ -67,14 +66,13 @@ ccopy() {
     cat "$1" | pbcopy
 }
 alias dotf="cd ~/dotfiles && nvim"
-alias purge="./scripts/purge.sh"
-alias build="./scripts/build.sh"
-# alias test="./scripts/test.sh"
-alias env_update="./scripts/env_update.sh"
-
-# advanced aliases
 alias fda='fd -u'
 alias sizes='du -h -d 1 .'
+submodule_rm() {
+  git submodule deinit -f -- "$1"
+  git rm -f "$1"
+  rm -rf .git/modules/"$1"
+}
 
 # mamba aliases
 alias ma=mamba
@@ -89,17 +87,24 @@ alias miny='mamba install -y'
 alias mind='mamba install -d'
 alias up='uv pip'
 
-alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
-
-submodule_rm() {
-  git submodule deinit -f -- "$1"
-  git rm -f "$1"
-  rm -rf .git/modules/"$1"
-}
-
+# uv configuration
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 export UV_PYTHON=3.12
+
+# project specific aliases and configurations ===============================================
+
+# export BRAINS_ROOT_DIR="$HOME/brains"
+# export BRAINS_EXTERNAL_ROOT_DIR="$HOME/brains_external"
+# source $BRAINS_ROOT_DIR/aliases.sh
+# source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
+# export FSDS="$HOME/Formula-Student-Driverless-Simulator"
+
+alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
+alias purge="./scripts/purge.sh"
+alias build="./scripts/build.sh"
+# alias test="./scripts/test.sh"
+alias env_update="./scripts/env_update.sh"
 
 tmux_pymanopt() {
   SESSION="pymanopt"
@@ -153,7 +158,7 @@ EOF
 	rm -r "$tmp"
 }
 
-# homebrew config =====================================================
+# homebrew config =====================================================-==============
 eval "$(/opt/homebrew/bin/brew shellenv)"
 if type brew &>/dev/null
 then
@@ -163,27 +168,10 @@ then
 fi
 export PATH=/opt/homebrew:$PATH
 
-
-# brains config
-# export BRAINS_ROOT_DIR="$HOME/brains"
-# export BRAINS_EXTERNAL_ROOT_DIR="$HOME/brains_external"
-# source $BRAINS_ROOT_DIR/aliases.sh
-# source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
-# export FSDS="$HOME/Formula-Student-Driverless-Simulator"
-
-# MOSEK path
-export PATH=/Users/tudoroancea/mosek/10.1/tools/platform/osxaarch64/bin:$PATH
-
-# zig path
-# export PATH="$HOME/zig:$PATH"
-
-# ikos path
-export PATH="$PATH:$HOME/Developer/ikos/bin"
-
 # openssl (idk why we need it but I wouldn't remove it just in case sth breaks)
 export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
-# >>> conda initialize >>>
+# >>> conda initialize >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/Users/tudoroancea/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
@@ -202,10 +190,10 @@ if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/mamba.sh" ]; then
 fi
 # <<< conda initialize <<<
 
-# fzf
+# fzf ================================================================================
 source <(fzf --zsh)
 
-# (oh my) zsh customization ===================================
+# (oh my) zsh customization ==========================================================
 export EDITOR="nvim"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
