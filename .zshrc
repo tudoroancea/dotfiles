@@ -8,12 +8,13 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# only check if we have to regenerate the zcompdump once a day
+# Only check for new completion files once per day
 autoload -Uz compinit
-for dump in ~/.zcompdump(N.mh+24); do
+if [ $(date +'%j') != $(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null) ]; then
   compinit
-done
-compinit -C
+else
+  compinit -C
+fi
 
 # set locale
 export LANG="en_US.UTF-8"
@@ -225,6 +226,7 @@ plugins=(
   zsh-interactive-cd
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-fzf-history-search
 )
 source $ZSH/oh-my-zsh.sh
 
@@ -240,4 +242,3 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
-
