@@ -1,2 +1,4 @@
 font-size = 12
 theme = dark:rose-pine-moon,light:rose-pine-dawn
+copy-on-select = true
+selection-invert-fg-bg = true
