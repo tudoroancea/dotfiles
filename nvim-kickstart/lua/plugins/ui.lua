@@ -128,7 +128,24 @@ return {
       signs = true,
     },
   },
-  { -- Keymap hints
+  {
+    'echasnovski/mini.hipatterns',
+    lazy = false,
+    opts = {
+      highlighters = {
+        -- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
+        fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
+        hack = { pattern = '%f[%w]()HACK()%f[%W]', group = 'MiniHipatternsHack' },
+        todo = { pattern = '%f[%w]()TODO()%f[%W]', group = 'MiniHipatternsTodo' },
+        note = { pattern = '%f[%w]()NOTE()%f[%W]', group = 'MiniHipatternsNote' },
+
+        -- Highlight hex color strings (`#rrggbb`) using that color
+        hex_color = require('mini.hipatterns').gen_highlighter.hex_color(),
+      },
+    },
+  },
+  -- Keymap hints
+  {
     'folke/which-key.nvim',
     event = 'VimEnter',
     -- enabled = false,
@@ -179,22 +196,6 @@ return {
         { '<leader>s', group = '[S]earch' },
         { '<leader>g', group = '[G]it' },
         { '<leader>p', group = '[P]lugins' },
-      },
-    },
-  },
-  {
-    'echasnovski/mini.hipatterns',
-    lazy = false,
-    opts = {
-      highlighters = {
-        -- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
-        fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
-        hack = { pattern = '%f[%w]()HACK()%f[%W]', group = 'MiniHipatternsHack' },
-        todo = { pattern = '%f[%w]()TODO()%f[%W]', group = 'MiniHipatternsTodo' },
-        note = { pattern = '%f[%w]()NOTE()%f[%W]', group = 'MiniHipatternsNote' },
-
-        -- Highlight hex color strings (`#rrggbb`) using that color
-        hex_color = require('mini.hipatterns').gen_highlighter.hex_color(),
       },
     },
   },
