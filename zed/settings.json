@@ -129,6 +129,12 @@
           "pythonPath": ".venv/bin/python"
         }
       }
+    },
+    "tinymist": {
+      "initialization_options": {
+        "exportPdf": "onSave",
+        "formatterMode": "typstyle"
+      }
     }
   },
   // AI
