@@ -50,6 +50,12 @@
     }
   },
   {
+    "context": "Editor && extension==typ",
+    "bindings": {
+      "cmd-k v": ["task::Spawn", { "task_name": "Typst: preview file" }]
+    }
+  },
+  {
     "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
     "bindings": {
       "space space ": "tab_switcher::Toggle",

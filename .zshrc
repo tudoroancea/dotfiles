@@ -93,6 +93,14 @@ eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 export UV_PYTHON=3.12
 
+
+# bun completions
+[ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 # project specific aliases and configurations ===============================================
 
 # export BRAINS_ROOT_DIR="$HOME/brains"
@@ -240,5 +248,6 @@ source $ZSH/oh-my-zsh.sh
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+#
 # run zsh profiling
 # zprof
