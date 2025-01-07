@@ -48,6 +48,8 @@ alias rmrf="rm -rf"
 alias py="python3"
 alias pdb="python3 -m pdb"
 alias lg=lazygit
+alias c='code'
+alias z='zed'
 alias nv=nvim
 alias v=nvim
 alias va='NVIM_APPNAME=nvim-astronvim nvim'
