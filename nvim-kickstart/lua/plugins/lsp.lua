@@ -271,7 +271,19 @@ return {
     'chomosuke/typst-preview.nvim',
     ft = 'typst',
     version = '1.*',
-    opts = {}, -- lazy.nvim will implicitly calls `setup {}`
+    config = function()
+      require('typst-preview').setup {
+        debug = true,
+        follow_cursor = true,
+      }
+      vim.api.nvim_create_augroup('TypFileMappings', { clear = true })
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'typst',
+        callback = function()
+          vim.keymap.set('n', '<leader>lp', ':TypstPreview<CR>', { buffer = true, noremap = true, silent = true })
+        end,
+      })
+    end,
   },
   { -- Markdown preview in the buffer
     'MeanderingProgrammer/render-markdown.nvim',
