@@ -20,9 +20,16 @@ return {
   },
   { -- File explorer: mini.files
     'echasnovski/mini.files',
-    event = 'VeryLazy',
     lazy = true,
-    opts = { windows = { preview = true }, mappings = { close = '<esc>' } },
+    opts = {
+      windows = {
+        preview = true,
+        width_focus = 40,
+        width_nofocus = 20,
+        width_preview = 50,
+      },
+      mappings = { close = '<esc>' },
+    },
     keys = {
       { '<leader>fm', require('mini.files').open, desc = '[F]ile explorer: [m]ini' },
     },
@@ -196,6 +203,7 @@ return {
         { '<leader>s', group = '[S]earch' },
         { '<leader>g', group = '[G]it' },
         { '<leader>p', group = '[P]lugins' },
+        { '<leader>b', group = '[B]uffers' },
       },
     },
   },
@@ -282,7 +290,7 @@ return {
   },
   { -- mini.starter
     'echasnovski/mini.starter',
-    -- enabled = false,
+    enabled = false,
     lazy = false,
     config = function()
       local kwoht = [[
@@ -322,12 +330,95 @@ return {
       { '<leader>h', require('mini.starter').open, desc = '[H]ome' },
     },
   },
-  { -- tab line
-    'echasnovski/mini.tabline',
+  -- { -- tab line
+  --   'echasnovski/mini.tabline',
+  --   lazy = false,
+  --   opts = {
+  --     use_icons = vim.g.have_nerd_font,
+  --   },
+  -- },
+  {
+    'folke/snacks.nvim',
+    priority = 1000,
     lazy = false,
+    ---@type snacks.Config
     opts = {
-      use_icons = vim.g.have_nerd_font,
+      dashboard = {
+        enabled = true,
+        preset = {
+          header = [[
+    █████                                                                        █████       ███
+   ░░███                                                                        ░░███       ░░░
+    ░███ █████  ██████   ██████  ████████     █████ ███ █████  ██████  ████████  ░███ █████ ████  ████████    ███████
+    ░███░░███  ███░░███ ███░░███░░███░░███   ░░███ ░███░░███  ███░░███░░███░░███ ░███░░███ ░░███ ░░███░░███  ███░░███
+    ░██████░  ░███████ ░███████  ░███ ░███    ░███ ░███ ░███ ░███ ░███ ░███ ░░░  ░██████░   ░███  ░███ ░███ ░███ ░███
+    ░███░░███ ░███░░░  ░███░░░   ░███ ░███    ░░███████████  ░███ ░███ ░███      ░███░░███  ░███  ░███ ░███ ░███ ░███
+    ████ █████░░██████ ░░██████  ░███████      ░░████░████   ░░██████  █████     ████ █████ █████ ████ █████░░███████
+   ░░░░ ░░░░░  ░░░░░░   ░░░░░░   ░███░░░        ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███
+                                 ░███                                                                        ███ ░███
+                        █████    █████                     █████     █████    █████       ███               ░░██████
+                       ░░███    ░░░░░                     ░░███     ░░███    ░░███       ░░░                 ░░░░░░
+  ██████  ████████      ░███████    ██████   ████████   ███████     ███████   ░███████   ████  ████████    ███████  █████
+ ███░░███░░███░░███     ░███░░███  ░░░░░███ ░░███░░███ ███░░███    ░░░███░    ░███░░███ ░░███ ░░███░░███  ███░░███ ███░░
+░███ ░███ ░███ ░███     ░███ ░███   ███████  ░███ ░░░ ░███ ░███      ░███     ░███ ░███  ░███  ░███ ░███ ░███ ░███░░█████
+░███ ░███ ░███ ░███     ░███ ░███  ███░░███  ░███     ░███ ░███      ░███ ███ ░███ ░███  ░███  ░███ ░███ ░███ ░███ ░░░░███
+░░██████  ████ █████    ████ █████░░████████ █████    ░░████████     ░░█████  ████ █████ █████ ████ █████░░███████ ██████
+ ░░░░░░  ░░░░ ░░░░░    ░░░░ ░░░░░  ░░░░░░░░ ░░░░░      ░░░░░░░░       ░░░░░  ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███░░░░░░
+                                                                                                          ███ ░███
+                                                                                                         ░░██████
+                                                                                                          ░░░░░░]],
+        },
+        sections = {
+          { section = 'header' },
+          { icon = ' ', title = 'Keymaps', section = 'keys', indent = 2, padding = 1 },
+          { icon = ' ', title = 'Recent Files', section = 'recent_files', indent = 2, padding = 1 },
+          { icon = ' ', title = 'Projects', section = 'projects', indent = 2, padding = 1 },
+          { section = 'startup' },
+        },
+      },
     },
+    keys = {
+      {
+        '<leader>h',
+        function()
+          require('snacks').dashboard()
+        end,
+        desc = 'Dashboard',
+      },
+    },
+  },
+  { -- barbar tabline
+    'romgrk/barbar.nvim',
+    lazy = false,
+    dependencies = { 'lewis6991/gitsigns.nvim', 'nvim-tree/nvim-web-devicons' },
+    init = function()
+      vim.g.barbar_auto_setup = false
+    end,
+    config = function()
+      require('barbar').setup {
+        animation = false,
+        auto_hide = true,
+        icons = {},
+      }
+      -- vim.api.nvim_create_autocmd({ 'BufAdd', 'BufDelete' }, { callback = vim.schedule_wrap(function()
+      --   vim.cmd.BufferOrderByBufferNumber()
+      -- end) })
+      -- vim.api.nvim_create_autocmd({ 'BufDelete', 'BufWipeout' }, {
+      --   group = vim.api.nvim_create_augroup('OpenDashboardOnLastBuffer', { clear = true }),
+      --   callback = function()
+      --     -- Get number of listed buffers
+      --     local num_bufs = vim.fn.len(vim.fn.getbufinfo({ buflisted = 1 }))
+
+      --     -- If this is the last buffer, open dashboard
+      --     if num_bufs <= 1 then
+      --       vim.schedule(function()
+      --         require('snacks').dashboard()
+      --       end)
+      --     end
+      --   end,
+      -- })
+    end,
+    version = '^1.0.0', -- optional: only update when a new 1.x version is released
   },
   { -- status line
     'echasnovski/mini.statusline',
