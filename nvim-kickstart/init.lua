@@ -31,6 +31,8 @@ end)
 
 -- Enable break indent
 vim.opt.breakindent = false
+vim.opt.autoindent = true
+vim.opt.smartindent = true
 
 -- Save undo history
 vim.opt.undofile = true
@@ -96,15 +98,6 @@ vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
 vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
 vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
--- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- Move between tabs
 vim.keymap.set('n', '<A-h>', ':bprevious<cr>', { desc = 'Previous buffer', silent = true })
@@ -199,33 +192,6 @@ vim.keymap.set('n', '<leader>pi', ':Lazy install<cr>', { desc = 'Lazy install' }
 vim.keymap.set('n', '<leader>pm', ':Mason<cr>', { desc = 'Mason' })
 
 -- Close buffer
-vim.keymap.set('n', '<leader>c', function()
-  local force = true
-  if not force and vim.bo[0].modified then
-    local bufname = vim.fn.expand '%'
-    local empty = bufname == ''
-    if empty then
-      bufname = 'Untitled'
-    end
-    local confirm = vim.fn.confirm(('Save changes to "%s"?'):format(bufname), '&Yes\n&No\n&Cancel', 1, 'Question')
-    if confirm == 1 then
-      if empty then
-        return
-      end
-      vim.cmd.write()
-    elseif confirm == 2 then
-      force = true
-    else
-      return
-    end
-  end
-  require('mini.bufremove').delete(0, true)
-  -- if there are no buffers left, open starter
-  local bufs = vim.fn.getbufinfo { buflisted = true }
-  if not bufs[2] then
-    require('mini.starter').open()
-  end
-end, { desc = '[C]lose buffer' })
-
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
+vim.keymap.set('n', '<leader>c', ':BufferClose<cr>', { desc = '[C]lose buffer' })
+vim.keymap.set('n', '<leader>bc', ':BufferClose<cr>', { desc = '[C]lose buffer' })
+vim.keymap.set('n', '<leader>bC', ':BufferCloseAllButCurrent<cr>', { desc = '[C]lose all but current buffer' })
