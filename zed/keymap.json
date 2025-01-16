@@ -32,8 +32,8 @@
       "A": "project_panel::NewDirectory",
       "l": "project_panel::OpenPermanent",
       "o": "project_panel::OpenWithSystem",
-      "space f t": "workspace::ToggleLeftDock"
-      // "space f f": "project_panel::ToggleFocus"
+      "space f t": "workspace::ToggleLeftDock",
+      "space f f": "pane::RevealInProjectPanel"
     }
   },
   {
@@ -56,6 +56,10 @@
     }
   },
   {
+    "context": "AssistantPanel > (Editor && VimControl && vim_mode==normal)",
+    "bindings": { "space a t": "workspace::ToggleRightDock" }
+  },
+  {
     "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
     "bindings": {
       "space space ": "tab_switcher::Toggle",
@@ -71,7 +75,7 @@
       "space t": "workspace::NewCenterTerminal",
       "space a e": "assistant::InlineAssist",
       "space a a": "assistant::NewContext",
-      "space a t": "assistant::ToggleFocus",
+      "space a t": "workspace::ToggleRightDock",
       "g r": "editor::FindAllReferences",
       "space l f": "editor::Format",
       "space l s": "outline::Toggle",
