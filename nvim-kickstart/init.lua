@@ -78,9 +78,9 @@ vim.opt.scrolloff = 1
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Save and quit
-vim.keymap.set('n', '<leader>w', ':w<cr>', { desc = 'Save file' })
-vim.keymap.set('n', '<leader>q', ':confirm q<cr>', { desc = 'Quit window' })
-vim.keymap.set('n', '<leader>Q', ':confirm qall<cr>', { desc = 'Quit Nvim' })
+vim.keymap.set('n', '<leader>w', ':w<cr>', { desc = 'Save file', silent = true })
+vim.keymap.set('n', '<leader>q', ':confirm q<cr>', { desc = 'Quit window', silent = true })
+vim.keymap.set('n', '<leader>Q', ':confirm qall<cr>', { desc = 'Quit Nvim', silent = true })
 
 -- Diagnostic keymaps
 -- vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -185,13 +185,13 @@ require('lazy').setup({
 })
 
 -- Lazy keymaps
-vim.keymap.set('n', '<leader>ps', ':Lazy<cr>', { desc = 'Lazy status' })
-vim.keymap.set('n', '<leader>pS', ':Lazy sync<cr>', { desc = 'Lazy sync' })
-vim.keymap.set('n', '<leader>pu', ':Lazy update<cr>', { desc = 'Lazy update' })
-vim.keymap.set('n', '<leader>pi', ':Lazy install<cr>', { desc = 'Lazy install' })
-vim.keymap.set('n', '<leader>pm', ':Mason<cr>', { desc = 'Mason' })
+vim.keymap.set('n', '<leader>ps', ':Lazy<cr>', { desc = 'Lazy status', silent = true })
+vim.keymap.set('n', '<leader>pS', ':Lazy sync<cr>', { desc = 'Lazy sync', silent = true })
+vim.keymap.set('n', '<leader>pu', ':Lazy update<cr>', { desc = 'Lazy update', silent = true })
+vim.keymap.set('n', '<leader>pi', ':Lazy install<cr>', { desc = 'Lazy install', silent = true })
+vim.keymap.set('n', '<leader>pm', ':Mason<cr>', { desc = 'Mason', silent = true })
 
 -- Close buffer
-vim.keymap.set('n', '<leader>c', ':BufferClose<cr>', { desc = '[C]lose buffer' })
-vim.keymap.set('n', '<leader>bc', ':BufferClose<cr>', { desc = '[C]lose buffer' })
-vim.keymap.set('n', '<leader>bC', ':BufferCloseAllButCurrent<cr>', { desc = '[C]lose all but current buffer' })
+vim.keymap.set('n', '<leader>c', ':BufferClose<cr>', { desc = '[C]lose buffer', silent = true })
+vim.keymap.set('n', '<leader>bc', ':BufferClose<cr>', { desc = '[C]lose buffer', silent = true })
+vim.keymap.set('n', '<leader>bC', ':BufferCloseAllButCurrent<cr>', { desc = '[C]lose all but current buffer', silent = true })
