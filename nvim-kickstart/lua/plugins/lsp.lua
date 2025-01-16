@@ -280,7 +280,10 @@ return {
       vim.api.nvim_create_autocmd('FileType', {
         pattern = 'typst',
         callback = function()
-          vim.keymap.set('n', '<leader>lp', ':TypstPreview<CR>', { buffer = true, noremap = true, silent = true })
+          vim.keymap.set('n', '<leader>lp', ':TypstPreview<CR>', { buffer = true, noremap = true, silent = true, desc = 'Typst: [p]review' })
+          vim.keymap.set('n', '<leader>lP', function()
+            vim.lsp.buf.execute_command { command = 'tinymist.pinMain', arguments = { vim.api.nvim_buf_get_name(0) } }
+          end, { buffer = true, noremap = true, silent = true, desc = 'Typst: [P]in main buffer' })
         end,
       })
     end,
