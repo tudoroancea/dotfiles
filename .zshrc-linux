@@ -1,6 +1,13 @@
 # load zsh profiler
 # zmodload zsh/zprof
 
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # only check if we have to regenerate the zcompdump once a day
 autoload -Uz compinit
 for dump in ~/.zcompdump(N.mh+24); do
@@ -59,15 +66,16 @@ vv() {
 ccopy() {
     cat "$1" | pbcopy
 }
+alias bat='batcat --theme=ansi'
+alias up='uv pip'
 alias dotf="cd ~/dotfiles && nvim"
-alias purge="./scripts/purge.sh"
-alias build="./scripts/build.sh"
-# alias test="./scripts/test.sh"
-alias env_update="./scripts/env_update.sh"
-
-# advanced aliases
 alias fda='fd -u'
 alias sizes='du -h -d 1 .'
+submodule_rm() {
+  git submodule deinit -f -- "$1"
+  git rm -f "$1"
+  rm -rf .git/modules/"$1"
+}
 
 # mamba aliases
 alias ma=mamba
@@ -81,22 +89,8 @@ alias min='mamba install'
 alias miny='mamba install -y'
 alias mind='mamba install -d'
 
-
-alias bat='batcat --theme=ansi'
-
-alias up='uv pip'
-
+# project specific aliases and configurations ===============================================
 alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
-
-submodule_rm() {
-  git submodule deinit -f -- "$1"
-  git rm -f "$1"
-  rm -rf .git/modules/"$1"
-}
-
-eval "$(uv generate-shell-completion zsh)"
-export UV_PYTHON_PREFERENCE=only-managed
-export UV_PYTHON=3.12
 
 tmux_pymanopt() {
   SESSION="pymanopt"
@@ -119,45 +113,34 @@ tmux_pymanopt() {
   tmux attach-session -t $SESSION:0
 }
 
-# function to create a light and dark wallpaper for macOS
-ldwallpaper() {
-	if [ $# -lt 3 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-		echo "Creates a light and dark wallpaper for macOS."
-		echo "Usage: ldwallpaper [-h] [--help] light_image dark_image out_heic"
-		echo ""
-		return 129
-	fi
-	command -v "exiv2" >/dev/null 2>&1 || { echo "exiv2 is not installed." >&2; return 1; }
-	command -v "heif-enc" >/dev/null 2>&1 || { echo "libheif is not installed." >&2; return 1; }
-	test -s "$1" || { echo "Light image does not exist." >&2; return 1; }
-	test -s "$2" || { echo "Dark image does not exist." >&2; return 1; }
-	test ! -e "$3" || { echo "Output image already exists." >&2; return 1; }
-	f="$(basename "$1")"; n="${f%.*}"; e="${f##*.}"
-	tmp="$(mktemp -d)"
-	cp "$1" "$tmp/$f"
-	cat << EOF > "$tmp/$n.xmp"
-<?xpacket?>
-<x:xmpmeta xmlns:x="adobe:ns:meta">
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns">
-<rdf:Description xmlns:apple_desktop="http://ns.apple.com/namespace/1.0"
-apple_desktop:apr=
-"YnBsaXN0MDDSAQMCBFFsEAFRZBAACA0TEQ/REMOVE/8BAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAFQ=="/>
-</rdf:RDF>
-</x:xmpmeta>
-EOF
-	exiv2 -i X in "$tmp/$f"
-	{ test "$e" = "png" && heif-enc -L "$tmp/$f" "$2" -o "$3"; } || heif-enc "$tmp/$f" "$2" -o "$3"
-	rm -r "$tmp"
-}
+# >>> conda initialize >>> ====================================================================
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/ted/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/ted/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/home/ted/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/ted/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
 
-# openssl (idk why we need it but I wouldn't remove it just in case sth breaks)
-export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
+# general tools configuration =====================================================
+eval "$(uv generate-shell-completion zsh)"
+export UV_PYTHON_PREFERENCE=only-managed
+export UV_PYTHON=3.12
 
 # fzf
 source <(fzf --zsh)
 
 # cuda
 export PATH=/usr/local/cuda-12.6/bin${PATH:+:${PATH}}
+
+# API keys for OpenAI and Anthropic
+. "$HOME/api_keys.sh"
 
 # (oh my) zsh customization ===================================
 export EDITOR="nvim"
@@ -180,7 +163,7 @@ VI_MODE_CURSOR_INSERT=5
 VI_MODE_CURSOR_OPPEND=0
 MODE_INDICATOR="%F{white}+%f"
 INSERT_MODE_INDICATOR="%F{yellow}+%f"
-
+ZSH_THEME="powerlevel10k/powerlevel10k"
 # oh my zsh plugins
 plugins=(
   git  # for gst, gc, etc.
@@ -191,31 +174,15 @@ plugins=(
   zsh-interactive-cd
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-fzf-history-search
 )
 source $ZSH/oh-my-zsh.sh
 
 # starship prompt
-eval "$(starship init zsh)"
+# eval "$(starship init zsh)"
 
-
-# API keys for OpenAI and Anthropic
-. "$HOME/api_keys.sh"
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/ted/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/ted/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/ted/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/ted/miniforge3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # run zsh profiling
 # zprof

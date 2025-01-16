@@ -90,18 +90,36 @@ alias miny='mamba install -y'
 alias mind='mamba install -d'
 alias up='uv pip'
 
-# uv configuration
-eval "$(uv generate-shell-completion zsh)"
-export UV_PYTHON_PREFERENCE=only-managed
-export UV_PYTHON=3.12
-
-
-# bun completions
-[ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
+# function to create a light and dark wallpaper for macOS
+ldwallpaper() {
+	if [ $# -lt 3 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+		echo "Creates a light and dark wallpaper for macOS."
+		echo "Usage: ldwallpaper [-h] [--help] light_image dark_image out_heic"
+		echo ""
+		return 129
+	fi
+	command -v "exiv2" >/dev/null 2>&1 || { echo "exiv2 is not installed." >&2; return 1; }
+	command -v "heif-enc" >/dev/null 2>&1 || { echo "libheif is not installed." >&2; return 1; }
+	test -s "$1" || { echo "Light image does not exist." >&2; return 1; }
+	test -s "$2" || { echo "Dark image does not exist." >&2; return 1; }
+	test ! -e "$3" || { echo "Output image already exists." >&2; return 1; }
+	f="$(basename "$1")"; n="${f%.*}"; e="${f##*.}"
+	tmp="$(mktemp -d)"
+	cp "$1" "$tmp/$f"
+	cat << EOF > "$tmp/$n.xmp"
+<?xpacket?>
+<x:xmpmeta xmlns:x="adobe:ns:meta">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns">
+<rdf:Description xmlns:apple_desktop="http://ns.apple.com/namespace/1.0"
+apple_desktop:apr=
+"YnBsaXN0MDDSAQMCBFFsEAFRZBAACA0TEQ/REMOVE/8BAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAFQ=="/>
+</rdf:RDF>
+</x:xmpmeta>
+EOF
+	exiv2 -i X in "$tmp/$f"
+	{ test "$e" = "png" && heif-enc -L "$tmp/$f" "$2" -o "$3"; } || heif-enc "$tmp/$f" "$2" -o "$3"
+	rm -r "$tmp"
+}
 
 # project specific aliases and configurations ===============================================
 
@@ -138,36 +156,6 @@ tmux_pymanopt() {
   tmux attach-session -t $SESSION:0
 }
 
-# function to create a light and dark wallpaper for macOS
-ldwallpaper() {
-	if [ $# -lt 3 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-		echo "Creates a light and dark wallpaper for macOS."
-		echo "Usage: ldwallpaper [-h] [--help] light_image dark_image out_heic"
-		echo ""
-		return 129
-	fi
-	command -v "exiv2" >/dev/null 2>&1 || { echo "exiv2 is not installed." >&2; return 1; }
-	command -v "heif-enc" >/dev/null 2>&1 || { echo "libheif is not installed." >&2; return 1; }
-	test -s "$1" || { echo "Light image does not exist." >&2; return 1; }
-	test -s "$2" || { echo "Dark image does not exist." >&2; return 1; }
-	test ! -e "$3" || { echo "Output image already exists." >&2; return 1; }
-	f="$(basename "$1")"; n="${f%.*}"; e="${f##*.}"
-	tmp="$(mktemp -d)"
-	cp "$1" "$tmp/$f"
-	cat << EOF > "$tmp/$n.xmp"
-<?xpacket?>
-<x:xmpmeta xmlns:x="adobe:ns:meta">
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns">
-<rdf:Description xmlns:apple_desktop="http://ns.apple.com/namespace/1.0"
-apple_desktop:apr=
-"YnBsaXN0MDDSAQMCBFFsEAFRZBAACA0TEQ/REMOVE/8BAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAFQ=="/>
-</rdf:RDF>
-</x:xmpmeta>
-EOF
-	exiv2 -i X in "$tmp/$f"
-	{ test "$e" = "png" && heif-enc -L "$tmp/$f" "$2" -o "$3"; } || heif-enc "$tmp/$f" "$2" -o "$3"
-	rm -r "$tmp"
-}
 
 # homebrew config =====================================================-==============
 eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -201,8 +189,26 @@ if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/mamba.sh" ]; then
 fi
 # <<< conda initialize <<<
 
-# fzf ================================================================================
+# general tools configuration =====================================================
+
+# uv configuration
+eval "$(uv generate-shell-completion zsh)"
+export UV_PYTHON_PREFERENCE=only-managed
+export UV_PYTHON=3.12
+
+
+# bun completions
+[ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# fzf 
 source <(fzf --zsh)
+
+# API keys for OpenAI and Anthropic 
+. "$HOME/api_keys.sh"
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="nvim"
@@ -243,13 +249,8 @@ source $ZSH/oh-my-zsh.sh
 # starship prompt
 # eval "$(starship init zsh)"
 
-
-# API keys for OpenAI and Anthropic
-. "$HOME/api_keys.sh"
-
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-#
 # run zsh profiling
 # zprof

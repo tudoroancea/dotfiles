@@ -18,6 +18,7 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 git clone https://github.com/joshskidmore/zsh-fzf-history-search ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-fzf-history-search
 # (old prompt): curl -sS https://starship.rs/install.sh | sh
 ln -s ~/dotfiles/.zshrc ~/.zshrc
+ln -s ~/dotfiles/.p10k.zsh ~/.p10k.zsh
 ```
 
 ## tmux
