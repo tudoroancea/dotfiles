@@ -91,34 +91,65 @@ return {
       { '<leader>ff', ':Neotree focus<cr>', desc = '[F]ile explorer: [f]ocus', silent = true },
     },
   },
-  --- Nice UI elements
-  { 'stevearc/dressing.nvim', opts = { input = { default_prompt = '>' } } },
+  --- Nice UI elements (notifications, cmd search)
+  -- { 'stevearc/dressing.nvim', opts = { input = { default_prompt = '>' } } },
+  -- { -- notifications for errors, warnings, info, debug, and lsp
+  --   'echasnovski/mini.notify',
+  --   event = 'VeryLazy',
+  --   lazy = true,
+  --   config = function()
+  --     require('mini.notify').setup()
+  --     vim.notify = require('mini.notify').make_notify()
+  --   end,
+  --   keys = {
+  --     { '<leader>nh', require('mini.notify').show_history, desc = '[N]otifications' },
+  --   },
+  -- },
   {
     'folke/noice.nvim',
     version = '*',
     dependencies = { 'hrsh7th/nvim-cmp' },
+    -- @type NoiceConfig
     opts = {
-      notify = {
-        enabled = false,
-      },
       lsp = {
-        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
         override = {
+          -- override the default lsp markdown formatter with Noice
           ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
+          -- override the lsp markdown formatter with Noice
           ['vim.lsp.util.stylize_markdown'] = true,
-          ['cmp.entry.get_documentation'] = true, -- requires hrsh7th/nvim-cmp
-        },
-        signature = {
-          enabled = false,
+          -- override cmp documentation with Noice (needs the other options to work)
+          ['cmp.entry.get_documentation'] = true,
         },
       },
-      -- you can enable a preset for easier configuration
-      presets = {
-        bottom_search = true, -- use a classic bottom cmdline for search
-        command_palette = true, -- position the cmdline and popupmenu together
-        long_message_to_split = true, -- long messages will be sent to a split
-        inc_rename = false, -- enables an input dialog for inc-rename.nvim
-        lsp_doc_border = false, -- add a border to hover docs and signature help
+      views = {
+        cmdline_popup = {
+          position = {
+            row = 5,
+            col = '50%',
+          },
+          size = {
+            width = 60,
+            height = 'auto',
+          },
+        },
+        popupmenu = {
+          relative = 'editor',
+          position = {
+            row = 8,
+            col = '50%',
+          },
+          size = {
+            width = 60,
+            height = 10,
+          },
+          border = {
+            style = 'rounded',
+            padding = { 0, 1 },
+          },
+          win_options = {
+            winhighlight = { Normal = 'Normal', FloatBorder = 'DiagnosticInfo' },
+          },
+        },
       },
     },
   },
@@ -207,18 +238,6 @@ return {
       },
     },
   },
-  { -- notifications for errors, warnings, info, debug, and lsp
-    'echasnovski/mini.notify',
-    event = 'VeryLazy',
-    lazy = true,
-    config = function()
-      require('mini.notify').setup()
-      vim.notify = require('mini.notify').make_notify()
-    end,
-    keys = {
-      { '<leader>nh', require('mini.notify').show_history, desc = '[N]otifications' },
-    },
-  },
   { -- indent scope hints
     'echasnovski/mini.indentscope',
     event = 'VeryLazy',
@@ -228,115 +247,6 @@ return {
       indentscope.setup { draw = { delay = 0, animation = indentscope.gen_animation.none() } }
     end,
   },
-  { -- mini.clue
-    'echasnovski/mini.clue',
-    enabled = false,
-    lazy = false,
-    config = function()
-      local miniclue = require 'mini.clue'
-      miniclue.setup {
-        window = {
-          delay = 100,
-        },
-        triggers = {
-          -- Leader triggers
-          { mode = 'n', keys = '<Leader>' },
-          { mode = 'x', keys = '<Leader>' },
-
-          -- Built-in completion
-          -- { mode = 'i', keys = '<C-x>' },
-
-          -- `g` key
-          { mode = 'n', keys = 'g' },
-          { mode = 'x', keys = 'g' },
-
-          -- Marks
-          { mode = 'n', keys = "'" },
-          { mode = 'n', keys = '`' },
-          { mode = 'x', keys = "'" },
-          { mode = 'x', keys = '`' },
-
-          -- Registers
-          { mode = 'n', keys = '"' },
-          { mode = 'x', keys = '"' },
-          { mode = 'i', keys = '<C-r>' },
-          { mode = 'c', keys = '<C-r>' },
-
-          -- Window commands
-          { mode = 'n', keys = '<C-w>' },
-
-          -- `z` key
-          { mode = 'n', keys = 'z' },
-          { mode = 'x', keys = 'z' },
-        },
-
-        clues = {
-          -- Enhance this by adding descriptions for <Leader> mapping groups
-          miniclue.gen_clues.builtin_completion(),
-          miniclue.gen_clues.g(),
-          miniclue.gen_clues.marks(),
-          miniclue.gen_clues.registers(),
-          miniclue.gen_clues.windows(),
-          miniclue.gen_clues.z(),
-          { mode = { 'n', 'x' }, key = '<leader>h', action = 'MiniClue' },
-          { mode = { 'n', 'x' }, keys = '<leader>a', desc = '[A]vante' },
-          { mode = { 'n', 'x' }, keys = '<leader>l', desc = '[L]SP' },
-          { mode = { 'n', 'x' }, keys = '<leader>s', desc = '[S]earch' },
-          { mode = { 'n', 'x' }, keys = '<leader>g', desc = '[G]it' },
-          { mode = { 'n', 'x' }, keys = '<leader>p', desc = '[P]lugins' },
-        },
-      }
-    end,
-  },
-  { -- mini.starter
-    'echasnovski/mini.starter',
-    enabled = false,
-    lazy = false,
-    config = function()
-      local kwoht = [[
-    █████                                                                        █████       ███
-   ░░███                                                                        ░░███       ░░░
-    ░███ █████  ██████   ██████  ████████     █████ ███ █████  ██████  ████████  ░███ █████ ████  ████████    ███████
-    ░███░░███  ███░░███ ███░░███░░███░░███   ░░███ ░███░░███  ███░░███░░███░░███ ░███░░███ ░░███ ░░███░░███  ███░░███
-    ░██████░  ░███████ ░███████  ░███ ░███    ░███ ░███ ░███ ░███ ░███ ░███ ░░░  ░██████░   ░███  ░███ ░███ ░███ ░███
-    ░███░░███ ░███░░░  ░███░░░   ░███ ░███    ░░███████████  ░███ ░███ ░███      ░███░░███  ░███  ░███ ░███ ░███ ░███
-    ████ █████░░██████ ░░██████  ░███████      ░░████░████   ░░██████  █████     ████ █████ █████ ████ █████░░███████
-   ░░░░ ░░░░░  ░░░░░░   ░░░░░░   ░███░░░        ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███
-                                 ░███                                                                        ███ ░███
-                        █████    █████                     █████     █████    █████       ███               ░░██████
-                       ░░███    ░░░░░                     ░░███     ░░███    ░░███       ░░░                 ░░░░░░
-  ██████  ████████      ░███████    ██████   ████████   ███████     ███████   ░███████   ████  ████████    ███████  █████
- ███░░███░░███░░███     ░███░░███  ░░░░░███ ░░███░░███ ███░░███    ░░░███░    ░███░░███ ░░███ ░░███░░███  ███░░███ ███░░
-░███ ░███ ░███ ░███     ░███ ░███   ███████  ░███ ░░░ ░███ ░███      ░███     ░███ ░███  ░███  ░███ ░███ ░███ ░███░░█████
-░███ ░███ ░███ ░███     ░███ ░███  ███░░███  ░███     ░███ ░███      ░███ ███ ░███ ░███  ░███  ░███ ░███ ░███ ░███ ░░░░███
-░░██████  ████ █████    ████ █████░░████████ █████    ░░████████     ░░█████  ████ █████ █████ ████ █████░░███████ ██████
-░░░░░░  ░░░░ ░░░░░    ░░░░ ░░░░░  ░░░░░░░░ ░░░░░      ░░░░░░░░       ░░░░░  ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███░░░░░░
-                                                                                                         ███ ░███
-                                                                                                        ░░██████
-                                                                                                         ░░░░░░
-                                           ]]
-      require('mini.starter').setup { header = kwoht }
-      -- vim.api.nvim_create_autocmd('MiniStarterOpened', {
-      --   callback = function()
-      --     -- close starter
-      --     vim.notify('closing starter', vim.log.levels.INFO)
-      --     vim.keymap.set('n', '<leader>h', function()
-      --       require('mini.bufremove').delete(0, true)
-      --     end)
-      --   end,
-      -- })
-    end,
-    keys = {
-      { '<leader>h', require('mini.starter').open, desc = '[H]ome' },
-    },
-  },
-  -- { -- tab line
-  --   'echasnovski/mini.tabline',
-  --   lazy = false,
-  --   opts = {
-  --     use_icons = vim.g.have_nerd_font,
-  --   },
-  -- },
   {
     'folke/snacks.nvim',
     priority = 1000,
@@ -345,31 +255,34 @@ return {
     opts = {
       dashboard = {
         enabled = true,
+        formats = { header = { '%s', align = 'left' } },
         preset = {
+          -- IMPORTANT: Pad the right with spaces to properly align the header
+          -- https://github.com/folke/snacks.nvim/discussions/480
           header = [[
-    █████                                                                        █████       ███
-   ░░███                                                                        ░░███       ░░░
-    ░███ █████  ██████   ██████  ████████     █████ ███ █████  ██████  ████████  ░███ █████ ████  ████████    ███████
-    ░███░░███  ███░░███ ███░░███░░███░░███   ░░███ ░███░░███  ███░░███░░███░░███ ░███░░███ ░░███ ░░███░░███  ███░░███
-    ░██████░  ░███████ ░███████  ░███ ░███    ░███ ░███ ░███ ░███ ░███ ░███ ░░░  ░██████░   ░███  ░███ ░███ ░███ ░███
-    ░███░░███ ░███░░░  ░███░░░   ░███ ░███    ░░███████████  ░███ ░███ ░███      ░███░░███  ░███  ░███ ░███ ░███ ░███
-    ████ █████░░██████ ░░██████  ░███████      ░░████░████   ░░██████  █████     ████ █████ █████ ████ █████░░███████
-   ░░░░ ░░░░░  ░░░░░░   ░░░░░░   ░███░░░        ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███
-                                 ░███                                                                        ███ ░███
-                        █████    █████                     █████     █████    █████       ███               ░░██████
-                       ░░███    ░░░░░                     ░░███     ░░███    ░░███       ░░░                 ░░░░░░
-  ██████  ████████      ░███████    ██████   ████████   ███████     ███████   ░███████   ████  ████████    ███████  █████
- ███░░███░░███░░███     ░███░░███  ░░░░░███ ░░███░░███ ███░░███    ░░░███░    ░███░░███ ░░███ ░░███░░███  ███░░███ ███░░
-░███ ░███ ░███ ░███     ░███ ░███   ███████  ░███ ░░░ ░███ ░███      ░███     ░███ ░███  ░███  ░███ ░███ ░███ ░███░░█████
+    █████                                                                        █████       ███                          
+   ░░███                                                                        ░░███       ░░░                           
+    ░███ █████  ██████   ██████  ████████     █████ ███ █████  ██████  ████████  ░███ █████ ████  ████████    ███████     
+    ░███░░███  ███░░███ ███░░███░░███░░███   ░░███ ░███░░███  ███░░███░░███░░███ ░███░░███ ░░███ ░░███░░███  ███░░███     
+    ░██████░  ░███████ ░███████  ░███ ░███    ░███ ░███ ░███ ░███ ░███ ░███ ░░░  ░██████░   ░███  ░███ ░███ ░███ ░███     
+    ░███░░███ ░███░░░  ░███░░░   ░███ ░███    ░░███████████  ░███ ░███ ░███      ░███░░███  ░███  ░███ ░███ ░███ ░███     
+    ████ █████░░██████ ░░██████  ░███████      ░░████░████   ░░██████  █████     ████ █████ █████ ████ █████░░███████     
+   ░░░░ ░░░░░  ░░░░░░   ░░░░░░   ░███░░░        ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███     
+                                 ░███                                                                        ███ ░███     
+                        █████    █████                     █████     █████    █████       ███               ░░██████      
+                       ░░███    ░░░░░                     ░░███     ░░███    ░░███       ░░░                 ░░░░░░       
+  ██████  ████████      ░███████    ██████   ████████   ███████     ███████   ░███████   ████  ████████    ███████  █████ 
+ ███░░███░░███░░███     ░███░░███  ░░░░░███ ░░███░░███ ███░░███    ░░░███░    ░███░░███ ░░███ ░░███░░███  ███░░███ ███░░  
+░███ ░███ ░███ ░███     ░███ ░███   ███████  ░███ ░░░ ░███ ░███      ░███     ░███ ░███  ░███  ░███ ░███ ░███ ░███░░█████ 
 ░███ ░███ ░███ ░███     ░███ ░███  ███░░███  ░███     ░███ ░███      ░███ ███ ░███ ░███  ░███  ░███ ░███ ░███ ░███ ░░░░███
-░░██████  ████ █████    ████ █████░░████████ █████    ░░████████     ░░█████  ████ █████ █████ ████ █████░░███████ ██████
- ░░░░░░  ░░░░ ░░░░░    ░░░░ ░░░░░  ░░░░░░░░ ░░░░░      ░░░░░░░░       ░░░░░  ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███░░░░░░
-                                                                                                          ███ ░███
-                                                                                                         ░░██████
-                                                                                                          ░░░░░░]],
+░░██████  ████ █████    ████ █████░░████████ █████    ░░████████     ░░█████  ████ █████ █████ ████ █████░░███████ ██████ 
+ ░░░░░░  ░░░░ ░░░░░    ░░░░ ░░░░░  ░░░░░░░░ ░░░░░      ░░░░░░░░       ░░░░░  ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███░░░░░░  
+                                                                                                          ███ ░███        
+                                                                                                         ░░██████         
+                                                                                                          ░░░░░░          ]],
         },
         sections = {
-          { section = 'header' },
+          { section = 'header', indent = 0, padding = 0 },
           { icon = ' ', title = 'Keymaps', section = 'keys', indent = 2, padding = 1 },
           { icon = ' ', title = 'Recent Files', section = 'recent_files', indent = 2, padding = 1 },
           { icon = ' ', title = 'Projects', section = 'projects', indent = 2, padding = 1 },
