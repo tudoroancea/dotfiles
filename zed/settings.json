@@ -64,6 +64,7 @@
     "light": "Rosé Pine Dawn",
     "dark": "Rosé Pine Moon"
   },
+  "icon_theme": "Zed (Default)",
   "experimental.theme_overrides": {
     "syntax": {
       "comment": {}
@@ -85,12 +86,7 @@
   "enable_language_server": true,
   "languages": {
     "Python": {
-      "language_servers": [
-        "basedpyright",
-        "!pyright",
-        // "pyright",
-        "ruff"
-      ],
+      "language_servers": ["basedpyright", "ruff"],
       "format_on_save": "on",
       "formatter": [
         {
@@ -120,9 +116,6 @@
       }
     },
     "basedpyright": {
-      // "binary": {
-      //     "path": ".venv/bin/basedpyright"
-      // },
       "settings": {
         "python.analysis": { "typeCheckingMode": "off" },
         "python": {
@@ -139,7 +132,7 @@
   },
   // AI
   "features": {
-    "inline_completion_provider": "supermaven"
+    "inline_completion_provider": "zed"
   },
   "assistant": {
     "enabled": true,
@@ -154,14 +147,7 @@
   },
   "language_models": {
     "ollama": {
-      "api_url": "thebeauty.local:11434",
-      "available_models": [
-        {
-          "name": "qwen2.5-coder:14b",
-          "display_name": "qwen 2.5 coder",
-          "max_tokens": 32768
-        }
-      ]
+      "api_url": "http://thebeauty.local:11434"
     }
   },
   // Git
@@ -178,7 +164,7 @@
     "show_status_indicator": true
   },
   "telemetry": {
-    "diagnostics": true,
+    "diagnostics": false,
     "metrics": false
   },
   "auto_update": true,

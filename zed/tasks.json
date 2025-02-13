@@ -42,5 +42,12 @@
     "args": ["preview", "\"$ZED_FILE\""],
     "reveal": "never",
     "hide": "always"
+  },
+  {
+    "label": "Bun: run dev",
+    "command": "bun",
+    "args": ["run", "dev"],
+    "reveal": "never",
+    "hide": "always"
   }
 ]

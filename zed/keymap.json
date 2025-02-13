@@ -3,7 +3,6 @@
     "bindings": {
       "alt-g": ["task::Spawn", { "task_name": "lazygit", "target": "center" }],
       "alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
-      "alt-shift-g": ["task::Rerun", { "task_name": "lazygit" }],
       "cmd-shift-r": "workspace::Reload",
       "cmd-h": "pane::ActivatePrevItem",
       "cmd-l": "pane::ActivateNextItem"
@@ -19,10 +18,10 @@
   {
     "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
     "bindings": {
-      "ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
-      "ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
-      "ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
-      "ctrl-j": ["workspace::ActivatePaneInDirection", "Down"]
+      "ctrl-h": "workspace::ActivatePaneLeft",
+      "ctrl-l": "workspace::ActivatePaneRight",
+      "ctrl-k": "workspace::ActivatePaneUp",
+      "ctrl-j": "workspace::ActivatePaneDown"
     }
   },
   {
@@ -112,9 +111,9 @@
     "context": "Editor && inline_completion && !showing_completions",
     "bindings": {
       "tab": null,
-      "ctrl-k": "editor::ToggleInlineCompletions",
-      "ctrl-l": "editor::AcceptInlineCompletion",
-      "ctrl-;": "editor::AcceptPartialInlineCompletion"
+      "ctrl-k": "editor::ShowCompletions"
+      // "ctrl-l": "editor::AcceptInlineCompletion",
+      // "ctrl-;": "editor::AcceptPartialInlineCompletion"
     }
   }
 ]
