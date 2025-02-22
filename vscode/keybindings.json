@@ -6,7 +6,7 @@
         "when": "inSearchEditor"
     },
     {
-        "key": "cmd+r",
+        "key": "shift+cmd+r",
         "command": "workbench.action.reloadWindow",
         "when": "true"
     },
@@ -165,5 +165,13 @@
         "key": "ctrl+alt+cmd+down",
         "command": "-quickInput.nextSeparator",
         "when": "inQuickInput && quickInputType == 'quickPick'"
+    },
+    {
+        "key": "cmd+r",
+        "command": "workbench.action.toggleAuxiliaryBar"
+    },
+    {
+        "key": "alt+cmd+b",
+        "command": "-workbench.action.toggleAuxiliaryBar"
     }
 ]

@@ -2,68 +2,65 @@
     // ======== UI ========================
     "workbench.activityBar.location": "top",
     "workbench.iconTheme": "material-icon-theme",
-    // animations
-    "animations.Install-Method": "Apc Customize UI++",
-    "apc.imports": [
-        "file:///Users/tudoroancea/.vscode-insiders/extensions/brandonkirbyson.vscode-animations-2.0.1/dist/updateHandler.js"
-    ],
+    "workbench.colorTheme": "Rosé Pine Dawn",
     // top bar
     "window.density.editorTabHeight": "compact",
     "workbench.editor.showTabs": "multiple",
-    "breadcrumbs.enabled": true, // hides breadcrumb path at top of window
-    "window.commandCenter": false, // hides command center at the top of the window. Use cmd+shift+p instead
-    "workbench.layoutControl.enabled": true, // those little squares on the top right of the window
-    // bottom bar
+    // "breadcrumbs.enabled": true, // breadcrumb path at top of window
+    // "window.commandCenter": true, // command center at the top of the window. Use cmd+shift+p instead
+    // "workbench.layoutControl.enabled": true, // those little squares on the top right of the window
     // minimap
     "editor.minimap.renderCharacters": false, // make minimap blockish (low level of detail)
     "editor.hideCursorInOverviewRuler": true, // don't highlight current line in scrollbar
     "editor.minimap.autohide": true, // shows minimap only on hoverworkbench.editor.editorActionsLocation": "hidden", // hides the "format" and ellipsis buttons on the top right of the window
     // fonts
-    "editor.fontFamily": "JetBrainsMono Nerd Font",
-    "apc.font.family": "JetBrainsMono NerdFont", // apply font to ALL the UI, requires APC extension
-    "terminal.integrated.fontFamily": "JetBrainsMono NerdFont",
+    // "editor.fontFamily": "Monaspace Neon",
+    // "editor.lineHeight": 1.5,
+    // "editor.inlineSuggest.fontFamily": "Monaspace Radon",
     "editor.fontLigatures": true,
-    "editor.fontSize": 12,
+    // "terminal.integrated.fontLigatures": true,
+    // "terminal.integrated.fontFamily": "Monaspace Neon",
+    // "terminal.integrated.lineHeight": 1.5,
+    // "editor.fontSize": 12,
     // cursor
     "editor.cursorBlinking": "expand",
     "editor.cursorSmoothCaretAnimation": "on",
     // editor
     "editor.stickyScroll.enabled": true, // keep block name fixed at top when scrolling
-    "gitlens.mode.active": "zen", // toggle with command palette, zen mode hides gitlens stuff for when you don't need it
     "editor.wordWrap": "off", // wrap text instead of scrolling horizontally
     "editor.inlineSuggest.enabled": true,
     "editor.lineNumbers": "relative",
     "editor.minimap.enabled": false,
     "editor.wordBasedSuggestions": "matchingDocuments", // to inspect
     // ========== vim ========================
-    "vim.enableNeovim": true,
     "vim.foldfix": true,
     "vim.useSystemClipboard": true,
     "vim.leader": "<space>",
-    "vim.easymotion": true,
     "vim.incsearch": true,
     "extensions.experimental.affinity": {
         "vscodevim.vim": 1
     },
     "vim.insertModeKeyBindingsNonRecursive": [
-        {
-            "before": [
-                "<C-l>"
-            ],
-            "commands": [
-                "editor.action.inlineSuggest.commit"
-            ]
-        },
-        {
-            "before": [
-                "<C-;>"
-            ],
-            "commands": [
-                "editor.action.inlineSuggest.acceptNextWord"
-            ]
-        }
+        // {
+        //     "before": [
+        //         "<C-l>"
+        //     ],
+        //     "commands": [
+        //         "editor.action.inlineSuggest.commit"
+        //     ],
+        //     "silent": true,
+        // },
+        // {
+        //     "before": [
+        //         "<C-;>"
+        //     ],
+        //     "commands": [
+        //         "editor.action.inlineSuggest.acceptNextWord",
+        //     ],
+        //     "silent": true
+        // }
     ],
-    "vim.normalModeKeyBindings": [
+    "vim.normalModeKeyBindingsNonRecursive": [
         {
             "before": [
                 ":"
@@ -80,6 +77,14 @@
             ],
             "commands": [
                 "workbench.action.files.save"
+            ],
+        },{
+            "before": [
+                "<leader>",
+                "W",
+            ],
+            "commands": [
+                "workbench.action.files.saveWithoutFormatting"
             ],
         },
         {
@@ -139,7 +144,7 @@
         {
             "before": [
                 "g",
-                "a",
+                "a"
             ],
             "after": [
                 "0",
@@ -150,34 +155,14 @@
         {
             "before": [
                 "g",
-                "r",
+                "r"
             ],
             "commands": [
                 "editor.action.goToReferences"
             ],
         },
-        {
-            "before": [
-                "<leader>",
-                "f",
-                "f",
-            ],
-            "commands": [
-                "find-it-faster.findFiles"
-            ]
-        },
-        {
-            "before": [
-                "<leader>",
-                "f",
-                "w",
-            ],
-            "commands": [
-                "find-it-faster.findWithinFiles"
-            ]
-        },
     ],
-    "vim.visualModeKeyBindings": [
+    "vim.visualModeKeyBindingsNonRecursive": [
         {
             "before": [
                 "<leader>",
@@ -199,13 +184,15 @@
         "publish": true,
         "sync": false
     },
-    "git.smartCommitChanges": "tracked",
-    "git.suggestSmartCommit": true,
-    "gitlens.graph.avatars": false,
-    "gitlens.graph.layout": "editor",
-    "gitlens.graph.minimap.enabled": false,
-    "gitlens.graph.statusBar.enabled": true,
-    "gitlens.telemetry.enabled": false,
+    "git.blame.editorDecoration.enabled": false,
+    // "git.smartCommitChanges": "tracked",
+    // "git.suggestSmartCommit": true,
+    // "gitlens.mode.active": "zen", // toggle with command palette, zen mode hides gitlens stuff for when you don't need it
+    // "gitlens.graph.avatars": false,
+    // "gitlens.graph.layout": "editor",
+    // "gitlens.graph.minimap.enabled": false,
+    // "gitlens.graph.statusBar.enabled": true,
+    // "gitlens.telemetry.enabled": false,
     // ======== Languages ========================
     // python
     "[python]": {
@@ -278,6 +265,12 @@
             "statusBarVisibility": "compact"
         },
     },
+    "cmake.options.statusBarVisibility": "compact",
+    "cmake.showOptionsMovedNotification": false,
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
     // typst
     "tinymist.semanticTokens": "enable",
     "tinymist.exportPdf": "onSave",
@@ -286,73 +279,41 @@
     "[typst-code]": {
         "editor.formatOnSave": true,
     },
+    "vite.autoStart": false,
     // ======= meta =========
     "workbench.settings.editor": "json",
     "workbench.startupEditor": "none",
     "telemetry.telemetryLevel": "off",
     "dotnetAcquisitionExtension.enableTelemetry": false,
-    "update.mode": "manual",
+    "update.mode": "default",
     "debug.onTaskErrors": "abort",
     "debug.toolBarLocation": "docked",
     "editor.accessibilitySupport": "off",
     "editor.formatOnSaveMode": "modifications",
     "files.autoSave": "onFocusChange",
-    "cmake.options.statusBarVisibility": "compact",
     "redhat.telemetry.enabled": false,
     "security.promptForLocalFileProtocolHandling": false,
-    "sonarlint.rules": {
-        "python:S116": {
-            "level": "off"
-        },
-        "python:S117": {
-            "level": "off"
-        },
-        "python:S1542": {
-            "level": "off"
-        },
-        "python:S3776": {
-            "level": "off"
-        },
-        "c:S995": {
-            "level": "off"
-        },
-        "c:S1659": {
-            "level": "off"
-        },
-        "c:S107": {
-            "level": "off"
-        },
-        "cpp:S3776": {
-            "level": "off"
-        }
-    },
     "terminal.external.osxExec": "Alacritty.app",
     "terminal.integrated.inheritEnv": false,
     "diffEditor.hideUnchangedRegions.enabled": true,
     "diffEditor.ignoreTrimWhitespace": false,
-    "cSpell.enabled": true,
-    "cmake.showOptionsMovedNotification": false,
-    "cmake.pinnedCommands": [
-        "workbench.action.tasks.configureTaskRunner",
-        "workbench.action.tasks.runTask"
-    ],
-    "supermaven.allowGitignore": true,
-    "supermaven.enable": {
-        "*": true
-    },
-    "github.copilot.editor.enableAutoCompletions": false,
-    "github.copilot.enable": {
-        "*": false,
-        "plaintext": false,
-        "markdown": false,
-        "scminput": false
-    },
-    "workbench.colorTheme": "Rosé Pine Dawn",
+    "diffEditor.experimental.useTrueInlineView": true,
     "terminal.integrated.commandsToSkipShell": [
         "matlab.interrupt"
     ],
     "jupyter.widgetScriptSources": [
         "jsdelivr.com",
         "unpkg.com"
-    ]
+    ],
+    "workbench.editor.enablePreview": false,
+    // =============== AI ============
+    "github.copilot.editor.enableAutoCompletions": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": true,
+        "scminput": false
+    }
 }
