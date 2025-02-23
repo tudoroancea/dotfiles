@@ -129,11 +129,10 @@ EOF
 # source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
 # export FSDS="$HOME/Formula-Student-Driverless-Simulator"
 
-alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
+alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
 alias purge="./scripts/purge.sh"
 alias build="./scripts/build.sh"
 # alias test="./scripts/test.sh"
-alias env_update="./scripts/env_update.sh"
 
 tmux_pymanopt() {
   SESSION="pymanopt"
@@ -210,6 +209,26 @@ source <(fzf --zsh)
 # API keys for OpenAI and Anthropic 
 . "$HOME/api_keys.sh"
 
+# compdef gt
+###-begin-gt-completions-###
+#
+# yargs command completion script
+#
+# Installation: gt completion >> ~/.zshrc
+#    or gt completion >> ~/.zprofile on OSX.
+#
+_gt_yargs_completions()
+{
+  local reply
+  local si=$IFS
+  IFS=$'
+' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" gt --get-yargs-completions "${words[@]}"))
+  IFS=$si
+  _describe 'values' reply
+}
+compdef _gt_yargs_completions gt
+###-end-gt-completions-###
+
 # (oh my) zsh customization ==========================================================
 export EDITOR="nvim"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
@@ -254,3 +273,6 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
