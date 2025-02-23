@@ -8,12 +8,13 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# only check if we have to regenerate the zcompdump once a day
+# Only check for new completion files once per day
 autoload -Uz compinit
-for dump in ~/.zcompdump(N.mh+24); do
+if [ $(date +'%j') != $(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null) ]; then
   compinit
-done
-compinit -C
+else
+  compinit -C
+fi
 
 # set locale
 export LANG="en_US.UTF-8"
@@ -22,8 +23,7 @@ export LC_ALL="en_US.UTF-8"
 # source cargo installation (for uv)
 . "$HOME/.local/bin/env"
 
-# functions and aliases ====================================================
-# minimal list
+# general functions and aliases ====================================================
 alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
 alias l="ls -lah"
@@ -67,7 +67,6 @@ ccopy() {
     cat "$1" | pbcopy
 }
 alias bat='batcat --theme=ansi'
-alias up='uv pip'
 alias dotf="cd ~/dotfiles && nvim"
 alias fda='fd -u'
 alias sizes='du -h -d 1 .'
@@ -90,28 +89,10 @@ alias miny='mamba install -y'
 alias mind='mamba install -d'
 
 # project specific aliases and configurations ===============================================
-alias brains2='cd ~/Developer/brains2 && mamba activate brains2 && . install/setup.sh'
-
-tmux_pymanopt() {
-  SESSION="pymanopt"
-  SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
-  # Only create tmux SESSION if it doesn't already exist
-  if [ "$SESSIONEXISTS" = "" ]
-  then
-      tmux new-session -d -s $SESSION
-
-      tmux rename-window -t 0 'nv'
-      tmux send-keys -t 'nv' 'cd ~/Developer/pymanopt; nvim' C-m ' H' C-m
-
-      tmux new-window -t $SESSION:1 -n 'term'
-      tmux send-keys -t 'term' 'cd ~/Developer/pymanopt; source .venv/bin/activate' C-m
-
-      tmux new-window -t $SESSION:2 -n 'btop'
-      tmux send-keys -t 'btop' 'btop' C-m
-  fi
-
-  tmux attach-session -t $SESSION:0
-}
+alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
+alias purge="./scripts/purge.sh"
+alias build="./scripts/build.sh"
+# alias test="./scripts/test.sh"
 
 # homebrew config =====================================================-==============
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

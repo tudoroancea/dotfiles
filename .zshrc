@@ -88,73 +88,12 @@ alias mup='mamba update'
 alias min='mamba install'
 alias miny='mamba install -y'
 alias mind='mamba install -d'
-alias up='uv pip'
-
-# function to create a light and dark wallpaper for macOS
-ldwallpaper() {
-	if [ $# -lt 3 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-		echo "Creates a light and dark wallpaper for macOS."
-		echo "Usage: ldwallpaper [-h] [--help] light_image dark_image out_heic"
-		echo ""
-		return 129
-	fi
-	command -v "exiv2" >/dev/null 2>&1 || { echo "exiv2 is not installed." >&2; return 1; }
-	command -v "heif-enc" >/dev/null 2>&1 || { echo "libheif is not installed." >&2; return 1; }
-	test -s "$1" || { echo "Light image does not exist." >&2; return 1; }
-	test -s "$2" || { echo "Dark image does not exist." >&2; return 1; }
-	test ! -e "$3" || { echo "Output image already exists." >&2; return 1; }
-	f="$(basename "$1")"; n="${f%.*}"; e="${f##*.}"
-	tmp="$(mktemp -d)"
-	cp "$1" "$tmp/$f"
-	cat << EOF > "$tmp/$n.xmp"
-<?xpacket?>
-<x:xmpmeta xmlns:x="adobe:ns:meta">
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns">
-<rdf:Description xmlns:apple_desktop="http://ns.apple.com/namespace/1.0"
-apple_desktop:apr=
-"YnBsaXN0MDDSAQMCBFFsEAFRZBAACA0TEQ/REMOVE/8BAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAFQ=="/>
-</rdf:RDF>
-</x:xmpmeta>
-EOF
-	exiv2 -i X in "$tmp/$f"
-	{ test "$e" = "png" && heif-enc -L "$tmp/$f" "$2" -o "$3"; } || heif-enc "$tmp/$f" "$2" -o "$3"
-	rm -r "$tmp"
-}
 
 # project specific aliases and configurations ===============================================
-
-# export BRAINS_ROOT_DIR="$HOME/brains"
-# export BRAINS_EXTERNAL_ROOT_DIR="$HOME/brains_external"
-# source $BRAINS_ROOT_DIR/aliases.sh
-# source $BRAINS_EXTERNAL_ROOT_DIR/aliases.sh
-# export FSDS="$HOME/Formula-Student-Driverless-Simulator"
-
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
 alias purge="./scripts/purge.sh"
 alias build="./scripts/build.sh"
 # alias test="./scripts/test.sh"
-
-tmux_pymanopt() {
-  SESSION="pymanopt"
-  SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
-  # Only create tmux SESSION if it doesn't already exist
-  if [ "$SESSIONEXISTS" = "" ]
-  then
-      tmux new-session -d -s $SESSION
-
-      tmux rename-window -t 0 'nv'
-      tmux send-keys -t 'nv' 'cd ~/Developer/pymanopt; nvim' C-m ' H' C-m
-
-      tmux new-window -t $SESSION:1 -n 'term'
-      tmux send-keys -t 'term' 'cd ~/Developer/pymanopt; source .venv/bin/activate' C-m
-
-      tmux new-window -t $SESSION:2 -n 'btop'
-      tmux send-keys -t 'btop' 'btop' C-m
-  fi
-
-  tmux attach-session -t $SESSION:0
-}
-
 
 # homebrew config =====================================================-==============
 eval "$(/opt/homebrew/bin/brew shellenv)"
