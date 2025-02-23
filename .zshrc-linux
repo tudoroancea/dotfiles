@@ -113,6 +113,9 @@ tmux_pymanopt() {
   tmux attach-session -t $SESSION:0
 }
 
+# homebrew config =====================================================-==============
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
 # >>> conda initialize >>> ====================================================================
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/ted/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
