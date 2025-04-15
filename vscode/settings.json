@@ -1,8 +1,9 @@
 {
     // ======== UI ========================
     "workbench.activityBar.location": "top",
-    "workbench.iconTheme": "material-icon-theme",
     "workbench.colorTheme": "Rosé Pine Dawn",
+    "workbench.iconTheme": "material-icon-theme",
+    "material-icon-theme.folders.theme": "specific",
     // top bar
     "window.density.editorTabHeight": "compact",
     "workbench.editor.showTabs": "multiple",
@@ -23,8 +24,8 @@
     // "terminal.integrated.lineHeight": 1.5,
     // "editor.fontSize": 12,
     // cursor
-    "editor.cursorBlinking": "expand",
-    "editor.cursorSmoothCaretAnimation": "on",
+    // "editor.cursorBlinking": "expand",
+    // "editor.cursorSmoothCaretAnimation": "off",
     // editor
     "editor.stickyScroll.enabled": true, // keep block name fixed at top when scrolling
     "editor.wordWrap": "off", // wrap text instead of scrolling horizontally
@@ -78,7 +79,8 @@
             "commands": [
                 "workbench.action.files.save"
             ],
-        },{
+        },
+        {
             "before": [
                 "<leader>",
                 "W",
@@ -131,6 +133,15 @@
             ],
             "commands": [
                 "workbench.view.explorer"
+            ],
+        },
+        {
+            "before": [
+                "g",
+                "h"
+            ],
+            "after": [
+                "editor.action.showHover"
             ],
         },
         {
@@ -211,22 +222,21 @@
     ],
     "ruff.enable": true,
     "ruff.organizeImports": true,
-    // c++
+    // C++
     "[cpp]": {
-        "editor.defaultFormatter": "xaver.clang-format"
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "editor.formatOnSave": true,
+        "editor.formatOnSaveMode": "modificationsIfAvailable"
     },
-    "C_Cpp.autocomplete": "default",
-    "C_Cpp.clang_format_fallbackStyle": "WebKit",
-    "C_Cpp.clang_format_sortIncludes": true,
-    "C_Cpp.clang_format_style": "file",
-    "C_Cpp.codeAnalysis.clangTidy.config": "${workspaceFolder}/.clang-tidy",
-    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
-    "C_Cpp.codeFolding": "enabled",
-    "C_Cpp.default.compilerPath": "/usr/bin/clang",
-    "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
-    "C_Cpp.formatting": "default",
-    // cmake
-    "cmake.configureOnStart": false,
+    "C_Cpp.autocomplete": "disabled",
+    "C_Cpp.codeFolding": "disabled",
+    "C_Cpp.errorSquiggles": "disabled",
+    "C_Cpp.formatting": "disabled",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--compile-commands-dir=build"
+    ],
+    "cmake.configureOnOpen": false,
     "cmake.options.advanced": {
         "configure": {
             "projectStatusVisibility": "hidden"
@@ -266,11 +276,12 @@
         },
     },
     "cmake.options.statusBarVisibility": "compact",
-    "cmake.showOptionsMovedNotification": false,
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"
     ],
+    "testMate.cpp.test.workingDirectory": "build/brains2",
+    "sonarlint.pathToCompileCommands": "build/compile_commands.json",
     // typst
     "tinymist.semanticTokens": "enable",
     "tinymist.exportPdf": "onSave",
@@ -279,7 +290,6 @@
     "[typst-code]": {
         "editor.formatOnSave": true,
     },
-    "vite.autoStart": false,
     // ======= meta =========
     "workbench.settings.editor": "json",
     "workbench.startupEditor": "none",
@@ -309,11 +319,10 @@
     // =============== AI ============
     "github.copilot.editor.enableAutoCompletions": true,
     "github.copilot.nextEditSuggestions.enabled": true,
-    "C_Cpp.intelliSenseEngine": "disabled",
     "github.copilot.enable": {
         "*": true,
         "plaintext": false,
         "markdown": true,
         "scminput": false
-    }
+    },
 }

@@ -4,14 +4,14 @@
       "alt-g": ["task::Spawn", { "task_name": "lazygit", "target": "center" }],
       "alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
       "cmd-shift-r": "workspace::Reload",
-      "cmd-h": "pane::ActivatePrevItem",
+      "cmd-h": "pane::ActivatePreviousItem",
       "cmd-l": "pane::ActivateNextItem"
     }
   },
   {
     "context": "(Picker > (Editor && mode == single_line)) || TabSwitcher",
     "bindings": {
-      "ctrl-k": "menu::SelectPrev",
+      "ctrl-k": "menu::SelectPrevious",
       "ctrl-j": "menu::SelectNext"
     }
   },
@@ -45,7 +45,7 @@
     "context": "Editor && (showing_completions || showing_code_actions)",
     "bindings": {
       "ctrl-j": "editor::ContextMenuNext",
-      "ctrl-k": "editor::ContextMenuPrev"
+      "ctrl-k": "editor::ContextMenuPrevious"
     }
   },
   {
@@ -72,9 +72,6 @@
       "space s f": "file_finder::Toggle",
       "space s g": "pane::DeploySearch",
       "space t": "workspace::NewCenterTerminal",
-      "space a e": "assistant::InlineAssist",
-      "space a a": "assistant::NewContext",
-      "space a t": "workspace::ToggleRightDock",
       "g r": "editor::FindAllReferences",
       "space l f": "editor::Format",
       "space l s": "outline::Toggle",
@@ -95,6 +92,7 @@
     "bindings": {
       "down": ["workspace::SendKeystrokes", "4 j"],
       "up": ["workspace::SendKeystrokes", "4 k"],
+      "g f": ["workspace::SendKeystrokes", "^ t ("],
       "g a": ["workspace::SendKeystrokes", "^ % % h"],
       "g (": ["workspace::SendKeystrokes", "^ t ("],
       "g [": ["workspace::SendKeystrokes", "^ t ["],

@@ -1,195 +1,311 @@
 {
-  // Editor
-  // "tab_size": 4,
-  "vim": {
-    "use_system_clipboard": "always",
-    "use_multiline_find": true,
-    "use_smartcase_find": true
-  },
-  "pane_split_direction_vertical": "right",
-  "pane_split_direction_horizontal": "down",
-  "show_completions_on_input": true,
-  "show_completion_documentation": true,
-  "show_edit_predictions": true,
-  "ssh_connections": [
-    {
-      "host": "thebeauty",
-      "projects": [
-        {
-          "paths": ["~/dev"]
-        },
-        {
-          "paths": ["~/dev/blasfeo"]
-        },
-        {
-          "paths": ["~/dev/brains2"]
-        },
-        {
-          "paths": ["~/dev/nanoGPT"]
-        },
-        {
-          "paths": ["~/dev/ngpt"]
-        },
-        {
-          "paths": ["~/dev/pymanopt"]
-        },
-        {
-          "paths": ["~/dev/tadam"]
-        }
-      ]
-    }
-  ],
-  "soft_wrap": "none",
-  "relative_line_numbers": true,
-  "inlay_hints": {
-    "enabled": true,
-    "show_type_hits": true,
-    "show_parameter_hints": true,
-    "show_other_hints": true
-  },
-  // UI
-  "unstable.ui_density": "compact",
-  "tab_bar": {
-    "show": true,
-    "show_nav_history_buttons": false
-  },
-  "show_signature_help_after_edits": true,
-  "toolbar": {
-    "breadcrumbs": true,
-    "quick_actions": true
-  },
-  // Fonts
-  "buffer_font_size": 12.0,
-  "ui_font_size": 14,
-  "buffer_font_family": "JetBrainsMono Nerd Font",
-  "ui_font_family": "JetBrainsMono Nerd Font",
-  "terminal": {
-    "font_family": "JetBrainsMono Nerd Font"
-  },
-  // Key map
-  "vim_mode": true,
-  "base_keymap": "VSCode",
-  // Color theme
-  "theme": {
-    "mode": "system",
-    "light": "Zed Legacy: Rosé Pine Dawn",
-    "dark": "Zed Legacy: Rosé Pine Moon"
-  },
-  "icon_theme": "Zed (Default)",
-  "experimental.theme_overrides": {
-    "syntax": {
-      "comment": {}
-    }
-  },
-  // Extensions
-  "auto_install_extensions": {
-    "html": true,
-    "git-firefly": true,
-    "lua": true,
-    "log": true,
-    "toml": true,
-    "typst": true,
-    "matlab": true,
-    "ruff": true,
-    "basedpyright": true
-  },
-  // LSP
-  "enable_language_server": true,
-  "languages": {
-    "YAML": {
-      "tab_size": 2
-    },
-    "JSON": {
-      "tab_size": 2
-    },
-    "JSONC": {
-      "tab_size": 2
-    },
-    "Python": {
-      "language_servers": ["basedpyright", "ruff"],
-      "format_on_save": "on",
-      "formatter": [
-        {
-          "code_actions": {
-            "source.organizeImports.ruff": false,
-            "source.fixAll.ruff": false
-          }
-        },
-        {
-          "language_server": {
-            "name": "ruff"
-          }
-        }
-      ]
-    },
-    "C": {
-      "format_on_save": "on"
-    },
-    "C++": {
-      "format_on_save": "on"
-    }
-  },
-  "lsp": {
-    "pyright": {
-      "settings": {
-        "python.analysis": { "typeCheckingMode": "off" },
-        "python": {
-          "pythonPath": ".venv/bin/python"
-        }
-      }
-    },
-    "basedpyright": {
-      "settings": {
-        "python.analysis": { "typeCheckingMode": "off" },
-        "python": {
-          "pythonPath": ".venv/bin/python"
-        }
-      }
-    },
-    "tinymist": {
-      "initialization_options": {
-        "exportPdf": "onSave",
-        "formatterMode": "typstyle"
-      }
-    }
-  },
-  // AI
-  "features": {
-    "edit_prediction_provider": "zed"
-  },
-  "assistant": {
-    "enabled": true,
-    "default_model": {
-      "provider": "zed.dev",
-      "model": "claude-3-5-sonnet-latest"
-    },
-    "version": "2",
-    "button": true,
-    "default_width": 480,
-    "dock": "right"
-  },
-  "language_models": {
-    "ollama": {
-      "api_url": "http://thebeauty.local:11434"
-    }
-  },
-  // Git
-  "git": {
-    "git_gutter": "tracked_files",
-    "inline_blame": {
-      "enabled": true,
-      "show_commit_summary": true,
-      "delay_ms": 500
-    }
-  },
-  // Misc
-  "task": {
-    "show_status_indicator": true
-  },
-  "telemetry": {
-    "diagnostics": false,
-    "metrics": false
-  },
-  "auto_update": true,
-  "autosave": "on_focus_change"
+	// Editor
+	// "tab_size": 4,
+	"edit_predictions": {
+		"mode": "subtle",
+		"copilot": {
+			"proxy": null,
+			"proxy_no_verify": null
+		},
+		"enabled_in_assistant": false
+	},
+	"vim": {
+		"use_system_clipboard": "always",
+		"use_multiline_find": true,
+		"use_smartcase_find": true
+	},
+	"pane_split_direction_vertical": "right",
+	"pane_split_direction_horizontal": "down",
+	"show_completions_on_input": true,
+	"show_completion_documentation": true,
+	"show_edit_predictions": true,
+	"ssh_connections": [
+		{
+			"host": "thebeauty",
+			"projects": [
+				{
+					"paths": ["~/dev"]
+				},
+				{
+					"paths": ["~/dev/blasfeo"]
+				},
+				{
+					"paths": ["~/dev/brains2"]
+				},
+				{
+					"paths": ["~/dev/nanoGPT"]
+				},
+				{
+					"paths": ["~/dev/ngpt"]
+				},
+				{
+					"paths": ["~/dev/pymanopt"]
+				},
+				{
+					"paths": ["~/dev/tadam"]
+				}
+			]
+		}
+	],
+	"soft_wrap": "none",
+	"relative_line_numbers": true,
+	"inlay_hints": {
+		"enabled": true,
+		"show_type_hits": true,
+		"show_parameter_hints": true,
+		"show_other_hints": true
+	},
+	// UI
+	"unstable.ui_density": "compact",
+	"tab_bar": {
+		"show": true,
+		"show_nav_history_buttons": false
+	},
+	"show_signature_help_after_edits": true,
+	"toolbar": {
+		"breadcrumbs": true,
+		"quick_actions": true
+	},
+	// Fonts
+	"buffer_font_size": 12.0,
+	"ui_font_size": 14,
+	"buffer_font_family": "JetBrainsMono Nerd Font",
+	"ui_font_family": "JetBrainsMono Nerd Font",
+	"terminal": {
+		"font_family": "JetBrainsMono Nerd Font"
+	},
+	// Key map
+	"vim_mode": true,
+	"base_keymap": "VSCode",
+	// Color theme
+	"theme": {
+		"mode": "system",
+		"light": "Zed Legacy: Rosé Pine Dawn",
+		"dark": "Zed Legacy: Rosé Pine Moon"
+	},
+	"icon_theme": "Zed (Default)",
+	"experimental.theme_overrides": {
+		"syntax": {
+			"comment": {}
+		}
+	},
+	// Extensions
+	"auto_install_extensions": {
+		"html": true,
+		"git-firefly": true,
+		"lua": true,
+		"log": true,
+		"toml": true,
+		"typst": true,
+		"matlab": true,
+		"ruff": true,
+		"basedpyright": true
+	},
+	// LSP
+	"enable_language_server": true,
+	"languages": {
+		"YAML": {
+			"tab_size": 2
+		},
+		"TypeScript": {
+			"formatter": [
+				{
+					"language_server": {
+						"name": "biome"
+					}
+				},
+				{
+					"code_actions": {
+						"source.organizeImports.biome": true,
+						"source.fixAll.biome": false
+					}
+				}
+			]
+		},
+		"TSX": {
+			"formatter": [
+				{
+					"language_server": {
+						"name": "biome"
+					}
+				},
+				{
+					"code_actions": {
+						"source.organizeImports.biome": true,
+						"source.fixAll.biome": false
+					}
+				}
+			]
+		},
+		"JSON": {
+			"tab_size": 2,
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"JSONC": {
+			"tab_size": 2,
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"XML": {
+			"tab_size": 2
+		},
+		"Python": {
+			"language_servers": ["basedpyright", "ruff"],
+			"format_on_save": "on",
+			"formatter": [
+				{
+					"code_actions": {
+						"source.organizeImports.ruff": false,
+						"source.fixAll.ruff": false
+					}
+				},
+				{
+					"language_server": {
+						"name": "ruff"
+					}
+				}
+			]
+		},
+		"C": {
+			"format_on_save": "on"
+		},
+		"C++": {
+			"format_on_save": "on"
+		}
+	},
+	"lsp": {
+		"pyright": {
+			"settings": {
+				"python.analysis": { "typeCheckingMode": "off" },
+				"python": {
+					"pythonPath": ".venv/bin/python"
+				}
+			}
+		},
+		"basedpyright": {
+			"settings": {
+				"python.analysis": { "typeCheckingMode": "off" },
+				"python": {
+					"pythonPath": ".venv/bin/python"
+				}
+			}
+		},
+		"tinymist": {
+			"initialization_options": {
+				"exportPdf": "onSave",
+				"formatterMode": "typstyle"
+			}
+		}
+	},
+	// AI
+	"features": {
+		"edit_prediction_provider": "zed"
+	},
+	"assistant": {
+		"version": "2",
+		"enabled": true,
+		"default_model": {
+			"provider": "zed.dev",
+			"model": "claude-3-7-sonnet-thinking-latest"
+		},
+		"inline_assistant_model": {
+			"provider": "copilot_chat",
+			"model": "gpt-4.1"
+		},
+		"commit_message_model": {
+			"provider": "copilot_chat",
+			"model": "gpt-4.1"
+		},
+		"profiles": {
+			"planner": {
+				"name": "Planner",
+				"tools": {},
+				"enable_all_context_servers": false,
+				"context_servers": {}
+			},
+			"write": {
+				"name": "Write",
+				"tools": {
+					"open": true,
+					"create_directory": true,
+					"terminal": true,
+					"batch_tool": true,
+					"code_actions": true,
+					"code_symbols": true,
+					"copy_path": false,
+					"create_file": true,
+					"delete_path": false,
+					"diagnostics": true,
+					"find_replace_file": true,
+					"fetch": true,
+					"list_directory": false,
+					"move_path": true,
+					"now": true,
+					"path_search": true,
+					"read_file": true,
+					"regex_search": true,
+					"rename": true,
+					"symbol_info": true,
+					"thinking": true
+				},
+				"enable_all_context_servers": true,
+				"context_servers": {}
+			},
+			"ask": {
+				"name": "Ask",
+				"tools": {
+					"symbol_info": true,
+					"diagnostics": true,
+					"fetch": true,
+					"list_directory": false,
+					"now": true,
+					"path_search": true,
+					"read_file": true,
+					"regex_search": true,
+					"thinking": true,
+					"terminal": true
+				},
+				"enable_all_context_servers": false,
+				"context_servers": {}
+			}
+		},
+		"enable_experimental_live_diffs": true,
+		"always_allow_tool_actions": false,
+		"default_profile": "write",
+		"button": true,
+		"default_width": 480,
+		"dock": "right"
+	},
+	"language_models": {
+		"ollama": {
+			"api_url": "http://thebeauty.local:11434"
+		}
+	},
+	// Git
+	"git": {
+		"hunk_style": "staged_hollow",
+		"git_gutter": "tracked_files",
+		"inline_blame": {
+			"enabled": true,
+			"show_commit_summary": true,
+			"delay_ms": 500
+		}
+	},
+	// Misc
+	"task": {
+		"show_status_indicator": true
+	},
+	"telemetry": {
+		"diagnostics": false,
+		"metrics": false
+	},
+	"auto_update": true,
+	"autosave": "on_focus_change"
 }

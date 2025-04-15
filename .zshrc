@@ -215,3 +215,6 @@ source $ZSH/oh-my-zsh.sh
 
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
+
+# Added by Windsurf
+export PATH="/Users/tudoroancea/.codeium/windsurf/bin:$PATH"
