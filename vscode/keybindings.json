@@ -283,5 +283,9 @@
         "key": "ctrl+p",
         "command": "-showPrevParameterHint",
         "when": "editorFocus && parameterHintsMultipleSignatures && parameterHintsVisible"
+    },
+    {
+        "key": "cmd+i",
+        "command": "composerMode.agent"
     }
 ]

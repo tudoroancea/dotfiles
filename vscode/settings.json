@@ -325,4 +325,5 @@
         "markdown": true,
         "scminput": false
     },
+    "extensions.ignoreRecommendations": true,
 }

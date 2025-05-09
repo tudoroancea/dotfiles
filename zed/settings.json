@@ -1,52 +1,10 @@
 {
 	// Editor
 	// "tab_size": 4,
-	"edit_predictions": {
-		"mode": "subtle",
-		"copilot": {
-			"proxy": null,
-			"proxy_no_verify": null
-		},
-		"enabled_in_assistant": false
-	},
-	"vim": {
-		"use_system_clipboard": "always",
-		"use_multiline_find": true,
-		"use_smartcase_find": true
-	},
 	"pane_split_direction_vertical": "right",
 	"pane_split_direction_horizontal": "down",
 	"show_completions_on_input": true,
 	"show_completion_documentation": true,
-	"show_edit_predictions": true,
-	"ssh_connections": [
-		{
-			"host": "thebeauty",
-			"projects": [
-				{
-					"paths": ["~/dev"]
-				},
-				{
-					"paths": ["~/dev/blasfeo"]
-				},
-				{
-					"paths": ["~/dev/brains2"]
-				},
-				{
-					"paths": ["~/dev/nanoGPT"]
-				},
-				{
-					"paths": ["~/dev/ngpt"]
-				},
-				{
-					"paths": ["~/dev/pymanopt"]
-				},
-				{
-					"paths": ["~/dev/tadam"]
-				}
-			]
-		}
-	],
 	"soft_wrap": "none",
 	"relative_line_numbers": true,
 	"inlay_hints": {
@@ -55,13 +13,13 @@
 		"show_parameter_hints": true,
 		"show_other_hints": true
 	},
+	"show_signature_help_after_edits": true,
 	// UI
 	"unstable.ui_density": "compact",
 	"tab_bar": {
 		"show": true,
 		"show_nav_history_buttons": false
 	},
-	"show_signature_help_after_edits": true,
 	"toolbar": {
 		"breadcrumbs": true,
 		"quick_actions": true
@@ -74,16 +32,21 @@
 	"terminal": {
 		"font_family": "JetBrainsMono Nerd Font"
 	},
-	// Key map
-	"vim_mode": true,
+	// Keymap
 	"base_keymap": "VSCode",
+	"vim_mode": true,
+	"vim": {
+		"use_system_clipboard": "always",
+		"use_multiline_find": true,
+		"use_smartcase_find": true
+	},
 	// Color theme
 	"theme": {
 		"mode": "system",
 		"light": "Zed Legacy: Rosé Pine Dawn",
 		"dark": "Zed Legacy: Rosé Pine Moon"
 	},
-	"icon_theme": "Zed (Default)",
+	"icon_theme": "Catppuccin Latte",
 	"experimental.theme_overrides": {
 		"syntax": {
 			"comment": {}
@@ -204,20 +167,54 @@
 			}
 		}
 	},
+	// Remote
+	"ssh_connections": [
+		{
+			"host": "thebeauty",
+			"projects": [
+				{
+					"paths": ["~/dev"]
+				},
+				{
+					"paths": ["~/dev/blasfeo"]
+				},
+				{
+					"paths": ["~/dev/brains2"]
+				},
+				{
+					"paths": ["~/dev/nanoGPT"]
+				},
+				{
+					"paths": ["~/dev/ngpt"]
+				},
+				{
+					"paths": ["~/dev/pymanopt"]
+				},
+				{
+					"paths": ["~/dev/tadam"]
+				}
+			]
+		}
+	],
 	// AI
+	"show_edit_predictions": true,
+	"edit_predictions": {
+		"mode": "subtle",
+		"enabled_in_text_threads": true
+	},
 	"features": {
 		"edit_prediction_provider": "zed"
 	},
-	"assistant": {
+	"agent": {
 		"version": "2",
 		"enabled": true,
 		"default_model": {
-			"provider": "zed.dev",
-			"model": "claude-3-7-sonnet-thinking-latest"
-		},
-		"inline_assistant_model": {
 			"provider": "copilot_chat",
 			"model": "gpt-4.1"
+		},
+		"inline_assistant_model": {
+			"provider": "zed.dev",
+			"model": "claude-3-7-sonnet-latest"
 		},
 		"commit_message_model": {
 			"provider": "copilot_chat",
@@ -226,7 +223,9 @@
 		"profiles": {
 			"planner": {
 				"name": "Planner",
-				"tools": {},
+				"tools": {
+                    "batch_tool": false
+                },
 				"enable_all_context_servers": false,
 				"context_servers": {}
 			},
@@ -243,14 +242,14 @@
 					"create_file": true,
 					"delete_path": false,
 					"diagnostics": true,
-					"find_replace_file": true,
+					"edit_file": true,
 					"fetch": true,
 					"list_directory": false,
 					"move_path": true,
 					"now": true,
-					"path_search": true,
+					"find_path": true,
 					"read_file": true,
-					"regex_search": true,
+					"grep": true,
 					"rename": true,
 					"symbol_info": true,
 					"thinking": true
@@ -266,9 +265,9 @@
 					"fetch": true,
 					"list_directory": false,
 					"now": true,
-					"path_search": true,
+					"find_path": true,
 					"read_file": true,
-					"regex_search": true,
+					"grep": true,
 					"thinking": true,
 					"terminal": true
 				},
