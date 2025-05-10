@@ -209,8 +209,8 @@
 		"version": "2",
 		"enabled": true,
 		"default_model": {
-			"provider": "copilot_chat",
-			"model": "gpt-4.1"
+			"provider": "zed.dev",
+			"model": "claude-3-7-sonnet-latest"
 		},
 		"inline_assistant_model": {
 			"provider": "zed.dev",
@@ -224,8 +224,8 @@
 			"planner": {
 				"name": "Planner",
 				"tools": {
-                    "batch_tool": false
-                },
+					"batch_tool": false
+				},
 				"enable_all_context_servers": false,
 				"context_servers": {}
 			},
