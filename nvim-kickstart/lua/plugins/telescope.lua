@@ -91,9 +91,17 @@ return { -- Fuzzy Finder (files, lsp, etc)
             ['<M-CR>'] = open_all,
           },
         },
-        pickers = {
-          find_files = {
-            find_command = { 'fd', '--hidden', '--glob', '' },
+      },
+      pickers = {
+        find_files = {
+          find_command = {
+            'fd',
+            '--type',
+            'f',
+            '--hidden',
+            '--follow',
+            '-E',
+            '.git/*',
           },
         },
       },
