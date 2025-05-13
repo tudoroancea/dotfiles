@@ -69,6 +69,7 @@ ccopy() {
     cat "$1" | pbcopy
 }
 alias dotf="cd ~/dotfiles && nvim"
+alias zrc="cd ~/dotfiles && nvim .zshrc"
 alias fda='fd -u'
 alias sizes='du -h -d 1 .'
 submodule_rm() {
@@ -108,26 +109,21 @@ export PATH=/opt/homebrew:$PATH
 # openssl (idk why we need it but I wouldn't remove it just in case sth breaks)
 export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
-# >>> conda initialize >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/tudoroancea/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/tudoroancea/miniforge3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-
-if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/mamba.sh" ]; then
-    . "/Users/tudoroancea/miniforge3/etc/profile.d/mamba.sh"
-fi
-# <<< conda initialize <<<
-
 # general tools configuration =====================================================
+
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'mamba shell init' !!
+export MAMBA_EXE='/Users/tudoroancea/miniforge3/bin/mamba';
+export MAMBA_ROOT_PREFIX='/Users/tudoroancea/miniforge3';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
+
 
 # uv configuration
 eval "$(uv generate-shell-completion zsh)"
@@ -195,7 +191,7 @@ plugins=(
   git  # for gst, gc, etc.
   brew  # for bubu, etc.
   vscode  # for vsc, vscd, etc.
-  python
+  python  # for vrun
   tmux
   zsh-interactive-cd
   zsh-autosuggestions
@@ -204,17 +200,9 @@ plugins=(
 )
 source $ZSH/oh-my-zsh.sh
 
-# starship prompt
-# eval "$(starship init zsh)"
-
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # run zsh profiling
 # zprof
 
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
-
-# Added by Windsurf
-export PATH="/Users/tudoroancea/.codeium/windsurf/bin:$PATH"
