@@ -23,6 +23,11 @@ export LC_ALL="en_US.UTF-8"
 # source cargo installation (for uv)
 . "$HOME/.local/bin/env"
 
+
+export PATH="$PATH:/Users/tudoroancea/.modular/bin"
+eval "$(magic completion --shell zsh)"
+
+
 # general functions and aliases ====================================================
 alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
@@ -106,6 +111,8 @@ then
 fi
 export PATH=/opt/homebrew:$PATH
 
+export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/include/eigen3"
+
 # openssl (idk why we need it but I wouldn't remove it just in case sth breaks)
 export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
@@ -129,7 +136,15 @@ unset __mamba_setup
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 export UV_PYTHON=3.12
-
+# Fix completions for uv run.
+_uv_run_mod() {
+    if [[ "$words[2]" == "run" && "$words[CURRENT]" != -* ]]; then
+        _arguments '*:filename:_files'
+    else
+        _uv "$@"
+    fi
+}
+compdef _uv_run_mod uv
 
 # bun completions
 [ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
