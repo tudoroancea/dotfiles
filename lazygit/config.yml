@@ -1,13 +1,12 @@
 git:
   commit:
     signOff: true
-
 customCommands:
   - key: "F"
     command: "git fetch --prune"
     context: localBranches
-    stream: true
+    output: log
   - key: "F"
     command: "git fetch --prune"
     context: remotes
-    stream: true
+    output: log

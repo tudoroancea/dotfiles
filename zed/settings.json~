@@ -33,6 +33,7 @@
 		"font_family": "JetBrainsMono Nerd Font"
 	},
 	// Keymap
+	"base_keymap": "VSCode",
 	"vim_mode": true,
 	"vim": {
 		"use_system_clipboard": "always",
@@ -216,15 +217,14 @@
 		"enabled_in_text_threads": true
 	},
 	"features": {
-		"edit_prediction_provider": "zed"
+		"edit_prediction_provider": "copilot"
 	},
 	"agent": {
-		"play_sound_when_agent_done": true,
-  "version": "2",
+		"version": "2",
 		"enabled": true,
 		"default_model": {
 			"provider": "zed.dev",
-			"model": "claude-sonnet-4"
+			"model": "claude-sonnet-4-latest"
 		},
 		"inline_assistant_model": {
 			"provider": "zed.dev",
