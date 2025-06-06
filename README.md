@@ -29,6 +29,11 @@ ln -s ~/dotfiles/.tmux.conf ~/.tmux.conf
 
 ## ghostty
 
+on macOS:
+```bash
+ln -s ~/dotfiles/ghostty ~/Library/Application\ Support/com.mitchellh.ghostty
+```
+on Linux:
 ```bash
 ln -s ~/dotfiles/ghostty ~/.config/ghostty
 ```
@@ -37,6 +42,12 @@ ln -s ~/dotfiles/ghostty ~/.config/ghostty
 
 ```bash
 ln -s ~/dotfiles/alacritty ~/.config/alacritty
+```
+
+## zed
+
+```bash
+ln -s ~/dotfiles/zed ~/.config/zed
 ```
 
 ## nvim
@@ -75,13 +86,6 @@ ln -s ~/dotfiles/vscode/keybindings.json ~/.config/Code/User/keybindings.json
 ```bash
 ln -s ~/dotfiles/vscode/settings.json ~/Library/Application\ Support/Code/User/settings.json
 ln -s ~/dotfiles/vscode/keybindings.json ~/Library/Application\ Support/Code/User/keybindings.json
-```
-
-## AI completions
-
-```shell
-echo "ANTHROPIC_API_KEY=..." >> ~/api_keys.sh
-echo "OPENAI_API_KEY=..." >> ~/api_keys.sh
 ```
 
 ## lazygit

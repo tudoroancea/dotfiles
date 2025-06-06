@@ -131,6 +131,21 @@ fi
 unset __mamba_setup
 # <<< mamba initialize <<<
 
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/tudoroancea/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/tudoroancea/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
 
 # uv configuration
 eval "$(uv generate-shell-completion zsh)"
@@ -153,11 +168,11 @@ compdef _uv_run_mod uv
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-# fzf 
+# fzf
 source <(fzf --zsh)
 
-# API keys for OpenAI and Anthropic 
-. "$HOME/api_keys.sh"
+# API keys for OpenAI and Anthropic
+# . "$HOME/api_keys.sh"
 
 # compdef gt
 ###-begin-gt-completions-###
@@ -220,4 +235,3 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
-
