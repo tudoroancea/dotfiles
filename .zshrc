@@ -118,19 +118,6 @@ export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
 # general tools configuration =====================================================
 
-# >>> mamba initialize >>>
-# !! Contents within this block are managed by 'mamba shell init' !!
-export MAMBA_EXE='/Users/tudoroancea/miniforge3/bin/mamba';
-export MAMBA_ROOT_PREFIX='/Users/tudoroancea/miniforge3';
-__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-else
-    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
-fi
-unset __mamba_setup
-# <<< mamba initialize <<<
-
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/Users/tudoroancea/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
@@ -146,6 +133,19 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
+
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'mamba shell init' !!
+export MAMBA_EXE='/Users/tudoroancea/miniforge3/bin/mamba';
+export MAMBA_ROOT_PREFIX='/Users/tudoroancea/miniforge3';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
 
 # uv configuration
 eval "$(uv generate-shell-completion zsh)"
