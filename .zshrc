@@ -118,43 +118,14 @@ export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
 # general tools configuration =====================================================
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/tudoroancea/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/Users/tudoroancea/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/tudoroancea/miniforge3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
-
-# >>> mamba initialize >>>
-# !! Contents within this block are managed by 'mamba shell init' !!
-export MAMBA_EXE='/Users/tudoroancea/miniforge3/bin/mamba';
-export MAMBA_ROOT_PREFIX='/Users/tudoroancea/miniforge3';
-__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-else
-    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
-fi
-unset __mamba_setup
-# <<< mamba initialize <<<
-
 # uv configuration
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 export UV_PYTHON=3.12
-# Fix completions for uv run.
+# Fix completions for uv run to autocomplete .py files
 _uv_run_mod() {
     if [[ "$words[2]" == "run" && "$words[CURRENT]" != -* ]]; then
-        _arguments '*:filename:_files'
+        _arguments '*:filename:_files -g "*.py"'
     else
         _uv "$@"
     fi
@@ -235,3 +206,16 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
+
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'micromamba shell init' !!
+export MAMBA_EXE='/opt/homebrew/bin/micromamba';
+export MAMBA_ROOT_PREFIX='/opt/homebrew/Cellar/micromamba/2.1.1_1';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias micromamba="$MAMBA_EXE"  # Fallback on help from micromamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
