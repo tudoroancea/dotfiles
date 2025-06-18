@@ -11,6 +11,11 @@ return {
       -- vim.cmd.hi 'Comment gui=none'
     end,
   },
+  {
+    'xiyaowong/transparent.nvim',
+    lazy = false,
+    priority = 1000,
+  },
   { -- Make sure to set this up properly if you have lazy=true
     'MeanderingProgrammer/render-markdown.nvim',
     opts = {
@@ -81,14 +86,14 @@ return {
         },
       },
       follow_current_file = {
-        enabled = true, -- This will find and focus the file in the active buffer every time
+        enabled = true,         -- This will find and focus the file in the active buffer every time
         --               -- the current file is changed while the tree is open.
         leave_dirs_open = true, -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
       },
     },
     keys = {
       { '<leader>ft', ':Neotree toggle<cr>', desc = '[F]ile explorer: [t]oggle', silent = true },
-      { '<leader>ff', ':Neotree focus<cr>', desc = '[F]ile explorer: [f]ocus', silent = true },
+      { '<leader>ff', ':Neotree focus<cr>',  desc = '[F]ile explorer: [f]ocus',  silent = true },
     },
   },
   --- Nice UI elements (notifications, cmd search)
