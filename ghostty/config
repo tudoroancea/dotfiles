@@ -5,3 +5,12 @@ theme = dark:rose-pine-moon,light:rose-pine-dawn
 copy-on-select = true
 # quit-after-last-window-closed = true
 focus-follows-mouse = true
+macos-icon = glass
+unfocused-split-opacity = 1
+background-opacity = 0.8
+background-blur = true
+
+keybind = unconsumed:ctrl+k=goto_split:top
+keybind = unconsumed:ctrl+j=goto_split:bottom
+keybind = unconsumed:ctrl+h=goto_split:left
+keybind = unconsumed:ctrl+l=goto_split:right

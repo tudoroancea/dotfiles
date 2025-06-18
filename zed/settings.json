@@ -30,7 +30,8 @@
 	"buffer_font_family": "JetBrainsMono Nerd Font",
 	"ui_font_family": "JetBrainsMono Nerd Font",
 	"terminal": {
-		"font_family": "JetBrainsMono Nerd Font"
+		"font_family": "JetBrainsMono Nerd Font",
+		"detect_venv": "off"
 	},
 	// Keymap
 	"vim_mode": true,
@@ -212,7 +213,8 @@
 	// AI
 	"show_edit_predictions": true,
 	"edit_predictions": {
-		"mode": "subtle",
+		"disabled_globs": ["*.mlir"],
+    "mode": "subtle",
 		"enabled_in_text_threads": true
 	},
 	"features": {
@@ -223,8 +225,8 @@
   "version": "2",
 		"enabled": true,
 		"default_model": {
-			"provider": "zed.dev",
-			"model": "claude-sonnet-4"
+			"provider": "copilot_chat",
+			"model": "o3-mini"
 		},
 		"inline_assistant_model": {
 			"provider": "zed.dev",
@@ -296,7 +298,12 @@
 		"dock": "right"
 	},
 	"language_models": {
-		"ollama": {
+		"copilot_chat": {
+   "api_url": "https://api.githubcopilot.com/chat/completions",
+   "auth_url": "https://api.github.com/copilot_internal/v2/token",
+   "models_url": "https://api.githubcopilot.com/models"
+  },
+  "ollama": {
 			"api_url": "http://thebeauty.local:11434"
 		}
 	},
