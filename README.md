@@ -104,3 +104,9 @@ ln -s ~/dotfiles/lazygit/config.yml ~/.config/lazygit/config.yml
 
 # SSH configuration on Linux
 see the following [tutorial](https://hostman.com/tutorials/how-to-install-and-configure-ssh-on-ubuntu-22-04/)
+
+## Global gitignore
+
+```bash
+git config --global core.excludesfile ~/dotfiles/.gitignore
+```
