@@ -20,12 +20,6 @@ fi
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
-# source cargo installation (for uv)
-. "$HOME/.local/bin/env"
-
-
-export PATH="$PATH:/Users/tudoroancea/.modular/bin"
-eval "$(magic completion --shell zsh)"
 
 
 # general functions and aliases ====================================================
@@ -94,6 +88,12 @@ alias mup='mamba update'
 alias min='mamba install'
 alias miny='mamba install -y'
 alias mind='mamba install -d'
+
+# other python aliases
+alias upip='uv pip'
+alias py='python'
+alias upy='uv run --no-sync python'
+alias updb='uv run --no-sync python -m pdb'
 
 # project specific aliases and configurations ===============================================
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
@@ -164,6 +164,11 @@ _gt_yargs_completions()
 }
 compdef _gt_yargs_completions gt
 ###-end-gt-completions-###
+
+# magic
+export PATH="$PATH:/Users/tudoroancea/.modular/bin"
+eval "$(magic completion --shell zsh)"
+
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="nvim"

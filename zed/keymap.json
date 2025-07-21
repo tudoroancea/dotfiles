@@ -5,7 +5,8 @@
       "alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
       "cmd-shift-r": "workspace::Reload",
       "cmd-h": "pane::ActivatePreviousItem",
-      "cmd-l": "pane::ActivateNextItem"
+      "cmd-l": "pane::ActivateNextItem",
+      "alt-cmd-,": "zed::OpenProjectSettings"
     }
   },
   {
@@ -84,14 +85,13 @@
         "task::Spawn",
         { "task_name": "lazygit", "target": "center" }
       ],
-      "space g b": "editor::ToggleGitBlame"
+      "space g b": "git::Branch",
+      "space g B": "git::Blame"
     }
   },
   {
     "context": "Editor && VimControl && vim_mode == normal && !menu",
     "bindings": {
-      "down": ["workspace::SendKeystrokes", "4 j"],
-      "up": ["workspace::SendKeystrokes", "4 k"],
       "g f": ["workspace::SendKeystrokes", "^ t ("],
       "g a": ["workspace::SendKeystrokes", "^ % % h"],
       "g (": ["workspace::SendKeystrokes", "^ t ("],
