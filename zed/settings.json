@@ -118,7 +118,8 @@
 			"tab_size": 2
 		},
 		"Python": {
-			"language_servers": ["basedpyright", "ruff"],
+			"language_servers": ["pyright", "ruff"],
+			// "language_servers": ["basedpyright", "ruff"],
 			// "language_servers": ["ty", "ruff"],
 			// "language_servers": ["pyrefly", "ruff"],
 			"format_on_save": "on",
@@ -289,7 +290,7 @@
 			}
 		},
 		"always_allow_tool_actions": true,
-		"default_profile": "ask",
+		"default_profile": "write",
 		"button": true,
 		"default_width": 480,
 		"dock": "right"

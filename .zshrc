@@ -20,8 +20,6 @@ fi
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
-
-
 # general functions and aliases ====================================================
 alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
@@ -92,6 +90,7 @@ alias mind='mamba install -d'
 # other python aliases
 alias upip='uv pip'
 alias py='python'
+alias urun='uv run --no-sync'
 alias upy='uv run --no-sync python'
 alias updb='uv run --no-sync python -m pdb'
 
@@ -119,6 +118,7 @@ export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 # general tools configuration =====================================================
 
 # uv configuration
+. "$HOME/.local/bin/env"
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
 export UV_PYTHON=3.12
@@ -132,12 +132,31 @@ _uv_run_mod() {
 }
 compdef _uv_run_mod uv
 
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'micromamba shell init' !!
+export MAMBA_EXE='/Users/tudoroancea/.local/bin/micromamba';
+export MAMBA_ROOT_PREFIX='/Users/tudoroancea/micromamba';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias micromamba="$MAMBA_EXE"  # Fallback on help from micromamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
+
+# opencode
+export PATH=/Users/tudoroancea/.opencode/bin:$PATH
+
 # bun completions
 [ -s "/Users/tudoroancea/.bun/_bun" ] && source "/Users/tudoroancea/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# go
+export PATH="$HOME/go/bin:$PATH"
 
 # fzf
 source <(fzf --zsh)
@@ -171,7 +190,7 @@ eval "$(magic completion --shell zsh)"
 
 
 # (oh my) zsh customization ==========================================================
-export EDITOR="nvim"
+export EDITOR="zed"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
@@ -212,15 +231,3 @@ source $ZSH/oh-my-zsh.sh
 # run zsh profiling
 # zprof
 
-# >>> mamba initialize >>>
-# !! Contents within this block are managed by 'micromamba shell init' !!
-export MAMBA_EXE='/opt/homebrew/bin/micromamba';
-export MAMBA_ROOT_PREFIX='/opt/homebrew/Cellar/micromamba/2.1.1_1';
-__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-else
-    alias micromamba="$MAMBA_EXE"  # Fallback on help from micromamba activate
-fi
-unset __mamba_setup
-# <<< mamba initialize <<<

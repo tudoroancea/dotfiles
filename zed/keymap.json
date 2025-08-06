@@ -16,15 +16,15 @@
       "ctrl-j": "menu::SelectNext"
     }
   },
-  {
-    "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
-    "bindings": {
-      "ctrl-h": "workspace::ActivatePaneLeft",
-      "ctrl-l": "workspace::ActivatePaneRight",
-      "ctrl-k": "workspace::ActivatePaneUp",
-      "ctrl-j": "workspace::ActivatePaneDown"
-    }
-  },
+  // {
+  //   "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
+  //   "bindings": {
+  //     "ctrl-h": "workspace::ActivatePaneLeft",
+  //     "ctrl-l": "workspace::ActivatePaneRight",
+  //     "ctrl-k": "workspace::ActivatePaneUp",
+  //     "ctrl-j": "workspace::ActivatePaneDown"
+  //   }
+  // },
   {
     "context": "ProjectPanel && not_editing",
     "bindings": {
@@ -119,6 +119,23 @@
     "use_key_equivalents": true,
     "bindings": {
       "ctrl-cmd-right": "editor::AcceptPartialEditPrediction"
+    }
+  },
+  {
+    "context": "Editor",
+    "bindings": {
+      "alt-cmd-shift-c": "workspace::CopyRelativePath"
+    }
+  },
+  {
+    "context": "Pane",
+    "bindings": {
+      "ctrl-w i": [
+        "pane::CloseInactiveItems",
+        {
+          "close_pinned": false
+        }
+      ]
     }
   }
 ]
