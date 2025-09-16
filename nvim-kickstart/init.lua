@@ -194,4 +194,5 @@ vim.keymap.set('n', '<leader>pm', ':Mason<cr>', { desc = 'Mason', silent = true 
 -- Close buffer
 vim.keymap.set('n', '<leader>c', ':BufferClose<cr>', { desc = '[C]lose buffer', silent = true })
 vim.keymap.set('n', '<leader>bc', ':BufferClose<cr>', { desc = '[C]lose buffer', silent = true })
-vim.keymap.set('n', '<leader>bC', ':BufferCloseAllButCurrent<cr>', { desc = '[C]lose all but current buffer', silent = true })
+vim.keymap.set('n', '<leader>bC', ':BufferCloseAllButCurrent<cr>',
+  { desc = '[C]lose all but current buffer', silent = true })

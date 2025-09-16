@@ -1,3 +1,14 @@
+-- IMPORTANT: Pad the right with spaces to properly align the header
+-- https://github.com/folke/snacks.nvim/discussions/480
+local headerfile = vim.fn.stdpath("config") .. "/header.txt"
+local function read_file_io(path)
+  local fh = assert(io.open(path, 'r')) -- open for reading
+  local txt = fh:read('*a')             -- *a = whole file, including newlines
+  fh:close()
+  return txt
+end
+local headercontent = read_file_io(headerfile)
+
 ---@class LazySpec
 return {
   {
@@ -261,31 +272,7 @@ return {
       dashboard = {
         enabled = true,
         formats = { header = { '%s', align = 'left' } },
-        preset = {
-          -- IMPORTANT: Pad the right with spaces to properly align the header
-          -- https://github.com/folke/snacks.nvim/discussions/480
-          header = [[
-    █████                                                                        █████       ███                          
-   ░░███                                                                        ░░███       ░░░                           
-    ░███ █████  ██████   ██████  ████████     █████ ███ █████  ██████  ████████  ░███ █████ ████  ████████    ███████     
-    ░███░░███  ███░░███ ███░░███░░███░░███   ░░███ ░███░░███  ███░░███░░███░░███ ░███░░███ ░░███ ░░███░░███  ███░░███     
-    ░██████░  ░███████ ░███████  ░███ ░███    ░███ ░███ ░███ ░███ ░███ ░███ ░░░  ░██████░   ░███  ░███ ░███ ░███ ░███     
-    ░███░░███ ░███░░░  ░███░░░   ░███ ░███    ░░███████████  ░███ ░███ ░███      ░███░░███  ░███  ░███ ░███ ░███ ░███     
-    ████ █████░░██████ ░░██████  ░███████      ░░████░████   ░░██████  █████     ████ █████ █████ ████ █████░░███████     
-   ░░░░ ░░░░░  ░░░░░░   ░░░░░░   ░███░░░        ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███     
-                                 ░███                                                                        ███ ░███     
-                        █████    █████                     █████     █████    █████       ███               ░░██████      
-                       ░░███    ░░░░░                     ░░███     ░░███    ░░███       ░░░                 ░░░░░░       
-  ██████  ████████      ░███████    ██████   ████████   ███████     ███████   ░███████   ████  ████████    ███████  █████ 
- ███░░███░░███░░███     ░███░░███  ░░░░░███ ░░███░░███ ███░░███    ░░░███░    ░███░░███ ░░███ ░░███░░███  ███░░███ ███░░  
-░███ ░███ ░███ ░███     ░███ ░███   ███████  ░███ ░░░ ░███ ░███      ░███     ░███ ░███  ░███  ░███ ░███ ░███ ░███░░█████ 
-░███ ░███ ░███ ░███     ░███ ░███  ███░░███  ░███     ░███ ░███      ░███ ███ ░███ ░███  ░███  ░███ ░███ ░███ ░███ ░░░░███
-░░██████  ████ █████    ████ █████░░████████ █████    ░░████████     ░░█████  ████ █████ █████ ████ █████░░███████ ██████ 
- ░░░░░░  ░░░░ ░░░░░    ░░░░ ░░░░░  ░░░░░░░░ ░░░░░      ░░░░░░░░       ░░░░░  ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░███░░░░░░  
-                                                                                                          ███ ░███        
-                                                                                                         ░░██████         
-                                                                                                          ░░░░░░          ]],
-        },
+        preset = { header = headercontent },
         sections = {
           { section = 'header', indent = 0, padding = 0 },
           { icon = ' ', title = 'Keymaps', section = 'keys', indent = 2, padding = 1 },
@@ -338,7 +325,7 @@ return {
     end,
     version = '^1.0.0', -- optional: only update when a new 1.x version is released
   },
-  { -- status line
+  {                     -- status line
     'echasnovski/mini.statusline',
     lazy = false,
     dependencies = { 'echasnovski/mini-git' },
@@ -360,14 +347,14 @@ return {
             local breadcrumbs = require('nvim-treesitter.statusline').statusline()
 
             return MiniStatusline.combine_groups {
-              { hl = mode_hl, strings = { mode } },
+              { hl = mode_hl,                 strings = { mode } },
               { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },
               '%<', -- Mark general truncate point
               -- { hl = 'MiniStatuslineFilename', strings = { filename } },
               { hl = 'MiniStatusLineBreadcrumbs', strings = { breadcrumbs } },
               '%=', -- End left alignment
               -- { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
-              { hl = mode_hl, strings = { search, location } },
+              { hl = mode_hl,                     strings = { search, location } },
             }
           end,
           inactive = function()
@@ -385,7 +372,7 @@ return {
       end
     end,
   },
-  { -- auto dark mode
+  {                                       -- auto dark mode
     'f-person/auto-dark-mode.nvim',
     enabled = os.getenv 'SSH_TTY' == nil, -- disable auto dark mode in ssh sessions
     opts = {
