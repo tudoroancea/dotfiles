@@ -1,141 +1,143 @@
 [
-  {
-    "bindings": {
-      "alt-g": ["task::Spawn", { "task_name": "lazygit", "target": "center" }],
-      "alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
-      "cmd-shift-r": "workspace::Reload",
-      "cmd-h": "pane::ActivatePreviousItem",
-      "cmd-l": "pane::ActivateNextItem",
-      "alt-cmd-,": "zed::OpenProjectSettings"
-    }
-  },
-  {
-    "context": "(Picker > (Editor && mode == single_line)) || TabSwitcher",
-    "bindings": {
-      "ctrl-k": "menu::SelectPrevious",
-      "ctrl-j": "menu::SelectNext"
-    }
-  },
-  // {
-  //   "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
-  //   "bindings": {
-  //     "ctrl-h": "workspace::ActivatePaneLeft",
-  //     "ctrl-l": "workspace::ActivatePaneRight",
-  //     "ctrl-k": "workspace::ActivatePaneUp",
-  //     "ctrl-j": "workspace::ActivatePaneDown"
-  //   }
-  // },
-  {
-    "context": "ProjectPanel && not_editing",
-    "bindings": {
-      "a": "project_panel::NewFile",
-      "A": "project_panel::NewDirectory",
-      "l": "project_panel::OpenPermanent",
-      "o": "project_panel::OpenWithSystem",
-      "space f t": "workspace::ToggleLeftDock",
-      "space f f": "pane::RevealInProjectPanel"
-    }
-  },
-  {
-    "context": "Editor && VimControl && vim_mode == insert",
-    "bindings": {
-      "ctrl-space": "editor::ShowCompletions"
-    }
-  },
-  {
-    "context": "Editor && (showing_completions || showing_code_actions)",
-    "bindings": {
-      "ctrl-j": "editor::ContextMenuNext",
-      "ctrl-k": "editor::ContextMenuPrevious"
-    }
-  },
-  {
-    "context": "Editor && extension==typ",
-    "bindings": {
-      "cmd-k v": ["task::Spawn", { "task_name": "Typst: preview file" }]
-    }
-  },
-  {
-    "context": "AssistantPanel > (Editor && VimControl && vim_mode==normal)",
-    "bindings": { "space a t": "workspace::ToggleRightDock" }
-  },
-  {
-    "context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
-    "bindings": {
-      "space space ": "tab_switcher::Toggle",
-      "ctrl-cmd-alt-up": "editor::AddSelectionAbove", // Insert cursor above
-      "ctrl-cmd-alt-down": "editor::AddSelectionBelow", // Insert cursor below
-      "space w": "workspace::Save",
-      "space W": "workspace::SaveWithoutFormat",
-      "space c": "pane::CloseActiveItem",
-      "space o": "project_panel::ToggleFocus",
-      "space /": "editor::ToggleComments",
-      "space s f": "file_finder::Toggle",
-      "space s g": "pane::DeploySearch",
-      "space t": "workspace::NewCenterTerminal",
-      "g r": "editor::FindAllReferences",
-      "space l f": "editor::Format",
-      "space l s": "outline::Toggle",
-      "space l S": "outline_panel::ToggleFocus",
-      "space l d": "diagnostics::Deploy",
-      "space l r": "editor::Rename",
-      "space f t": "workspace::ToggleLeftDock",
-      "space f f": "pane::RevealInProjectPanel",
-      "space g g": [
-        "task::Spawn",
-        { "task_name": "lazygit", "target": "center" }
-      ],
-      "space g b": "git::Branch",
-      "space g B": "git::Blame"
-    }
-  },
-  {
-    "context": "Editor && VimControl && vim_mode == normal && !menu",
-    "bindings": {
-      "g f": ["workspace::SendKeystrokes", "^ t ("],
-      "g a": ["workspace::SendKeystrokes", "^ % % h"],
-      "g (": ["workspace::SendKeystrokes", "^ t ("],
-      "g [": ["workspace::SendKeystrokes", "^ t ["],
-      "g {": ["workspace::SendKeystrokes", "^ t {"]
-      // "space s j": "pane::SplitDown",
-      // "space s k": "pane::SplitUp",
-      // "space s h": "pane::SplitLeft",
-      // "space s l": "pane::SplitRight",
-      // "space s s": "pane::SplitHorizontal",
-      // "space s v": "pane::SplitVertical"
-    }
-  },
-  {
-    "context": "Editor && edit_prediction && !showing_completions",
-    "bindings": {
-      "tab": null,
-      "ctrl-k": "editor::ShowCompletions"
-      // "ctrl-l": "editor::AcceptInlineCompletion",
-      // "ctrl-;": "editor::AcceptPartialInlineCompletion"
-    }
-  },
-  {
-    "context": "Editor && mode == full && edit_prediction",
-    "use_key_equivalents": true,
-    "bindings": {
-      "ctrl-cmd-right": "editor::AcceptPartialEditPrediction"
-    }
-  },
-  {
-    "context": "Editor",
-    "bindings": {
-      "alt-cmd-shift-c": "workspace::CopyRelativePath"
-    }
-  },
-  {
-    "context": "Pane",
-    "bindings": {
-      "ctrl-w i": [
-        "pane::CloseInactiveItems",
-        {
-          "close_pinned": false
-        }
-      ]
-    }
-  }
+	{
+		"bindings": {
+			"alt-g": ["task::Spawn", { "task_name": "lazygit", "target": "center" }],
+			"alt-b": ["task::Spawn", { "task_name": "btop", "target": "center" }],
+			"cmd-shift-r": "workspace::Reload",
+			"cmd-h": "pane::ActivatePreviousItem",
+			"cmd-l": "pane::ActivateNextItem",
+			"alt-cmd-,": "zed::OpenProjectSettings",
+			"cmd-k cmd-s": "zed::OpenKeymap"
+		}
+	},
+	{
+		"context": "(Picker > (Editor && mode == single_line)) || TabSwitcher",
+		"bindings": {
+			"ctrl-k": "menu::SelectPrevious",
+			"ctrl-j": "menu::SelectNext"
+		}
+	},
+	// {
+	//   "context": "(Editor || Terminal || ProjectPanel || OutlinePanel) && mode != single_line",
+	//   "bindings": {
+	//     "ctrl-h": "workspace::ActivatePaneLeft",
+	//     "ctrl-l": "workspace::ActivatePaneRight",
+	//     "ctrl-k": "workspace::ActivatePaneUp",
+	//     "ctrl-j": "workspace::ActivatePaneDown"
+	//   }
+	// },
+	{
+		"context": "vim_mode == insert",
+		"bindings": {
+			"ctrl-i": ["workspace::SendKeystrokes", "ctrl-o $"]
+		}
+	},
+	{
+		"context": "ProjectPanel && not_editing",
+		"bindings": {
+			"a": "project_panel::NewFile",
+			"A": "project_panel::NewDirectory",
+			"l": "project_panel::OpenPermanent",
+			"o": "workspace::OpenWithSystem",
+			"space f t": "workspace::ToggleLeftDock",
+			"space f f": "pane::RevealInProjectPanel"
+		}
+	},
+	{
+		"context": "Editor && VimControl && vim_mode == insert",
+		"bindings": {
+			"ctrl-space": "editor::ShowCompletions"
+		}
+	},
+	{
+		"context": "Editor && (showing_completions || showing_code_actions)",
+		"bindings": {
+			"ctrl-j": "editor::ContextMenuNext",
+			"ctrl-k": "editor::ContextMenuPrevious"
+		}
+	},
+	{
+		"context": "Editor && extension==typ",
+		"bindings": {
+			"cmd-k v": ["task::Spawn", { "task_name": "Typst: preview file" }]
+		}
+	},
+	{
+		"context": "AssistantPanel > (Editor && VimControl && vim_mode==normal)",
+		"bindings": { "space a t": "workspace::ToggleRightDock" }
+	},
+	{
+		"context": "Editor && VimControl && (vim_mode == normal || vim_mode == visual) && !menu",
+		"bindings": {
+			"space space ": "tab_switcher::Toggle",
+			"ctrl-cmd-alt-up": "editor::AddSelectionAbove", // Insert cursor above
+			"ctrl-cmd-alt-down": "editor::AddSelectionBelow", // Insert cursor below
+			"space w": "workspace::Save",
+			"space W": "workspace::SaveWithoutFormat",
+			"space c": "pane::CloseActiveItem",
+			"space o": "project_panel::ToggleFocus",
+			"space /": "editor::ToggleComments",
+			"space s f": "file_finder::Toggle",
+			"space s g": "pane::DeploySearch",
+			"space t": "workspace::NewCenterTerminal",
+			"g r": "editor::FindAllReferences",
+			"space l f": "editor::Format",
+			"space l s": "outline::Toggle",
+			"space l S": "outline_panel::ToggleFocus",
+			"space l d": "diagnostics::Deploy",
+			"space l r": "editor::Rename",
+			"space f t": "workspace::ToggleLeftDock",
+			"space f f": "pane::RevealInProjectPanel",
+			"space g g": [
+				"task::Spawn",
+				{ "task_name": "lazygit", "target": "center" }
+			],
+			"space g b": "git::Branch",
+			"space g B": "git::Blame"
+		}
+	},
+	{
+		"context": "Editor && VimControl && vim_mode == normal && !menu",
+		"bindings": {
+			"g f": ["workspace::SendKeystrokes", "^ t ("],
+			"g a": ["workspace::SendKeystrokes", "^ % % h"],
+			"g (": ["workspace::SendKeystrokes", "^ t ("],
+			"g [": ["workspace::SendKeystrokes", "^ t ["],
+			"g {": ["workspace::SendKeystrokes", "^ t {"]
+			// "space s j": "pane::SplitDown",
+			// "space s k": "pane::SplitUp",
+			// "space s h": "pane::SplitLeft",
+			// "space s l": "pane::SplitRight",
+			// "space s s": "pane::SplitHorizontal",
+			// "space s v": "pane::SplitVertical"
+		}
+	},
+	{
+		"context": "Editor && edit_prediction && !showing_completions",
+		"bindings": {
+			"tab": null,
+			"ctrl-k": "editor::ShowCompletions"
+			// "ctrl-l": "editor::AcceptInlineCompletion",
+			// "ctrl-;": "editor::AcceptPartialInlineCompletion"
+		}
+	},
+	{
+		"context": "Editor && mode == full && edit_prediction",
+		"use_key_equivalents": true,
+		"bindings": {
+			"ctrl-cmd-right": "editor::AcceptPartialEditPrediction"
+		}
+	},
+	{
+		"context": "Editor",
+		"bindings": {
+			"alt-cmd-shift-c": "workspace::CopyRelativePath"
+		}
+	},
+	{
+		"context": "Pane",
+		"bindings": {
+			"ctrl-w i": ["pane::CloseOtherItems", { "close_pinned": false }]
+		}
+	}
 ]

@@ -1,53 +1,35 @@
 [
-  {
-    "label": "ruff format current file",
-    "command": "ruff format $ZED_FILE",
-    "reveal": "never"
-  },
-  {
-    "label": "ruff check workspace",
-    "command": "ruff check",
-    "reveal": "always",
-    "reveal_target": "center"
-  },
-  {
-    "label": "ruff check current file",
-    "command": "ruff check $ZED_FILE",
-    "reveal": "always",
-    "reveal_target": "center"
-  },
-  {
-    "label": "lazygit",
-    "command": "lazygit",
-    "working_directory": "${ZED_WORKTREE_ROOT}",
-    "hide": "on_success",
-    "use_new_terminal": true,
-    "allow_concurrent_runs": false,
-    "reveal_target": "center",
-    "shell": {
-      "program": "zsh"
-    }
-  },
-  {
-    "label": "btop",
-    "command": "btop",
-    "hide": "on_success",
-    "use_new_terminal": true,
-    "reveal_target": "center",
-    "allow_concurrent_runs": false
-  },
-  {
-    "label": "Typst: preview file",
-    "command": "tinymist",
-    "args": ["preview", "\"$ZED_FILE\""],
-    "reveal": "never",
-    "hide": "always"
-  },
-  {
-    "label": "Bun: run dev",
-    "command": "bun",
-    "args": ["run", "dev"],
-    "reveal": "never",
-    "hide": "always"
-  }
+	{
+		"label": "lazygit",
+		"command": "lazygit",
+		"hide": "on_success",
+		"use_new_terminal": true,
+		"allow_concurrent_runs": false,
+		"reveal_target": "center",
+		"shell": {
+			"program": "zsh"
+		}
+	},
+	{
+		"label": "btop",
+		"command": "btop",
+		"hide": "on_success",
+		"use_new_terminal": true,
+		"reveal_target": "center",
+		"allow_concurrent_runs": false
+	},
+	{
+		"label": "Typst: preview file",
+		"command": "tinymist",
+		"args": ["preview", "\"$ZED_FILE\""],
+		"reveal": "never",
+		"hide": "always"
+	},
+	{
+		"label": "Bun: run dev",
+		"command": "bun",
+		"args": ["run", "dev"],
+		"reveal": "never",
+		"hide": "always"
+	}
 ]

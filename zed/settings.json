@@ -1,6 +1,6 @@
 {
 	// Editor
-	"tab_size": 4,
+	"tab_size": 2,
 	"pane_split_direction_vertical": "right",
 	"pane_split_direction_horizontal": "down",
 	"show_completions_on_input": true,
@@ -52,15 +52,19 @@
 	},
 	// Extensions
 	"auto_install_extensions": {
-		"html": true,
+		// themes
+		"zed-legacy-themes": true,
+		"catppuccin-icons": true,
+		// git
 		"git-firefly": true,
-		"lua": true,
-		"log": true,
-		"toml": true,
+		// LSPs
 		"typst": true,
-		"matlab": true,
-		"ruff": true,
-		"basedpyright": true
+		// file formats
+		"toml": true,
+		"lua": true,
+		"sql": true,
+		"log": true,
+		"matlab": true
 	},
 	// LSP
 	"enable_language_server": true,
@@ -75,12 +79,7 @@
 						"name": "biome"
 					}
 				},
-				{
-					"code_actions": {
-						"source.organizeImports.biome": true,
-						"source.fixAll.biome": false
-					}
-				}
+				{ "code_action": "source.organizeImports.biome" }
 			]
 		},
 		"TSX": {
@@ -90,12 +89,7 @@
 						"name": "biome"
 					}
 				},
-				{
-					"code_actions": {
-						"source.organizeImports.biome": true,
-						"source.fixAll.biome": false
-					}
-				}
+				{ "code_action": "source.organizeImports.biome" }
 			]
 		},
 		"JSON": {
@@ -118,23 +112,11 @@
 			"tab_size": 2
 		},
 		"Python": {
-			"language_servers": ["pyright", "ruff"],
-			// "language_servers": ["basedpyright", "ruff"],
-			// "language_servers": ["ty", "ruff"],
-			// "language_servers": ["pyrefly", "ruff"],
-			"format_on_save": "on",
+			"format_on_save": "off",
+			"language_servers": ["basedpyright", "!ty", "ruff"],
 			"formatter": [
-				{
-					"code_actions": {
-						"source.organizeImports.ruff": true,
-						"source.fixAll.ruff": false
-					}
-				},
-				{
-					"language_server": {
-						"name": "ruff"
-					}
-				}
+				{ "code_action": "source.organizeImports.ruff" },
+				{ "language_server": { "name": "ruff" } }
 			]
 		},
 		"C": {
@@ -151,28 +133,6 @@
 				"arguments": ["lsp"]
 			}
 		},
-		"ty": {
-			"binary": {
-				"path": "/Users/tudoroancea/.local/bin/ty",
-				"arguments": ["server"]
-			}
-		},
-		"pyright": {
-			"settings": {
-				"python.analysis": { "typeCheckingMode": "off" },
-				"python": {
-					"pythonPath": ".venv/bin/python"
-				}
-			}
-		},
-		"basedpyright": {
-			"settings": {
-				"python.analysis": { "typeCheckingMode": "off" },
-				"python": {
-					"pythonPath": ".venv/bin/python"
-				}
-			}
-		},
 		"tinymist": {
 			"initialization_options": {
 				"exportPdf": "onSave",
@@ -185,6 +145,15 @@
 		{
 			"host": "thebeauty",
 			"projects": [
+				{
+					"paths": ["/home/ted/dev/anvil"]
+				},
+				{
+					"paths": ["/home/ted/dev/anvil/examples"]
+				},
+				{
+					"paths": ["/home/ted/dev/stablehlo"]
+				},
 				{
 					"paths": ["~/dev"]
 				},
@@ -213,7 +182,7 @@
 	"show_edit_predictions": true,
 	"edit_predictions": {
 		"disabled_globs": ["*.mlir"],
-    "mode": "subtle",
+		"mode": "subtle",
 		"enabled_in_text_threads": true
 	},
 	"features": {
@@ -224,7 +193,7 @@
 		"enabled": true,
 		"default_model": {
 			"provider": "zed.dev",
-			"model": "claude-sonnet-4-thinking"
+			"model": "claude-sonnet-4"
 		},
 		"inline_assistant_model": {
 			"provider": "zed.dev",
@@ -289,8 +258,8 @@
 				"context_servers": {}
 			}
 		},
-		"always_allow_tool_actions": true,
-		"default_profile": "write",
+		"always_allow_tool_actions": false,
+		"default_profile": "ask",
 		"button": true,
 		"default_width": 480,
 		"dock": "right"
