@@ -74,6 +74,7 @@ submodule_rm() {
   git rm -f "$1"
   rm -rf .git/modules/"$1"
 }
+alias oc="opencode"
 
 # mamba aliases
 alias ma=mamba
@@ -93,6 +94,7 @@ alias py='python'
 alias urun='uv run --no-sync'
 alias upy='uv run --no-sync python'
 alias updb='uv run --no-sync python -m pdb'
+alias uscript='uv run --script'
 
 # project specific aliases and configurations ===============================================
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
@@ -121,7 +123,6 @@ export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 . "$HOME/.local/bin/env"
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
-export UV_PYTHON=3.12
 # Fix completions for uv run to autocomplete .py files
 _uv_run_mod() {
     if [[ "$words[2]" == "run" && "$words[CURRENT]" != -* ]]; then
@@ -188,6 +189,30 @@ compdef _gt_yargs_completions gt
 export PATH="$PATH:/Users/tudoroancea/.modular/bin"
 eval "$(magic completion --shell zsh)"
 
+# LM Studio CLI (lms)
+export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
+
+# zvm (zig version manager)
+export PATH="$PATH:$HOME/.zvm/self"
+
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/opt/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+# claude code config =================================================================
+source ~/glm_coding_plan.sh
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="zed"
