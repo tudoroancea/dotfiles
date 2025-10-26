@@ -91,9 +91,9 @@ alias mind='mamba install -d'
 # other python aliases
 alias upip='uv pip'
 alias py='python'
-alias urun='uv run --no-sync'
-alias upy='uv run --no-sync python'
-alias updb='uv run --no-sync python -m pdb'
+alias urun='uv run'
+alias upy='uv run python'
+alias updb='uv run python -m pdb'
 alias uscript='uv run --script'
 
 # project specific aliases and configurations ===============================================
@@ -211,8 +211,10 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-# claude code config =================================================================
-source ~/glm_coding_plan.sh
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+
+# source ~/glm_coding_plan.sh
+source ~/openai_api_key.sh
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="zed"

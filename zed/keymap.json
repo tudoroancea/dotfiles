@@ -113,6 +113,14 @@
 		}
 	},
 	{
+		"context": "Editor && edit_prediction",
+		"bindings": {
+			"alt-tab": "editor::AcceptEditPrediction",
+			"tab": "editor::AcceptEditPrediction",
+			"alt-shift-tab": "editor::AcceptPartialEditPrediction"
+		}
+	},
+	{
 		"context": "Editor && edit_prediction && !showing_completions",
 		"bindings": {
 			"tab": null,
