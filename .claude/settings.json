@@ -1,0 +1,16 @@
+{
+  "model": "haiku",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "open \"raycast://extensions/raycast/raycast/confetti\""
+          }
+        ]
+      }
+    ]
+  },
+  "alwaysThinkingEnabled": false
+}
