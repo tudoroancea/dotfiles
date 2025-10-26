@@ -1,3 +1,4 @@
 .DS_Store
 .cache/clangd
 .zed
+.claude/settings.local.json
