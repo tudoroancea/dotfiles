@@ -101,6 +101,8 @@ alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
 alias purge="./scripts/purge.sh"
 alias build="./scripts/build.sh"
 # alias test="./scripts/test.sh"
+alias tinyanvil="cd ~/dev/tinyanvil"
+alias tinygrad="cd ~/dev/tinygrad"
 
 # homebrew config =====================================================-==============
 eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -258,3 +260,5 @@ source $ZSH/oh-my-zsh.sh
 # run zsh profiling
 # zprof
 
+
+alias claude="/Users/tudoroancea/.claude/local/claude"

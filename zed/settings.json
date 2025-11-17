@@ -1,12 +1,17 @@
 {
 	// Editor
-	"tab_size": 2,
+	"use_smartcase_search": true,
+ "search": {
+  "regex": true,
+  "case_sensitive": false
+ },
+ "tab_size": 2,
 	"pane_split_direction_vertical": "right",
 	"pane_split_direction_horizontal": "down",
 	"show_completions_on_input": true,
 	"show_completion_documentation": true,
 	"soft_wrap": "none",
-	"relative_line_numbers": true,
+	"relative_line_numbers": "enabled",
 	"inlay_hints": {
 		"enabled": true,
 		"show_parameter_hints": true,
@@ -68,6 +73,7 @@
 		"matlab": true
 	},
 	// LSP
+	"format_on_save": "off",
 	"enable_language_server": true,
 	"languages": {
 		"YAML": {
@@ -113,19 +119,12 @@
 			"tab_size": 2
 		},
 		"Python": {
-			"format_on_save": "off",
-			"language_servers": ["basedpyright", "!ty", "ruff"],
+			"language_servers": ["basedpyright", "ruff"],
 			"formatter": [
-				// { "code_action": "source.organizeImports.ruff" },
+				{ "code_action": "source.organizeImports.ruff" },
 				{ "language_server": { "name": "ruff" } }
 			]
 		},
-		"C": {
-			"format_on_save": "on"
-		},
-		"C++": {
-			"format_on_save": "on"
-		}
 	},
 	"lsp": {
 		"pyrefly": {
