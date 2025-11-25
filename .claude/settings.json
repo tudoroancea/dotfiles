@@ -1,4 +1,25 @@
 {
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(uv run python:*)",
+      "Bash(find:*)",
+      "Bash(fd:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(bun add:*)"
+    ],
+    "deny": [
+      "Bash(uv add:*)",
+      "Bash(uv pip install:*)",
+      "Bash(bun run dev:*)",
+      "Bash(bun run serve:*)",
+      "Bash(bun dev:*)",
+      "Bash(vite dev:*)",
+      "Bash(vite preview:*)"
+    ],
+    "ask": []
+  },
   "model": "haiku",
   "hooks": {
     "Stop": [
@@ -12,5 +33,10 @@
       }
     ]
   },
-  "alwaysThinkingEnabled": false
+  "statusLine": {
+    "type": "command",
+    "command": "bunx ccusage statusline",
+    "padding": 0
+  },
+  "alwaysThinkingEnabled": true
 }

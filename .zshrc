@@ -135,6 +135,7 @@ _uv_run_mod() {
 }
 compdef _uv_run_mod uv
 
+# micromamba setup
 # >>> mamba initialize >>>
 # !! Contents within this block are managed by 'micromamba shell init' !!
 export MAMBA_EXE='/Users/tudoroancea/.local/bin/micromamba';
@@ -197,26 +198,11 @@ export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
 # zvm (zig version manager)
 export PATH="$PATH:$HOME/.zvm/self"
 
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/opt/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/opt/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/opt/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # source ~/glm_coding_plan.sh
-source ~/openai_api_key.sh
+source ~/gemini-cli.sh
+source ~/pave_api_key.sh
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="zed"
@@ -261,4 +247,3 @@ source $ZSH/oh-my-zsh.sh
 # zprof
 
 
-alias claude="/Users/tudoroancea/.claude/local/claude"

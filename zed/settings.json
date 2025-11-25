@@ -124,9 +124,14 @@
 				{ "code_action": "source.organizeImports.ruff" },
 				{ "language_server": { "name": "ruff" } }
 			]
-		},
+		}
 	},
 	"lsp": {
+	  "ty": {"binary": {
+			"path": "/Users/tudoroancea/.local/bin/ty",
+			"arguments": ["server"]
+			}
+			},
 		"pyrefly": {
 			"binary": {
 				"path": "/Users/tudoroancea/.local/bin/pyrefly",
@@ -192,7 +197,7 @@
 	"features": {
 		"edit_prediction_provider": "zed"
 	},
-	"agent": { "enabled": false },
+	"agent": { "enabled": true },
 	// Git
 	"git": {
 		"hunk_style": "staged_hollow",
