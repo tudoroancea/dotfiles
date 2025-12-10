@@ -6,8 +6,9 @@
 			"cmd-shift-r": "workspace::Reload",
 			"cmd-h": "pane::ActivatePreviousItem",
 			"cmd-l": "pane::ActivateNextItem",
-			"alt-cmd-,": "zed::OpenProjectSettings",
-			"cmd-k cmd-s": "zed::OpenKeymap"
+			"alt-cmd-,": "zed::OpenProjectSettingsFile",
+			"cmd-,": "zed::OpenSettingsFile",
+			"cmd-k cmd-s": "zed::OpenKeymapFile"
 		}
 	},
 	{

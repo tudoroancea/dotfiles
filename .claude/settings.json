@@ -12,14 +12,15 @@
     ],
     "deny": [
       "Bash(uv add:*)",
-      "Bash(uv pip install:*)",
       "Bash(bun run dev:*)",
       "Bash(bun run serve:*)",
       "Bash(bun dev:*)",
       "Bash(vite dev:*)",
       "Bash(vite preview:*)"
     ],
-    "ask": []
+    "ask": [
+      "Bash(uv pip install:*)"
+    ]
   },
   "model": "opus",
   "hooks": {
