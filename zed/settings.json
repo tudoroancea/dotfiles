@@ -1,6 +1,9 @@
 {
 	// Editor
-	"use_smartcase_search": true,
+	"git_panel": {
+  "tree_view": true
+ },
+ "use_smartcase_search": true,
  "search": {
   "regex": true,
   "case_sensitive": false
@@ -47,10 +50,14 @@
 	// Color theme
 	"theme": {
 		"mode": "system",
-		"light": "Zed Legacy: Rosé Pine Dawn",
-		"dark": "Zed Legacy: Rosé Pine Moon"
+		"light": "Rosé Pine Dawn",
+		"dark": "Rosé Pine Moon"
 	},
-	"icon_theme": "Catppuccin Latte",
+	"icon_theme": {
+		"mode": "system",
+		"light": "Catppuccin Latte",
+		"dark": "Catppuccin Mocha"
+	},
 	"experimental.theme_overrides": {
 		"syntax": {
 			"comment": {}
@@ -147,46 +154,79 @@
 	},
 	// Remote
 	"ssh_connections": [
-		{
-			"host": "thebeauty",
-			"args": [],
-			"projects": [
-				{
-					"paths": ["/home/ted/dev/anvil"]
-				},
-				{
-					"paths": ["/home/ted/dev/anvil/examples"]
-				},
-				{
-					"paths": ["/home/ted/dev/stablehlo"]
-				},
-				{
-					"paths": ["/home/ted/dev/tinyanvil"]
-				},
-				{
-					"paths": ["~/dev"]
-				},
-				{
-					"paths": ["~/dev/blasfeo"]
-				},
-				{
-					"paths": ["~/dev/brains2"]
-				},
-				{
-					"paths": ["~/dev/nanoGPT"]
-				},
-				{
-					"paths": ["~/dev/ngpt"]
-				},
-				{
-					"paths": ["~/dev/pymanopt"]
-				},
-				{
-					"paths": ["~/dev/tadam"]
-				}
-			]
-		}
-	],
+  {
+   "host": "thebeauty",
+   "args": [],
+   "projects": [
+    {
+     "paths": [
+      "/home/ted/dev/anvil"
+     ]
+    },
+    {
+     "paths": [
+      "/home/ted/dev/anvil/examples"
+     ]
+    },
+    {
+     "paths": [
+      "/home/ted/dev/stablehlo"
+     ]
+    },
+    {
+     "paths": [
+      "/home/ted/dev/tinyanvil"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/blasfeo"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/brains2"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/nanoGPT"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/ngpt"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/pymanopt"
+     ]
+    },
+    {
+     "paths": [
+      "~/dev/tadam"
+     ]
+    }
+   ]
+  },
+  {
+   "host": "miranda",
+   "args": [],
+   "projects": [
+    {
+     "paths": [
+      "/home/tudor/dev/tinyanvil"
+     ]
+    }
+   ]
+  }
+ ],
 	// AI
 	"show_edit_predictions": true,
 	"edit_predictions": {

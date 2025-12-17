@@ -9,6 +9,7 @@ focus-follows-mouse = true
 unfocused-split-opacity = 1
 # background-opacity = 0.85
 background-blur = true
+macos-titlebar-style = tabs
 
 keybind = unconsumed:ctrl+k=goto_split:top
 keybind = unconsumed:ctrl+j=goto_split:bottom

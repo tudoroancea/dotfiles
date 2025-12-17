@@ -4,6 +4,7 @@
       "WebSearch",
       "Fetch(https://raw.githubusercontent.com:*)",
       "Bash(uv run python:*)",
+      "Bash(uv run pytest:*)",
       "Bash(find:*)",
       "Bash(fd:*)",
       "Bash(grep:*)",
@@ -19,10 +20,11 @@
       "Bash(vite preview:*)"
     ],
     "ask": [
-      "Bash(uv pip install:*)"
+      "Bash(uv pip install:*)",
+      "Bash(uv sync)"
     ]
   },
-  "model": "opus",
+  "model": "haiku",
   "hooks": {
     "Stop": [
       {
@@ -37,11 +39,10 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bunx ccusage statusline",
-    "padding": 0
+    "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); dir=$(basename \"$cwd\"); git_status=\"\"; if cd \"$cwd\" 2>/dev/null && git rev-parse --git-dir >/dev/null 2>&1; then branch=$(git branch --show-current 2>/dev/null || git rev-parse --short HEAD 2>/dev/null | sed 's/^/@/'); if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [ -n \"$(git ls-files --others --exclude-standard 2>/dev/null)\" ]; then dirty=\"*\"; else dirty=\"\"; fi; ahead_behind=$(git rev-list --left-right --count HEAD...@{u} 2>/dev/null); if [ -n \"$ahead_behind\" ]; then ahead=$(echo \"$ahead_behind\" | awk '{print $1}'); behind=$(echo \"$ahead_behind\" | awk '{print $2}'); if [ \"$behind\" -gt 0 ] && [ \"$ahead\" -gt 0 ]; then arrows=\":⇣⇡\"; elif [ \"$behind\" -gt 0 ]; then arrows=\":⇣\"; elif [ \"$ahead\" -gt 0 ]; then arrows=\":⇡\"; else arrows=\"\"; fi; else arrows=\"\"; fi; git_status=\" ${branch}${dirty}${arrows}\"; fi; env_info=\"\"; if [ -n \"$CONDA_DEFAULT_ENV\" ]; then env_info=\" $CONDA_DEFAULT_ENV\"; elif [ -n \"$VIRTUAL_ENV\" ]; then env_info=\" $(basename \"$VIRTUAL_ENV\")\"; fi; printf \"\\033[34m%s\\033[0m\\033[90m%s\\033[0m%s\" \"$dir\" \"$git_status\" \"$env_info\""
   },
   "enabledPlugins": {
-    "frontend-design@claude-code-plugins": true
-  },
-  "alwaysThinkingEnabled": false
+    "frontend-design@claude-code-plugins": true,
+    "osgrep@osgrep": true
+  }
 }

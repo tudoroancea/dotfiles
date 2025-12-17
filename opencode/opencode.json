@@ -1,0 +1,38 @@
+{
+	"$schema": "https://opencode.ai/config.json",
+	"autoupdate": true,
+	"enabled_providers": [
+		"opencode",
+		"anthropic",
+		"azure-cognitive-services",
+		"lmstudio"
+	],
+	"small_model": "zen/big-pickle",
+	"model": "azure-cognitive-services/gpt-5.1-codex",
+	"provider": {
+		"lmstudio": {
+			"npm": "@ai-sdk/openai-compatible",
+			"name": "LM Studio (local)",
+			"options": {
+				"baseURL": "http://127.0.0.1:1234/v1"
+			},
+			"models": {
+				"nvidia/nemotron-3-nano": {
+					"name": "Nemotron 3 nano"
+				},
+				"openai/gpt-oss-20b": {
+					"name": "GPT OSS 20b"
+				}
+			}
+		}
+	},
+	"permission": {
+		"bash": {
+			"fd": "allow",
+			"rg": "allow",
+			"uv pip list": "allow",
+			"ls": "allow",
+			"tree": "allow"
+		}
+	}
+}
