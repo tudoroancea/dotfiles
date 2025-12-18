@@ -8,8 +8,6 @@
 		"lmstudio",
 		"google"
 	],
-	// "small_model": "zen/big-pickle",
-	// "model": "azure-cognitive-services/gpt-5.1-codex",
 	"provider": {
 		"lmstudio": {
 			"npm": "@ai-sdk/openai-compatible",
