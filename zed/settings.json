@@ -215,8 +215,8 @@
 		"edit_prediction_provider": "zed"
 	},
 	"agent": { "inline_assistant_model": {
-                  "provider": "ollama",
-                  "model": "glm-4.6:cloud"
+                  "provider": "copilot_chat",
+                  "model": "claude-haiku-4.5"
             },
             "enabled": true },
 	// Git

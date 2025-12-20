@@ -15,7 +15,8 @@ keybind = unconsumed:ctrl+k=goto_split:top
 keybind = unconsumed:ctrl+j=goto_split:bottom
 keybind = unconsumed:ctrl+h=goto_split:left
 keybind = unconsumed:ctrl+l=goto_split:right
-keybind = shift+enter=text:\x1b\r
 
 # see https://ghostty.org/docs/help/terminfo#ssh
 shell-integration-features = ssh-terminfo
+
+keybind = shift+enter=text:\x1b\r
