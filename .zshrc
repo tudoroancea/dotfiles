@@ -247,3 +247,6 @@ source $ZSH/oh-my-zsh.sh
 # zprof
 
 
+
+# Added by Antigravity
+export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
