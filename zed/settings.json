@@ -214,7 +214,12 @@
 	"features": {
 		"edit_prediction_provider": "zed"
 	},
-	"agent": { "inline_assistant_model": {
+	"agent": { "default_profile": "write",
+            "default_model": {
+                  "provider": "openrouter",
+                  "model": "z-ai/glm-4.7"
+            },
+            "inline_assistant_model": {
                   "provider": "copilot_chat",
                   "model": "claude-haiku-4.5"
             },

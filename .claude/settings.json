@@ -1,41 +1,48 @@
 {
-	"$schema": "https://json.schemastore.org/claude-code-settings.json",
-	"model": "haiku",
-	"permissions": {
-		"allow": [
-			"WebSearch",
-			"Bash(uv run python:*)",
-			"Bash(uv run pytest:*)",
-			"Bash(find:*)",
-			"Bash(fd:*)",
-			"Bash(grep:*)",
-			"Bash(rg:*)",
-			"Bash(bun add:*)"
-		],
-		"deny": [
-			"Bash(bun run dev:*)",
-			"Bash(bun run serve:*)",
-			"Bash(bun dev:*)",
-			"Bash(vite dev:*)",
-			"Bash(vite preview:*)"
-		],
-		"ask": ["Bash(uv pip install:*)", "Bash(uv sync)", "Bash(uv add:*)"]
-	},
-	"hooks": {
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "open \"raycast://extensions/raycast/raycast/confetti\""
-					}
-				]
-			}
-		]
-	},
-	"enabledPlugins": {
-		"context7@claude-plugins-official": true,
-		"clangd-lsp@claude-plugins-official": true
-	},
-	"syntaxHighlightingDisabled": false
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(uv run python:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(find:*)",
+      "Bash(fd:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(bun add:*)"
+    ],
+    "deny": [
+      "Bash(bun run dev:*)",
+      "Bash(bun run serve:*)",
+      "Bash(bun run preview:*)",
+      "Bash(bun dev:*)",
+      "Bash(vite dev:*)",
+      "Bash(vite preview:*)"
+    ],
+    "ask": [
+      "Bash(uv pip install:*)",
+      "Bash(uv sync)",
+      "Bash(uv add:*)"
+    ],
+    "defaultMode": "default"
+  },
+  "model": "haiku",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "open \"raycast://extensions/raycast/raycast/confetti\""
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true
+  },
+  "syntaxHighlightingDisabled": false
 }

@@ -19,4 +19,7 @@ keybind = unconsumed:ctrl+l=goto_split:right
 # see https://ghostty.org/docs/help/terminfo#ssh
 shell-integration-features = ssh-terminfo
 
+# new line in claude code
 keybind = shift+enter=text:\x1b\r
+
+macos-option-as-alt = true
