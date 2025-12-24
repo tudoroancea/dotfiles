@@ -26,23 +26,27 @@
     ],
     "defaultMode": "default"
   },
-  "model": "haiku",
   "hooks": {
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "open \"raycast://extensions/raycast/raycast/confetti\""
+            "command": "open -g \"raycast://extensions/raycast/raycast/confetti\""
           }
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/status-line.sh"
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true
   },
-  "syntaxHighlightingDisabled": false
+  "syntaxHighlightingDisabled": false,
+  "model": "haiku"
 }
