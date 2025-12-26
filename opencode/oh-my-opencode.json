@@ -4,10 +4,10 @@
 	"disabled_hooks": ["background-notification", "session-notification"],
 	"agents": {
 		"Sisyphus": {
-			"model": "opencode/glm-4.7-free"
+			"model": "google/gemini-3-flash"
 		},
 		"Planner-Sisyphus": {
-			"model": "opencode/glm-4.7-free"
+			"model": "google/gemini-3-flash"
 		},
 		"oracle": {
 			"model": "azure-cognitive-services/gpt-5.2"

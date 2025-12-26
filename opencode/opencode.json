@@ -1,8 +1,31 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"autoupdate": true,
-	"enabled_providers": ["opencode", "azure-cognitive-services", "google"],
+	"enabled_providers": ["opencode", "azure-cognitive-services", "vibeproxy"],
+	"default_agent": "plan",
+	"model": "vibeproxy/gemini-claude-opus-4-5-thinking",
+	"small_model": "opencode/grok-code",
 	"provider": {
+		"vibeproxy": {
+			"npm": "@ai-sdk/openai-compatible",
+			"options": {
+				"baseURL": "http://localhost:8317/v1"
+			},
+			"models": {
+				"gemini-claude-sonnet-4-5-thinking": {
+					"name": "Sonnet 4.5 (antigravity)"
+				},
+				"gemini-claude-opus-4-5-thinking": { "name": "Opus 4.5 (antigravity)" },
+				"claude-opus-4-5-20251101": { "name": "Opus 4.5" },
+				"claude-sonnet-4-5-20250929": { "name": "Sonnet 4.5" },
+				"claude-haiku-4-5-20251001": { "name": "Haiku 4.5" }
+			}
+		},
+		"azure-cognitive-services": {
+			"models": {
+				"gpt-5.1-codex": { "name": "GPT 5.1 Codex" }
+			}
+		},
 		"lmstudio": {
 			"npm": "@ai-sdk/openai-compatible",
 			"name": "LM Studio (local)",
@@ -17,76 +40,6 @@
 					"name": "GPT OSS 20b"
 				}
 			}
-		},
-		"google": {
-			"models": {
-				"gemini-3-pro-high": {
-					"name": "Gemini 3 Pro High",
-					"limit": {
-						"context": 1048576,
-						"output": 65535
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-				"gemini-3-pro-low": {
-					"name": "Gemini 3 Pro Low",
-					"limit": {
-						"context": 1048576,
-						"output": 65535
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-				"gemini-3-flash": {
-					"name": "Gemini 3 Flash",
-					"limit": {
-						"context": 1048576,
-						"output": 65536
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-				"claude-sonnet-4-5": {
-					"name": "Claude Sonnet 4.5",
-					"limit": {
-						"context": 200000,
-						"output": 64000
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-				"claude-sonnet-4-5-thinking": {
-					"name": "Claude Sonnet 4.5 Thinking",
-					"limit": {
-						"context": 200000,
-						"output": 64000
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-				"claude-opus-4-5-thinking": {
-					"name": "Claude Opus 4.5 Thinking",
-					"limit": {
-						"context": 200000,
-						"output": 64000
-					},
-					"modalities": {
-						"input": ["text", "image", "pdf"],
-						"output": ["text"]
-					}
-				},
-			},
 		}
 	},
 	"permission": {
@@ -98,5 +51,9 @@
 			"tree": "allow"
 		}
 	},
-	"plugin": ["oh-my-opencode", "opencode-antigravity-auth"]
+	"agent": {
+		"plan": { "model": "vibeproxy/gemini-claude-opus-4-5-thinking" },
+		"build": { "model": "opencode/glm-4.7-free" }
+	}
+	// "plugin": ["oh-my-opencode", "opencode-antigravity-auth"]
 }
