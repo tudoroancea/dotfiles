@@ -26,6 +26,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "haiku",
   "hooks": {
     "Stop": [
       {
@@ -40,13 +41,12 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/status-line.sh"
+    "command": "bun ~/.claude/scripts/statusline/generate.ts"
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true
   },
-  "syntaxHighlightingDisabled": false,
-  "model": "haiku"
+  "syntaxHighlightingDisabled": false
 }
