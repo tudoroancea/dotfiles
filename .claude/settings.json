@@ -3,13 +3,17 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(uv run python:*)",
-      "Bash(uv run pytest:*)",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
       "Bash(find:*)",
+      "Bash(cat:*)",
       "Bash(fd:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(bun add:*)"
+      "Bash(bun add:*)",
+      "Bash(bun x biome:*)",
+      "Bash(uv run python:*)",
+      "Bash(uv run pytest:*)",
     ],
     "deny": [
       "Bash(bun run dev:*)",
