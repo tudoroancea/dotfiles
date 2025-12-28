@@ -217,7 +217,7 @@
 	"agent": { "default_profile": "write",
             "default_model": {
                   "provider": "openrouter",
-                  "model": "z-ai/glm-4.7"
+                  "model": "minimax/minimax-m2.1"
             },
             "inline_assistant_model": {
                   "provider": "copilot_chat",

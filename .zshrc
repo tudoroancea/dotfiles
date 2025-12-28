@@ -205,7 +205,7 @@ source ~/gemini-cli.sh
 source ~/pave_api_key.sh
 
 # (oh my) zsh customization ==========================================================
-export EDITOR="zed"
+export EDITOR="nvim"
 export ZSH="/Users/tudoroancea/.oh-my-zsh"
 ENABLE_CORRECTION="false"
 COMPLETION_WAITING_DOTS="true"
@@ -247,6 +247,9 @@ source $ZSH/oh-my-zsh.sh
 # zprof
 
 
+
+# Added by Antigravity
+export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
 
 # Added by Antigravity
 export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"

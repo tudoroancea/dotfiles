@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import type { Plugin, PluginInput } from "@opencode-ai/plugin";
-import type { Event, EventPermissionUpdated, EventPermissionReplied } from "@opencode-ai/sdk";
+import type { Event, EventPermissionUpdated, EventPermissionReplied, EventSessionError } from "@opencode-ai/sdk";
 
 /**
  * OpenCode Notification Plugin
@@ -56,7 +56,7 @@ async function sendNotification(
 ): Promise<void> {
 	try {
 		const soundArg: string = sound ? ' sound name "Glass"' : "";
-		await $`osascript -e 'display notification "${message}" with title "${title}"${soundArg}'`;
+		await $`osascript -e 'display notification "${message}" with title "${title}"'`;
 	} catch (error: unknown) {
 		console.error("Failed to send notification:", error);
 	}
@@ -105,7 +105,7 @@ export const OpenCodeNotificationPlugin: Plugin = async ({
 			if (event.type === "session.error") {
 				if (!shouldNotify()) return;
 
-				const errorMsg: string = event.error?.message || "An error occurred";
+				const errorMsg: string = (event as EventSessionError).properties.error?.data?.message || "An error occurred";
 				await sendNotification(
 					"⚠️ OpenCode Error",
 					errorMsg.slice(0, 100), // Truncate long messages
