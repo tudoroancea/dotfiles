@@ -1,4 +1,4 @@
-require('nvim-treesitter.configs').setup({
+require('nvim-treesitter').setup({
     ensure_installed = { 'bash', 'c', 'cpp', 'python', 'gitignore', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'json', 'javascript', 'typescript' },
     auto_install = true,
     highlight = {

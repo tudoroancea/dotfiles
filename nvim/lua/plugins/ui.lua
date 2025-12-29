@@ -17,30 +17,30 @@ require('mini.files').setup({
 })
 vim.keymap.set('n', '<leader>fm', require('mini.files').open, { desc = '[F]ile explorer: [m]ini' })
 
-require('noice').setup({
-    lsp = {
-        override = {
-            ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
-            ['vim.lsp.util.stylize_markdown'] = true,
-            ['cmp.entry.get_documentation'] = true,
-        },
-    },
-    views = {
-        cmdline_popup = {
-            position = { row = 5, col = '50%' },
-            size = { width = 60, height = 'auto' },
-        },
-        popupmenu = {
-            relative = 'editor',
-            position = { row = 8, col = '50%' },
-            size = { width = 60, height = 10 },
-            border = { style = 'rounded', padding = { 0, 1 } },
-            win_options = {
-                winhighlight = { Normal = 'Normal', FloatBorder = 'DiagnosticInfo' },
-            },
-        },
-    },
-})
+-- require('noice').setup({
+--     lsp = {
+--         override = {
+--             ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
+--             ['vim.lsp.util.stylize_markdown'] = true,
+--             ['cmp.entry.get_documentation'] = true,
+--         },
+--     },
+--     views = {
+--         cmdline_popup = {
+--             position = { row = 5, col = '50%' },
+--             size = { width = 60, height = 'auto' },
+--         },
+--         popupmenu = {
+--             relative = 'editor',
+--             position = { row = 8, col = '50%' },
+--             size = { width = 60, height = 10 },
+--             border = { style = 'rounded', padding = { 0, 1 } },
+--             win_options = {
+--                 winhighlight = { Normal = 'Normal', FloatBorder = 'DiagnosticInfo' },
+--             },
+--         },
+--     },
+-- })
 
 require('todo-comments').setup({ signs = true })
 
@@ -59,13 +59,34 @@ require('which-key').setup({
     icons = {
         mappings = vim.g.have_nerd_font,
         keys = vim.g.have_nerd_font and {} or {
-          Up = '<Up> ', Down = '<Down> ', Left = '<Left> ', Right = '<Right> ',
-          C = '<C-…> ', M = '<M-…> ', D = '<D-…> ', S = '<S-…> ',
-          CR = '<CR> ', Esc = '<Esc> ', ScrollWheelDown = '<ScrollWheelDown> ',
-          ScrollWheelUp = '<ScrollWheelUp> ', NL = '<NL> ', BS = '<BS> ',
-          Space = '<Space> ', Tab = '<Tab> ', F1 = '<F1>', F2 = '<F2>',
-          F3 = '<F3>', F4 = '<F4>', F5 = '<F5>', F6 = '<F6>', F7 = '<F7>',
-          F8 = '<F8>', F9 = '<F9>', F10 = '<F10>', F11 = '<F11>', F12 = '<F12>',
+            Up = '<Up> ',
+            Down = '<Down> ',
+            Left = '<Left> ',
+            Right = '<Right> ',
+            C = '<C-…> ',
+            M = '<M-…> ',
+            D = '<D-…> ',
+            S = '<S-…> ',
+            CR = '<CR> ',
+            Esc = '<Esc> ',
+            ScrollWheelDown = '<ScrollWheelDown> ',
+            ScrollWheelUp = '<ScrollWheelUp> ',
+            NL = '<NL> ',
+            BS = '<BS> ',
+            Space = '<Space> ',
+            Tab = '<Tab> ',
+            F1 = '<F1>',
+            F2 = '<F2>',
+            F3 = '<F3>',
+            F4 = '<F4>',
+            F5 = '<F5>',
+            F6 = '<F6>',
+            F7 = '<F7>',
+            F8 = '<F8>',
+            F9 = '<F9>',
+            F10 = '<F10>',
+            F11 = '<F11>',
+            F12 = '<F12>',
         },
     },
     spec = {
@@ -90,7 +111,7 @@ end
 
 require('snacks').setup({
     dashboard = {
-        enabled = true,
+        enabled = false,
         formats = { header = { '%s', align = 'left' } },
         preset = { header = headercontent },
         sections = {
@@ -114,7 +135,7 @@ require('barbar').setup({
 require('mini.statusline').setup({
     use_icons = vim.g.have_nerd_font,
     content = {
-          active = function()
+        active = function()
             local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
             local git = MiniStatusline.section_git { trunc_width = 40 }
             local diff = MiniStatusline.section_diff { trunc_width = 75 }
@@ -124,14 +145,14 @@ require('mini.statusline').setup({
             local search = MiniStatusline.section_searchcount { trunc_width = 75 }
 
             return MiniStatusline.combine_groups {
-              { hl = mode_hl,                 strings = { mode } },
-              { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },
-              '%<', 
-              '%=', 
-              { hl = mode_hl,                     strings = { search, location } },
+                { hl = mode_hl,                 strings = { mode } },
+                { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },
+                '%<',
+                '%=',
+                { hl = mode_hl, strings = { search, location } },
             }
-          end,
-          inactive = function() return '' end,
+        end,
+        inactive = function() return '' end,
     },
 })
 

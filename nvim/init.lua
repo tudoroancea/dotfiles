@@ -145,7 +145,7 @@ local function ensure_plugin(repo)
   local dir = pack_dir .. '/' .. name
   if vim.fn.isdirectory(dir) == 0 then
     print("Installing " .. repo .. "...")
-    vim.fn.system({'git', 'clone', '--depth=1', 'https://github.com/' .. repo .. '.git', dir})
+    vim.fn.system({ 'git', 'clone', '--depth=1', 'https://github.com/' .. repo .. '.git', dir })
   end
   vim.cmd('packadd! ' .. name)
 end
@@ -191,7 +191,7 @@ end
 local fzf_dir = pack_dir .. '/telescope-fzf-native.nvim'
 if vim.fn.isdirectory(fzf_dir) == 1 and vim.fn.executable('make') == 1 and vim.fn.filereadable(fzf_dir .. '/build/libfzf.so') == 0 then
   print("Building telescope-fzf-native...")
-  vim.fn.system({'make', '-C', fzf_dir})
+  vim.fn.system({ 'make', '-C', fzf_dir })
 end
 
 require('plugins.ui')
