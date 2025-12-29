@@ -284,7 +284,7 @@ async function generateStatusLine() {
 		}
 
 		// Get usage limits (5-hour only) if not hidden
-		const hideUsage = process.env.CLAUDE_CODE_STATUSLINE_HIDE && process.env.CLAUDE_CODE_STATUSLINE_HIDE !== "0";
+		const hideUsage = process.env.CLAUDE_CODE_STATUSLINE_HIDE_USAGE && process.env.CLAUDE_CODE_STATUSLINE_HIDE_USAGE !== "0";
 		let usageInfo = "";
 		if (!hideUsage) {
 			const limits = await getUsageLimits();
