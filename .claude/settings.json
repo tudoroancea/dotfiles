@@ -1,5 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-opus-4-5-thinking",
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "test",
+    "ANTHROPIC_BASE_URL": "http://localhost:8080",
+    "ANTHROPIC_MODEL": "claude-opus-4-5-thinking",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5-thinking",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-2.5-flash-lite"
+  },
   "permissions": {
     "allow": [
       "WebSearch",
@@ -13,7 +22,7 @@
       "Bash(bun add:*)",
       "Bash(bun x biome:*)",
       "Bash(uv run python:*)",
-      "Bash(uv run pytest:*)",
+      "Bash(uv run pytest:*)"
     ],
     "deny": [
       "Bash(bun run dev:*)",
@@ -30,7 +39,6 @@
     ],
     "defaultMode": "default"
   },
-  "model": "haiku",
   "hooks": {
     "Stop": [
       {
@@ -50,7 +58,8 @@
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true
+    "pyright-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   },
   "syntaxHighlightingDisabled": false
 }

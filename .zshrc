@@ -188,16 +188,11 @@ _gt_yargs_completions()
 compdef _gt_yargs_completions gt
 ###-end-gt-completions-###
 
-# magic
 export PATH="$PATH:/Users/tudoroancea/.modular/bin"
 eval "$(magic completion --shell zsh)"
-
-# LM Studio CLI (lms)
 export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
-
-# zvm (zig version manager)
 export PATH="$PATH:$HOME/.zvm/self"
-
+export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # source ~/glm_coding_plan.sh
@@ -245,11 +240,3 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
-
-
-
-# Added by Antigravity
-export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
-
-# Added by Antigravity
-export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
