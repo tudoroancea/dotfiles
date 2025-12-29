@@ -238,12 +238,12 @@ function formatGitInfo(status: GitStatus): string {
 }
 
 function formatUsageBar(utilization: number): { bar: string; percent: number } {
-	const percent = Math.round(utilization);
+	const remaining = Math.round(100 - utilization);
 	const barWidth = 15;
-	const filled = Math.round((percent * barWidth) / 100);
+	const filled = Math.round((remaining * barWidth) / 100);
 	const empty = barWidth - filled;
 
-	const color = getColorForUtilization(percent);
+	const color = getColorForUtilization(utilization);
 	const bar =
 		color +
 		"█".repeat(filled) +
@@ -252,7 +252,7 @@ function formatUsageBar(utilization: number): { bar: string; percent: number } {
 		"░".repeat(empty) +
 		colors.NC;
 
-	return { bar, percent };
+	return { bar, percent: remaining };
 }
 
 async function readStdin(): Promise<StatusLineInput> {
@@ -283,17 +283,20 @@ async function generateStatusLine() {
 			contextInfo = `${colors.GRAY}${"░".repeat(15)}${colors.NC} 0%`;
 		}
 
-		// Get usage limits (5-hour only)
-		const limits = await getUsageLimits();
+		// Get usage limits (5-hour only) if not hidden
+		const hideUsage = process.env.CLAUDE_CODE_STATUSLINE_HIDE && process.env.CLAUDE_CODE_STATUSLINE_HIDE !== "0";
 		let usageInfo = "";
-		if (
-			limits.five_hour?.utilization !== null &&
-			limits.five_hour?.utilization !== undefined
-		) {
-			const { bar, percent } = formatUsageBar(limits.five_hour.utilization);
-			usageInfo = `${bar} ${percent}%`;
-		} else {
-			usageInfo = `${colors.GRAY}${"░".repeat(15)}${colors.NC} 0%`;
+		if (!hideUsage) {
+			const limits = await getUsageLimits();
+			if (
+				limits.five_hour?.utilization !== null &&
+				limits.five_hour?.utilization !== undefined
+			) {
+				const { bar, percent } = formatUsageBar(limits.five_hour.utilization);
+				usageInfo = `${bar} ${percent}%`;
+			} else {
+				usageInfo = `${colors.GREEN}${"█".repeat(15)}${colors.NC} 100%`;
+			}
 		}
 
 		// Get git info
@@ -304,13 +307,13 @@ async function generateStatusLine() {
 		}
 
 		// Build final status line
-		// Order: repo | model | context bar | 5h usage bar | git status
+		// Order: repo | model | git status | context bar | 5h usage bar (if shown)
 		const statusLine =
 			`${colors.BLUE}${dirName}${colors.NC} ${colors.GRAY}|${colors.NC} ` +
 			`${colors.CYAN}${modelName}${colors.NC} ${colors.GRAY}|${colors.NC} ` +
 			(gitInfo ? `${gitInfo} ${colors.GRAY}|${colors.NC} ` : "") +
-			`${contextInfo} ${colors.GRAY}|${colors.NC} ` +
-			`${usageInfo}`;
+			`${contextInfo}` +
+			(usageInfo ? ` ${colors.GRAY}|${colors.NC} ${usageInfo}` : "");
 
 		console.log(statusLine);
 	} catch (error) {
