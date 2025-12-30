@@ -150,12 +150,10 @@ later(function() add('rafamadriz/friendly-snippets') end)
 -- Beautiful, usable, well maintained color schemes outside of 'mini.nvim' and
 -- have full support of its highlight groups. Use if you don't like 'miniwinter'
 -- enabled in 'plugin/30_mini.lua' or other suggested 'mini.hues' based ones.
--- MiniDeps.now(function()
---   -- Install only those that you need
---   add('sainnhe/everforest')
---   add('Shatur/neovim-ayu')
---   add('ellisonleao/gruvbox.nvim')
---
---   -- Enable only one
---   vim.cmd('color everforest')
--- end)
+MiniDeps.now(function()
+  -- Install only those that you need
+  add('rose-pine/neovim')
+
+  -- Enable rose-pine colorscheme
+  vim.cmd('colorscheme rose-pine')
+end)
