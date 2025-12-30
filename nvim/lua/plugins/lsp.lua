@@ -81,16 +81,10 @@ enable_lsp('lua_ls', {
   },
 })
 
-enable_lsp('jsonls', {
-  filetypes = { 'json', 'jsonc' },
-  cmd = { 'vscode-json-language-server', '--stdio' },
-  root_files = { '.git', 'package.json' },
-})
-
-enable_lsp('ts_ls', {
-  filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
-  cmd = { 'typescript-language-server', '--stdio' },
-  root_files = { 'tsconfig.json', 'package.json', '.git' },
+enable_lsp('biome', {
+  filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'json', 'jsonc' },
+  cmd = { 'biome', 'lsp-proxy' },
+  root_files = { 'biome.json', 'biome.jsonc', 'package.json', '.git' },
 })
 
 vim.api.nvim_create_autocmd('LspAttach', {
