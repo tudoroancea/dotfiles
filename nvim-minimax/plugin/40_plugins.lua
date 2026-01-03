@@ -132,6 +132,17 @@ end)
 -- See `:h MiniSnippets.gen_loader.from_lang()`.
 later(function() add('rafamadriz/friendly-snippets') end)
 
+-- Lazygit ====================================================================
+
+-- 'kdheepak/lazygit.nvim' provides a minimal integration with lazygit.
+-- It allows toggling lazygit in a floating terminal window.
+-- Example usage:
+-- - `<Leader>gg` - toggle lazygit
+--
+-- See also:
+-- - `:h lazygit.nvim`
+later(function() add('kdheepak/lazygit.nvim') end)
+
 -- Honorable mentions =========================================================
 
 -- 'mason-org/mason.nvim' (a.k.a. "Mason") is a great tool (package manager) for
