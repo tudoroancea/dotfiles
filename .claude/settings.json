@@ -1,64 +1,68 @@
 {
-	"$schema": "https://json.schemastore.org/claude-code-settings.json",
-	"env": {
-		"ANTHROPIC_AUTH_TOKEN": "test",
-		"ANTHROPIC_BASE_URL": "http://localhost:8080",
-		"ANTHROPIC_MODEL": "claude-opus-4-5-thinking",
-		"ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking",
-		"ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5-thinking",
-		"ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
-		"CLAUDE_CODE_STATUSLINE_HIDE_USAGE": "1"
-	},
-	"permissions": {
-		"allow": [
-			"WebSearch",
-			"Bash(ls:*)",
-			"Bash(tree:*)",
-			"Bash(find:*)",
-			"Bash(cat:*)",
-			"Bash(fd:*)",
-			"Bash(grep:*)",
-			"Bash(rg:*)",
-			"Bash(bun add:*)",
-			"Bash(bun x biome:*)",
-			"Bash(uv run python:*)",
-			"Bash(uv run pytest:*)"
-		],
-		"deny": [
-			"Bash(bun run dev:*)",
-			"Bash(bun run serve:*)",
-			"Bash(bun run preview:*)",
-			"Bash(bun dev:*)",
-			"Bash(vite dev:*)",
-			"Bash(vite preview:*)"
-		],
-		"ask": ["Bash(uv pip install:*)", "Bash(uv sync)", "Bash(uv add:*)"],
-		"defaultMode": "default"
-	},
-	"model": "claude-opus-4-5-thinking",
-	"hooks": {
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "open -g \"raycast://extensions/raycast/raycast/confetti\""
-					}
-				]
-			}
-		]
-	},
-	"statusLine": {
-		"type": "command",
-		"command": "bun ~/.claude/scripts/statusline/generate.ts"
-	},
-	"enabledPlugins": {
-		"context7@claude-plugins-official": true,
-		"clangd-lsp@claude-plugins-official": true,
-		"pyright-lsp@claude-plugins-official": true,
-		"frontend-design@claude-plugins-official": true,
-		"typescript-lsp@claude-plugins-official": true,
-		"lua-lsp@claude-plugins-official": true
-	},
-	"syntaxHighlightingDisabled": false
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "test",
+    "ANTHROPIC_BASE_URL": "http://localhost:8080",
+    "ANTHROPIC_MODEL": "claude-opus-4-5-thinking",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5-thinking",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
+    "CLAUDE_CODE_STATUSLINE_HIDE_USAGE": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(fd:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(bun add:*)",
+      "Bash(bun x biome:*)",
+      "Bash(uv run python:*)",
+      "Bash(uv run pytest:*)"
+    ],
+    "deny": [
+      "Bash(bun run dev:*)",
+      "Bash(bun run serve:*)",
+      "Bash(bun run preview:*)",
+      "Bash(bun dev:*)",
+      "Bash(vite dev:*)",
+      "Bash(vite preview:*)"
+    ],
+    "ask": [
+      "Bash(uv pip install:*)",
+      "Bash(uv sync)",
+      "Bash(uv add:*)"
+    ],
+    "defaultMode": "default"
+  },
+  "model": "opus",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "open -g \"raycast://extensions/raycast/raycast/confetti\""
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bun ~/.claude/scripts/statusline/generate.ts"
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "lua-lsp@claude-plugins-official": true
+  },
+  "syntaxHighlightingDisabled": false
 }

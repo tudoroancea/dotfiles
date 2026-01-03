@@ -1,246 +1,242 @@
 {
-	// Editor
-	"git_panel": {
-		"tree_view": true
-	},
-	"use_smartcase_search": true,
-	"search": {
-		"regex": true,
-		"case_sensitive": false
-	},
-	"tab_size": 2,
-	"pane_split_direction_vertical": "right",
-	"pane_split_direction_horizontal": "down",
-	"show_completions_on_input": true,
-	"show_completion_documentation": true,
-	"soft_wrap": "none",
-	"relative_line_numbers": "enabled",
-	"inlay_hints": {
-		"enabled": true,
-		"show_parameter_hints": true,
-		"show_other_hints": true
-	},
-	"show_signature_help_after_edits": true,
-	// UI
-	"unstable.ui_density": "compact",
-	"tab_bar": {
-		"show": true,
-		"show_nav_history_buttons": false
-	},
-	"toolbar": {
-		"breadcrumbs": true,
-		"quick_actions": true
-	},
-	// Fonts
-	"buffer_font_size": 12.0,
-	"ui_font_size": 14,
-	"buffer_font_family": "JetBrainsMono Nerd Font",
-	"ui_font_family": "JetBrainsMono Nerd Font",
-	"terminal": {
-		"copy_on_select": true,
-		"font_family": "JetBrainsMono Nerd Font",
-		"detect_venv": "off"
-	},
-	// Keymap
-	"vim_mode": true,
-	"vim": {
-		"use_system_clipboard": "always",
-		"use_smartcase_find": true
-	},
-	// Color theme
-	"theme": {
-		"mode": "system",
-		"light": "Zed Legacy: Rosé Pine Dawn",
-		"dark": "Rosé Pine Moon"
-	},
-	"icon_theme": {
-		"mode": "system",
-		"light": "Catppuccin Latte",
-		"dark": "Catppuccin Mocha"
-	},
-	"experimental.theme_overrides": {
-		"syntax": {
-			"comment": {}
-		}
-	},
-	// Extensions
-	"auto_install_extensions": {
-		// themes
-		"zed-legacy-themes": true,
-		"catppuccin-icons": true,
-		// git
-		"git-firefly": true,
-		// LSPs
-		"typst": true,
-		// file formats
-		"toml": true,
-		"lua": true,
-		"sql": true,
-		"log": true,
-		"matlab": true
-	},
-	// LSP
-	"format_on_save": "off",
-	"enable_language_server": true,
-	"languages": {
-		"YAML": {
-			"tab_size": 2
-		},
-		"TypeScript": {
-			"formatter": [
-				{
-					"language_server": {
-						"name": "biome"
-					}
-				},
-				{ "code_action": "source.organizeImports.biome" }
-			]
-		},
-		"TSX": {
-			"formatter": [
-				{
-					"language_server": {
-						"name": "biome"
-					}
-				},
-				{ "code_action": "source.organizeImports.biome" }
-			]
-		},
-		"JSON": {
-			"tab_size": 2,
-			"formatter": {
-				"language_server": {
-					"name": "biome"
-				}
-			}
-		},
-		"JSONC": {
-			"tab_size": 2,
-			"formatter": {
-				"language_server": {
-					"name": "biome"
-				}
-			}
-		},
-		"XML": {
-			"tab_size": 2
-		},
-		"Python": {
-			"language_servers": ["basedpyright", "ruff"],
-			"formatter": [
-				{ "code_action": "source.organizeImports.ruff" },
-				{ "language_server": { "name": "ruff" } }
-			]
-		}
-	},
-	"lsp": {
-		"ty": {
-			"binary": {
-				"path": "/Users/tudoroancea/.local/bin/ty",
-				"arguments": ["server"]
-			}
-		},
-		"pyrefly": {
-			"binary": {
-				"path": "/Users/tudoroancea/.local/bin/pyrefly",
-				"arguments": ["lsp"]
-			}
-		},
-		"tinymist": {
-			"initialization_options": {
-				"exportPdf": "onSave",
-				"formatterMode": "typstyle"
-			}
-		}
-	},
-	// Remote
-	"ssh_connections": [
-		{
-			"host": "thebeauty",
-			"args": [],
-			"projects": [
-				{
-					"paths": ["/home/ted/dev/anvil"]
-				},
-				{
-					"paths": ["/home/ted/dev/anvil/examples"]
-				},
-				{
-					"paths": ["/home/ted/dev/stablehlo"]
-				},
-				{
-					"paths": ["/home/ted/dev/tinyanvil"]
-				},
-				{
-					"paths": ["~/dev"]
-				},
-				{
-					"paths": ["~/dev/blasfeo"]
-				},
-				{
-					"paths": ["~/dev/brains2"]
-				},
-				{
-					"paths": ["~/dev/nanoGPT"]
-				},
-				{
-					"paths": ["~/dev/ngpt"]
-				},
-				{
-					"paths": ["~/dev/pymanopt"]
-				},
-				{
-					"paths": ["~/dev/tadam"]
-				}
-			]
-		},
-		{
-			"host": "miranda",
-			"args": [],
-			"projects": [
-				{
-					"paths": ["/home/tudor/dev/tinyanvil"]
-				}
-			]
-		}
-	],
-	// AI
-	"show_edit_predictions": true,
-	"edit_predictions": {
-		"disabled_globs": ["*.mlir"],
-		"mode": "subtle",
-		"enabled_in_text_threads": true
-	},
-	"features": {
-		"edit_prediction_provider": "zed"
-	},
-	"agent": {
-		"default_profile": "write",
-		"default_model": {
-			"provider": "openrouter",
-			"model": "minimax/minimax-m2.1"
-		},
-		"inline_assistant_model": {
-			"provider": "copilot_chat",
-			"model": "claude-haiku-4.5"
-		},
-		"enabled": false
-	},
-	// Git
-	"git": {
-		"hunk_style": "staged_hollow",
-		"git_gutter": "tracked_files",
-		"inline_blame": {
-			"enabled": true,
-			"show_commit_summary": true,
-			"delay_ms": 500
-		}
-	},
-	// Misc
-	"telemetry": {
-		"diagnostics": false,
-		"metrics": false
-	},
-	"auto_update": true,
-	"autosave": "on_focus_change"
+  // Editor
+  "git_panel": {
+    "tree_view": true,
+  },
+  "use_smartcase_search": true,
+  "search": {
+    "regex": true,
+    "case_sensitive": false,
+  },
+  "tab_size": 2,
+  "pane_split_direction_vertical": "right",
+  "pane_split_direction_horizontal": "down",
+  "show_completions_on_input": true,
+  "show_completion_documentation": true,
+  "soft_wrap": "none",
+  "relative_line_numbers": "enabled",
+  "inlay_hints": {
+    "enabled": true,
+    "show_parameter_hints": true,
+    "show_other_hints": true,
+  },
+  "show_signature_help_after_edits": true,
+  // UI
+  "unstable.ui_density": "compact",
+  "tab_bar": {
+    "show": true,
+    "show_nav_history_buttons": false,
+  },
+  "toolbar": {
+    "breadcrumbs": true,
+    "quick_actions": true,
+  },
+  // Fonts
+  "buffer_font_size": 12.0,
+  "ui_font_size": 14,
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "ui_font_family": "JetBrainsMono Nerd Font",
+  "terminal": {
+    "copy_on_select": true,
+    "font_family": "JetBrainsMono Nerd Font",
+    "detect_venv": "off",
+  },
+  // Keymap
+  "vim_mode": true,
+  "vim": {
+    "use_system_clipboard": "always",
+    "use_smartcase_find": true,
+  },
+  // Color theme
+  "theme": {
+    "mode": "system",
+    "light": "Zed Legacy: Rosé Pine Dawn",
+    "dark": "Rosé Pine Moon",
+  },
+  "icon_theme": {
+    "mode": "system",
+    "light": "Catppuccin Latte",
+    "dark": "Catppuccin Mocha",
+  },
+  "experimental.theme_overrides": {
+    "syntax": {
+      "comment": {},
+    },
+  },
+  // Extensions
+  "auto_install_extensions": {
+    // themes
+    "zed-legacy-themes": true,
+    "catppuccin-icons": true,
+    // git
+    "git-firefly": true,
+    // LSPs
+    "typst": true,
+    // file formats
+    "toml": true,
+    "lua": true,
+    "sql": true,
+    "log": true,
+    "matlab": true,
+  },
+  // LSP
+  "format_on_save": "off",
+  "enable_language_server": true,
+  "languages": {
+    "YAML": {
+      "tab_size": 2,
+    },
+    "TypeScript": {
+      "formatter": [
+        {
+          "language_server": {
+            "name": "biome",
+          },
+        },
+        { "code_action": "source.organizeImports.biome" },
+      ],
+    },
+    "TSX": {
+      "formatter": [
+        {
+          "language_server": {
+            "name": "biome",
+          },
+        },
+        { "code_action": "source.organizeImports.biome" },
+      ],
+    },
+    "JSON": {
+      "tab_size": 2,
+    },
+    "JSONC": {
+      "tab_size": 2,
+    },
+    "XML": {
+      "tab_size": 2,
+    },
+    "Python": {
+      "language_servers": ["basedpyright", "ruff"],
+      "formatter": [
+        { "code_action": "source.organizeImports.ruff" },
+        { "language_server": { "name": "ruff" } },
+      ],
+    },
+  },
+  "lsp": {
+    "biome": {
+      "binary": {
+        "path": "~/.bin/biome",
+        "arguments": ["lsp-proxy"],
+      },
+    },
+    "ty": {
+      "binary": {
+        "path": "/Users/tudoroancea/.local/bin/ty",
+        "arguments": ["server"],
+      },
+    },
+    "pyrefly": {
+      "binary": {
+        "path": "/Users/tudoroancea/.local/bin/pyrefly",
+        "arguments": ["lsp"],
+      },
+    },
+    "tinymist": {
+      "initialization_options": {
+        "exportPdf": "onSave",
+        "formatterMode": "typstyle",
+      },
+    },
+  },
+  // Remote
+  "ssh_connections": [
+    {
+      "host": "thebeauty",
+      "args": [],
+      "projects": [
+        {
+          "paths": ["/home/ted/dev/anvil"],
+        },
+        {
+          "paths": ["/home/ted/dev/anvil/examples"],
+        },
+        {
+          "paths": ["/home/ted/dev/stablehlo"],
+        },
+        {
+          "paths": ["/home/ted/dev/tinyanvil"],
+        },
+        {
+          "paths": ["~/dev"],
+        },
+        {
+          "paths": ["~/dev/blasfeo"],
+        },
+        {
+          "paths": ["~/dev/brains2"],
+        },
+        {
+          "paths": ["~/dev/nanoGPT"],
+        },
+        {
+          "paths": ["~/dev/ngpt"],
+        },
+        {
+          "paths": ["~/dev/pymanopt"],
+        },
+        {
+          "paths": ["~/dev/tadam"],
+        },
+      ],
+    },
+    {
+      "host": "miranda",
+      "args": [],
+      "projects": [
+        {
+          "paths": ["/home/tudor/dev/tinyanvil"],
+        },
+      ],
+    },
+  ],
+  // AI
+  "show_edit_predictions": true,
+  "edit_predictions": {
+    "disabled_globs": ["*.mlir"],
+    "mode": "subtle",
+    "enabled_in_text_threads": true,
+  },
+  "features": {
+    "edit_prediction_provider": "zed",
+  },
+  "agent": {
+    "default_profile": "write",
+    "default_model": {
+      "provider": "openrouter",
+      "model": "minimax/minimax-m2.1",
+    },
+    "inline_assistant_model": {
+      "provider": "copilot_chat",
+      "model": "claude-haiku-4.5",
+    },
+    "enabled": false,
+  },
+  // Git
+  "git": {
+    "hunk_style": "staged_hollow",
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "enabled": true,
+      "show_commit_summary": true,
+      "delay_ms": 500,
+    },
+  },
+  // Misc
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
+  },
+  "auto_update": true,
+  "autosave": "on_focus_change",
 }
