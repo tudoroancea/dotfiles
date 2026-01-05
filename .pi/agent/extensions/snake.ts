@@ -1,9 +1,9 @@
 /**
- * Snake game hook - play snake with /snake command
+ * Snake game extension - play snake with /snake command
  */
 
-import { isArrowDown, isArrowLeft, isArrowRight, isArrowUp, isEscape, visibleWidth } from "@mariozechner/pi-tui";
-import type { HookAPI } from "../../src/core/hooks/types.js";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { matchesKey, visibleWidth } from "@mariozechner/pi-tui";
 
 const GAME_WIDTH = 40;
 const GAME_HEIGHT = 15;
@@ -56,7 +56,7 @@ class SnakeComponent {
 	private interval: ReturnType<typeof setInterval> | null = null;
 	private onClose: () => void;
 	private onSave: (state: GameState | null) => void;
-	private requestRender: () => void;
+	private tui: { requestRender: () => void };
 	private cachedLines: string[] = [];
 	private cachedWidth = 0;
 	private version = 0;
@@ -64,11 +64,12 @@ class SnakeComponent {
 	private paused: boolean;
 
 	constructor(
+		tui: { requestRender: () => void },
 		onClose: () => void,
 		onSave: (state: GameState | null) => void,
-		requestRender: () => void,
 		savedState?: GameState,
 	) {
+		this.tui = tui;
 		if (savedState && !savedState.gameOver) {
 			// Resume from saved state, start paused
 			this.state = savedState;
@@ -84,7 +85,6 @@ class SnakeComponent {
 		}
 		this.onClose = onClose;
 		this.onSave = onSave;
-		this.requestRender = requestRender;
 	}
 
 	private startGame(): void {
@@ -92,7 +92,7 @@ class SnakeComponent {
 			if (!this.state.gameOver) {
 				this.tick();
 				this.version++;
-				this.requestRender();
+				this.tui.requestRender();
 			}
 		}, TICK_MS);
 	}
@@ -150,7 +150,7 @@ class SnakeComponent {
 	handleInput(data: string): void {
 		// If paused (resuming), wait for any key
 		if (this.paused) {
-			if (isEscape(data) || data === "q" || data === "Q") {
+			if (matchesKey(data, "escape") || data === "q" || data === "Q") {
 				// Quit without clearing save
 				this.dispose();
 				this.onClose();
@@ -163,7 +163,7 @@ class SnakeComponent {
 		}
 
 		// ESC to pause and save
-		if (isEscape(data)) {
+		if (matchesKey(data, "escape")) {
 			this.dispose();
 			this.onSave(this.state);
 			this.onClose();
@@ -179,13 +179,13 @@ class SnakeComponent {
 		}
 
 		// Arrow keys or WASD
-		if (isArrowUp(data) || data === "w" || data === "W") {
+		if (matchesKey(data, "up") || data === "w" || data === "W") {
 			if (this.state.direction !== "down") this.state.nextDirection = "up";
-		} else if (isArrowDown(data) || data === "s" || data === "S") {
+		} else if (matchesKey(data, "down") || data === "s" || data === "S") {
 			if (this.state.direction !== "up") this.state.nextDirection = "down";
-		} else if (isArrowRight(data) || data === "d" || data === "D") {
+		} else if (matchesKey(data, "right") || data === "d" || data === "D") {
 			if (this.state.direction !== "left") this.state.nextDirection = "right";
-		} else if (isArrowLeft(data) || data === "a" || data === "A") {
+		} else if (matchesKey(data, "left") || data === "a" || data === "A") {
 			if (this.state.direction !== "right") this.state.nextDirection = "left";
 		}
 
@@ -196,7 +196,7 @@ class SnakeComponent {
 			this.state.highScore = highScore;
 			this.onSave(null); // Clear saved state on restart
 			this.version++;
-			this.requestRender();
+			this.tui.requestRender();
 		}
 	}
 
@@ -306,11 +306,11 @@ class SnakeComponent {
 
 const SNAKE_SAVE_TYPE = "snake-save";
 
-export default function (pi: HookAPI) {
+export default function (pi: ExtensionAPI) {
 	pi.registerCommand("snake", {
 		description: "Play Snake!",
 
-		handler: async (ctx) => {
+		handler: async (_args, ctx) => {
 			if (!ctx.hasUI) {
 				ctx.ui.notify("Snake requires interactive mode", "error");
 				return;
@@ -327,19 +327,17 @@ export default function (pi: HookAPI) {
 				}
 			}
 
-			let ui: { close: () => void; requestRender: () => void } | null = null;
-
-			const component = new SnakeComponent(
-				() => ui?.close(),
-				(state) => {
-					// Save or clear state
-					pi.appendEntry(SNAKE_SAVE_TYPE, state);
-				},
-				() => ui?.requestRender(),
-				savedState,
-			);
-
-			ui = ctx.ui.custom(component);
+			await ctx.ui.custom((tui, _theme, done) => {
+				return new SnakeComponent(
+					tui,
+					() => done(undefined),
+					(state) => {
+						// Save or clear state
+						pi.appendEntry(SNAKE_SAVE_TYPE, state);
+					},
+					savedState,
+				);
+			});
 		},
 	});
 }

@@ -2,7 +2,7 @@
  * Question Tool - Let the LLM ask the user a question with options
  */
 
-import type { CustomTool, CustomToolFactory } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 
@@ -17,40 +17,40 @@ const QuestionParams = Type.Object({
 	options: Type.Array(Type.String(), { description: "Options for the user to choose from" }),
 });
 
-const factory: CustomToolFactory = (pi) => {
-	const tool: CustomTool<typeof QuestionParams, QuestionDetails> = {
+export default function (pi: ExtensionAPI) {
+	pi.registerTool({
 		name: "question",
 		label: "Question",
 		description: "Ask the user a question and let them pick from options. Use when you need user input to proceed.",
 		parameters: QuestionParams,
 
-		async execute(_toolCallId, params, _onUpdate, _ctx, _signal) {
-			if (!pi.hasUI) {
+		async execute(_toolCallId, params, _onUpdate, ctx, _signal) {
+			if (!ctx.hasUI) {
 				return {
 					content: [{ type: "text", text: "Error: UI not available (running in non-interactive mode)" }],
-					details: { question: params.question, options: params.options, answer: null },
+					details: { question: params.question, options: params.options, answer: null } as QuestionDetails,
 				};
 			}
 
 			if (params.options.length === 0) {
 				return {
 					content: [{ type: "text", text: "Error: No options provided" }],
-					details: { question: params.question, options: [], answer: null },
+					details: { question: params.question, options: [], answer: null } as QuestionDetails,
 				};
 			}
 
-			const answer = await pi.ui.select(params.question, params.options);
+			const answer = await ctx.ui.select(params.question, params.options);
 
 			if (answer === undefined) {
 				return {
 					content: [{ type: "text", text: "User cancelled the selection" }],
-					details: { question: params.question, options: params.options, answer: null },
+					details: { question: params.question, options: params.options, answer: null } as QuestionDetails,
 				};
 			}
 
 			return {
 				content: [{ type: "text", text: `User selected: ${answer}` }],
-				details: { question: params.question, options: params.options, answer },
+				details: { question: params.question, options: params.options, answer } as QuestionDetails,
 			};
 		},
 
@@ -63,7 +63,7 @@ const factory: CustomToolFactory = (pi) => {
 		},
 
 		renderResult(result, _options, theme) {
-			const { details } = result;
+			const details = result.details as QuestionDetails | undefined;
 			if (!details) {
 				const text = result.content[0];
 				return new Text(text?.type === "text" ? text.text : "", 0, 0);
@@ -75,9 +75,5 @@ const factory: CustomToolFactory = (pi) => {
 
 			return new Text(theme.fg("success", "✓ ") + theme.fg("accent", details.answer), 0, 0);
 		},
-	};
-
-	return tool;
-};
-
-export default factory;
+	});
+}
