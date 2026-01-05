@@ -1,9 +1,13 @@
 {
   "lastChangelogVersion": "0.36.0",
-  "defaultProvider": "opencode-anthropic",
-  "defaultModel": "minimax-m2.1-free",
+  "defaultProvider": "github-copilot",
+  "defaultModel": "claude-opus-4.5",
   "defaultThinkingLevel": "off",
   "theme": "light",
   "hideThinkingBlock": true,
-  "enabledModels": [ "minimax-m2.1*", "*opus*", "*haiku*" ]
+  "enabledModels": [
+    "minimax-m2.1*",
+    "*opus*",
+    "*haiku*"
+  ]
 }
