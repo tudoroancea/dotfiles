@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.42.0",
   "theme": "light",
   "hideThinkingBlock": true,
-  "defaultProvider": "opencode",
-  "defaultModel": "minimax-m2.1-free",
+  "defaultProvider": "google-antigravity",
+  "defaultModel": "claude-opus-4-5-thinking",
   "defaultThinkingLevel": "off"
 }
