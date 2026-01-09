@@ -1,5 +1,8 @@
 {
   // Editor
+  "session": {
+    "trust_all_worktrees": true
+  },
   "git_panel": {
     "tree_view": true,
   },
@@ -126,7 +129,7 @@
   "lsp": {
     "biome": {
       "binary": {
-        "path": "~/.bin/biome",
+        "path": "~/.bun/bin/biome",
         "arguments": ["lsp-proxy"],
       },
     },

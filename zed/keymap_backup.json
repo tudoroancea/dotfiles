@@ -119,7 +119,7 @@
 		"bindings": {
 			"alt-tab": "editor::AcceptEditPrediction",
 			"tab": "editor::AcceptEditPrediction",
-			"alt-shift-tab": "editor::AcceptNextWordEditPrediction",
+			"alt-shift-tab": "editor::AcceptPartialEditPrediction",
 		}
 	},
 	// {
