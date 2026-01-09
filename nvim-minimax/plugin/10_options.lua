@@ -23,6 +23,11 @@ vim.o.mousescroll = 'ver:25,hor:6' -- Customize mouse scroll
 vim.o.switchbuf   = 'usetab'       -- Use already opened buffers when switching
 vim.o.undofile    = true           -- Enable persistent undo
 
+-- Clipboard ==================================================================
+-- Sync yank and paste with system clipboard
+-- On macOS with Neovim, this works automatically with pbcopy/pbpaste
+vim.o.clipboard = 'unnamedplus'    -- Use system clipboard for all yank/paste
+
 vim.o.shada = "'100,<50,s10,:1000,/100,@100,h" -- Limit ShaDa file (for startup)
 
 -- Enable all filetype plugins and syntax (if not enabled, for better startup)
@@ -48,6 +53,8 @@ vim.o.splitright     = true       -- Vertical splits will be to the right
 vim.o.winborder      = 'single'   -- Use border in floating windows
 vim.o.wrap           = false      -- Don't visually wrap lines (toggle with \w)
 
+vim.o.number         = true       -- Show line numbers
+vim.o.relativenumber = true       -- Show relative line numbers
 vim.o.cursorlineopt  = 'screenline,number' -- Show cursor line per screen line
 
 -- Special UI symbols. More is set via 'mini.basics' later.
