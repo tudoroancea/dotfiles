@@ -69,10 +69,10 @@ function extractPathsFromCommand(command: string): string[] {
 		/\bchmod\s+[a-zA-Z0-9]+\s+([^\s;|>"']+)/g,
 		// chown <owner>[:group] <path>
 		/\bchown\s+[^\s;|>"']+\s+([^\s;|>"']+)/g,
-		// sed -i <script> <path>
-		/\bsed\s+-i\s+([^\s;|>"']+)/g,
-		// awk <script> <file>
-		/\bawk\s+[^\s;|>"']+\s+([^\s;|>"']+)/g,
+		// sed -i [<script>] <path> - script is optional, path always comes after
+		/\bsed\s+-i\s*('[^']*'|"[^"]*"|[^'" ]+)?\s+([^\s;|>"']+)/g,
+		// awk [<script>] <file> - script is optional, file always comes after
+		/\bawk\s+(?:[^\s;|>"']+\s+)?([^\s;|>"']+)/g,
 		// tee <path>
 		/\btee\s+([^\s;|>"']+)/g,
 		// cat > <path> (and variations)
@@ -111,11 +111,16 @@ export default function (pi: ExtensionAPI) {
 	// Store the initial working directory when pi was launched
 	const initialCwd = process.cwd();
 
+	// Known special device files that are safe to ignore
+	const ignoredPaths = ["/dev/null", "/dev/zero", "/dev/full"];
+
 	// Helper to check paths and prompt if any are outside
 	async function checkPaths(paths: string[], toolName: string, ctx: any, command?: string): Promise<{ block: boolean; reason: string } | undefined> {
 		const outsidePaths: PathInfo[] = [];
 
 		for (const path of paths) {
+			// Skip known special device files
+			if (ignoredPaths.includes(path)) continue;
 			if (isOutsideCwd(path, initialCwd)) {
 				outsidePaths.push({ path, isOutside: true });
 			}
@@ -201,6 +206,34 @@ export default function (pi: ExtensionAPI) {
 		// Check bash tool for file-modifying commands
 		if (toolName === "bash") {
 			const command = input.command as string;
+
+			// Check if this is a pure cd command to a path within or equal to the launch directory
+			// This avoids prompting for confirmation when navigating to directories that are "inside" the launch dir
+			const cdMatch = /^\s*cd\s+([^\s;|>"']+)/.exec(command);
+			if (cdMatch) {
+				const cdPath = cdMatch[1];
+				// Expand ~ if present
+				let expandedPath = cdPath;
+				if (cdPath === "~") {
+					expandedPath = process.env.HOME || cdPath;
+				} else if (cdPath.startsWith("~/")) {
+					expandedPath = (process.env.HOME || "") + cdPath.slice(1);
+				}
+
+				// Check if the cd target resolves to within or equal to the launch directory
+				if (isAbsolute(expandedPath)) {
+					const resolved = resolve(expandedPath);
+					const cwdResolved = resolve(initialCwd);
+					const isOutside = !resolved.startsWith(cwdResolved + "/") && resolved !== cwdResolved;
+
+					// If cd is to a path outside the launch directory, still check it
+					// But if it's within or equal, skip further checks
+					if (!isOutside) {
+						return undefined;
+					}
+				}
+			}
+
 			const paths = extractPathsFromCommand(command);
 			const result = await checkPaths(paths, toolName, ctx, command);
 			if (result) return result;

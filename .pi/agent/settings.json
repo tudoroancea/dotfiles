@@ -1,13 +1,8 @@
 {
-  "lastChangelogVersion": "0.36.0",
-  "defaultProvider": "github-copilot",
-  "defaultModel": "claude-opus-4.5",
-  "defaultThinkingLevel": "off",
+  "lastChangelogVersion": "0.42.0",
   "theme": "light",
   "hideThinkingBlock": true,
-  "enabledModels": [
-    "minimax-m2.1*",
-    "*opus*",
-    "*haiku*"
-  ]
+  "defaultProvider": "opencode",
+  "defaultModel": "minimax-m2.1-free",
+  "defaultThinkingLevel": "off"
 }
