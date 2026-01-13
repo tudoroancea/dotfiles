@@ -1,8 +1,14 @@
 {
-  "lastChangelogVersion": "0.42.0",
+  "lastChangelogVersion": "0.45.3",
   "theme": "light",
   "hideThinkingBlock": true,
-  "defaultProvider": "google-antigravity",
-  "defaultModel": "claude-opus-4-5-thinking",
-  "defaultThinkingLevel": "off"
+  "defaultProvider": "opencode",
+  "defaultModel": "minimax-m2.1-free",
+  "defaultThinkingLevel": "off",
+  "enabledModels": [
+    "github-copilot/claude-opus-4.5",
+    "google-antigravity/claude-opus-4-5-thinking",
+    "opencode/glm-4.7-free",
+    "opencode/minimax-m2.1-free"
+  ]
 }
