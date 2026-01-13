@@ -75,7 +75,7 @@ export default function (pi: ExtensionAPI) {
 			const currentSessionFile = ctx.sessionManager.getSessionFile();
 
 			// Generate the handoff prompt with loader UI
-			const result = await ctx.ui.custom<string | null>((tui, theme, done) => {
+			const result = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
 				const loader = new BorderedLoader(tui, theme, `Generating handoff prompt...`);
 				loader.onAbort = () => done(null);
 
@@ -125,7 +125,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Let user edit the generated prompt
-			const editedPrompt = await ctx.ui.editor("Edit handoff prompt (ctrl+enter to submit, esc to cancel)", result);
+			const editedPrompt = await ctx.ui.editor("Edit handoff prompt", result);
 
 			if (editedPrompt === undefined) {
 				ctx.ui.notify("Cancelled", "info");

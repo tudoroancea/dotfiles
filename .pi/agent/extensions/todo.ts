@@ -131,7 +131,7 @@ export default function (pi: ExtensionAPI) {
 	// Reconstruct state on session events
 	pi.on("session_start", async (_event, ctx) => reconstructState(ctx));
 	pi.on("session_switch", async (_event, ctx) => reconstructState(ctx));
-	pi.on("session_branch", async (_event, ctx) => reconstructState(ctx));
+	pi.on("session_fork", async (_event, ctx) => reconstructState(ctx));
 	pi.on("session_tree", async (_event, ctx) => reconstructState(ctx));
 
 	// Register the todo tool for the LLM
@@ -291,7 +291,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			await ctx.ui.custom<void>((_tui, theme, done) => {
+			await ctx.ui.custom<void>((_tui, theme, _kb, done) => {
 				return new TodoListComponent(todos, theme, () => done());
 			});
 		},
