@@ -1,7 +1,5 @@
 /**
- * Question Tool - Single question with options
- * Full custom UI: options list + inline editor for "Type something..."
- * Escape in editor returns to options, Escape in options cancels
+ * Question Tool - Multiple questions with options and "Type your own" support
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -15,14 +13,17 @@ interface OptionWithDesc {
 
 type DisplayOption = OptionWithDesc & { isOther?: boolean };
 
-interface QuestionDetails {
+interface QuestionResult {
 	question: string;
-	options: string[];
 	answer: string | null;
 	wasCustom?: boolean;
+	id?: string;
 }
 
-// Support both simple strings and objects with descriptions
+interface QuestionDetails {
+	results: QuestionResult[];
+}
+
 const OptionSchema = Type.Union([
 	Type.String(),
 	Type.Object({
@@ -31,12 +32,22 @@ const OptionSchema = Type.Union([
 	}),
 ]);
 
-const QuestionParams = Type.Object({
+const QuestionItemSchema = Type.Object({
 	question: Type.String({ description: "The question to ask the user" }),
 	options: Type.Array(OptionSchema, { description: "Options for the user to choose from" }),
+	id: Type.Optional(Type.String({ description: "Optional unique ID for the question" })),
 });
 
-// Normalize option to { label, description? }
+const QuestionParams = Type.Union([
+	Type.Object({
+		questions: Type.Array(QuestionItemSchema, { description: "The list of questions to ask" }),
+	}),
+	Type.Object({
+		question: Type.String({ description: "The question to ask the user" }),
+		options: Type.Array(OptionSchema, { description: "Options for the user to choose from" }),
+	}),
+]);
+
 function normalizeOption(opt: string | { label: string; description?: string }): OptionWithDesc {
 	if (typeof opt === "string") {
 		return { label: opt };
@@ -44,234 +55,306 @@ function normalizeOption(opt: string | { label: string; description?: string }):
 	return opt;
 }
 
+type SelectableItem =
+	| { type: "option"; questionIndex: number; optionIndex: number; label: string; description?: string; isOther?: boolean }
+	| { type: "submit" };
+
 export default function question(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "question",
 		label: "Question",
-		description: "Ask the user a question and let them pick from options. Use when you need user input to proceed.",
+		description: "Ask the user one or more questions and let them pick from options. Use when you need user input to proceed.",
 		parameters: QuestionParams,
 
 		async execute(_toolCallId, params, _onUpdate, ctx, _signal) {
+			const questionsToProcess = "questions" in params ? params.questions : [{ question: params.question, options: params.options }];
+
 			if (!ctx.hasUI) {
 				return {
 					content: [{ type: "text", text: "Error: UI not available (running in non-interactive mode)" }],
 					details: {
-						question: params.question,
-						options: params.options.map((o) => (typeof o === "string" ? o : o.label)),
-						answer: null,
+						results: questionsToProcess.map((q) => ({
+							question: q.question,
+							answer: null,
+							id: (q as any).id,
+						})),
 					} as QuestionDetails,
 				};
 			}
 
-			if (params.options.length === 0) {
+			if (questionsToProcess.length === 0) {
 				return {
-					content: [{ type: "text", text: "Error: No options provided" }],
-					details: { question: params.question, options: [], answer: null } as QuestionDetails,
+					content: [{ type: "text", text: "Error: No questions provided" }],
+					details: { results: [] } as QuestionDetails,
 				};
 			}
 
-			// Normalize options
-			const normalizedOptions = params.options.map(normalizeOption);
-			const allOptions: DisplayOption[] = [...normalizedOptions, { label: "Type something.", isOther: true }];
+			const normalizedQuestions = questionsToProcess.map((q) => ({
+				...q,
+				options: [...q.options.map(normalizeOption), { label: "Type your own answer...", isOther: true }],
+			}));
 
-			const result = await ctx.ui.custom<{ answer: string; wasCustom: boolean; index?: number } | null>(
-				(tui, theme, _kb, done) => {
-					let optionIndex = 0;
-					let editMode = false;
-					let cachedLines: string[] | undefined;
+			const selectableItems: SelectableItem[] = [];
+			for (let qIdx = 0; qIdx < normalizedQuestions.length; qIdx++) {
+				const q = normalizedQuestions[qIdx];
+				for (let oIdx = 0; oIdx < q.options.length; oIdx++) {
+					const opt = q.options[oIdx];
+					selectableItems.push({
+						type: "option",
+						questionIndex: qIdx,
+						optionIndex: oIdx,
+						label: opt.label,
+						description: opt.description,
+						isOther: opt.isOther,
+					});
+				}
+			}
+			selectableItems.push({ type: "submit" });
 
-					const editorTheme: EditorTheme = {
-						borderColor: (s) => theme.fg("accent", s),
-						selectList: {
-							selectedPrefix: (t) => theme.fg("accent", t),
-							selectedText: (t) => theme.fg("accent", t),
-							description: (t) => theme.fg("muted", t),
-							scrollInfo: (t) => theme.fg("dim", t),
-							noMatch: (t) => theme.fg("warning", t),
-						},
-					};
-					const editor = new Editor(editorTheme);
+			const result = await ctx.ui.custom<QuestionResult[] | null>((tui, theme, _kb, done) => {
+				let cursorIndex = 0;
+				let editMode = false;
+				let editingQuestionIndex = -1;
+				let cachedLines: string[] | undefined;
 
-					editor.onSubmit = (value) => {
-						const trimmed = value.trim();
-						if (trimmed) {
-							done({ answer: trimmed, wasCustom: true });
-						} else {
+				const selectedOptions: (number | null)[] = new Array(normalizedQuestions.length).fill(null);
+				const customAnswers: (string | null)[] = new Array(normalizedQuestions.length).fill(null);
+
+				const editorTheme: EditorTheme = {
+					borderColor: (s) => theme.fg("accent", s),
+					selectList: {
+						selectedPrefix: (t) => theme.fg("accent", t),
+						selectedText: (t) => theme.fg("accent", t),
+						description: (t) => theme.fg("muted", t),
+						scrollInfo: (t) => theme.fg("dim", t),
+						noMatch: (t) => theme.fg("warning", t),
+					},
+				};
+				const editor = new Editor(editorTheme);
+
+				editor.onSubmit = (value) => {
+					const trimmed = value.trim();
+					if (trimmed) {
+						customAnswers[editingQuestionIndex] = trimmed;
+						selectedOptions[editingQuestionIndex] = normalizedQuestions[editingQuestionIndex].options.length - 1;
+					}
+					editMode = false;
+					editingQuestionIndex = -1;
+					editor.setText("");
+					refresh();
+				};
+
+				function refresh() {
+					cachedLines = undefined;
+					tui.requestRender();
+				}
+
+				function handleInput(data: string) {
+					if (editMode) {
+						if (matchesKey(data, Key.escape)) {
 							editMode = false;
+							editingQuestionIndex = -1;
 							editor.setText("");
 							refresh();
+							return;
 						}
-					};
-
-					function refresh() {
-						cachedLines = undefined;
-						tui.requestRender();
+						editor.handleInput(data);
+						refresh();
+						return;
 					}
 
-					function handleInput(data: string) {
-						if (editMode) {
-							if (matchesKey(data, Key.escape)) {
-								editMode = false;
-								editor.setText("");
-								refresh();
-								return;
-							}
-							editor.handleInput(data);
-							refresh();
-							return;
-						}
-
-						if (matchesKey(data, Key.up)) {
-							optionIndex = Math.max(0, optionIndex - 1);
-							refresh();
-							return;
-						}
-						if (matchesKey(data, Key.down)) {
-							optionIndex = Math.min(allOptions.length - 1, optionIndex + 1);
-							refresh();
-							return;
-						}
-
-						if (matchesKey(data, Key.enter)) {
-							const selected = allOptions[optionIndex];
-							if (selected.isOther) {
-								editMode = true;
-								refresh();
-							} else {
-								done({ answer: selected.label, wasCustom: false, index: optionIndex + 1 });
-							}
-							return;
-						}
-
-						if (matchesKey(data, Key.escape)) {
-							done(null);
-						}
+					if (matchesKey(data, Key.up)) {
+						cursorIndex = Math.max(0, cursorIndex - 1);
+						refresh();
+						return;
+					}
+					if (matchesKey(data, Key.down)) {
+						cursorIndex = Math.min(selectableItems.length - 1, cursorIndex + 1);
+						refresh();
+						return;
 					}
 
-					function render(width: number): string[] {
-						if (cachedLines) return cachedLines;
-
-						const lines: string[] = [];
-						const add = (s: string) => lines.push(truncateToWidth(s, width));
-
-						add(theme.fg("accent", "─".repeat(width)));
-						add(theme.fg("text", ` ${params.question}`));
-						lines.push("");
-
-						for (let i = 0; i < allOptions.length; i++) {
-							const opt = allOptions[i];
-							const selected = i === optionIndex;
-							const isOther = opt.isOther === true;
-							const prefix = selected ? theme.fg("accent", "> ") : "  ";
-
-							if (isOther && editMode) {
-								add(prefix + theme.fg("accent", `${i + 1}. ${opt.label} ✎`));
-							} else if (selected) {
-								add(prefix + theme.fg("accent", `${i + 1}. ${opt.label}`));
-							} else {
-								add(`  ${theme.fg("text", `${i + 1}. ${opt.label}`)}`);
+					if (matchesKey(data, Key.enter) || matchesKey(data, " ")) {
+						const item = selectableItems[cursorIndex];
+						if (item.type === "submit") {
+							const allAnswered = selectedOptions.every((opt) => opt !== null);
+							if (allAnswered) {
+								const results: QuestionResult[] = normalizedQuestions.map((q, i) => {
+									const optIdx = selectedOptions[i]!;
+									const opt = q.options[optIdx];
+									return {
+										question: q.question,
+										answer: opt.isOther ? customAnswers[i] : opt.label,
+										wasCustom: opt.isOther,
+										id: (q as any).id,
+									};
+								});
+								done(results);
 							}
-
-							// Show description if present
-							if (opt.description) {
-								add(`     ${theme.fg("muted", opt.description)}`);
-							}
-						}
-
-						if (editMode) {
-							lines.push("");
-							add(theme.fg("muted", " Your answer:"));
-							for (const line of editor.render(width - 2)) {
-								add(` ${line}`);
-							}
-						}
-
-						lines.push("");
-						if (editMode) {
-							add(theme.fg("dim", " Enter to submit • Esc to go back"));
 						} else {
-							add(theme.fg("dim", " ↑↓ navigate • Enter to select • Esc to cancel"));
+							if (item.isOther) {
+								editMode = true;
+								editingQuestionIndex = item.questionIndex;
+								editor.setText(customAnswers[item.questionIndex] || "");
+								refresh();
+							} else {
+								selectedOptions[item.questionIndex] = item.optionIndex;
+								refresh();
+							}
 						}
-						add(theme.fg("accent", "─".repeat(width)));
-
-						cachedLines = lines;
-						return lines;
+						return;
 					}
 
-					return {
-						render,
-						invalidate: () => {
-							cachedLines = undefined;
-						},
-						handleInput,
-					};
-				},
-			);
+					if (matchesKey(data, Key.escape)) {
+						done(null);
+					}
+				}
 
-			// Build simple options list for details
-			const simpleOptions = normalizedOptions.map((o) => o.label);
+				function render(width: number): string[] {
+					if (cachedLines) return cachedLines;
+
+					const lines: string[] = [];
+					const add = (s: string) => lines.push(truncateToWidth(s, width));
+
+					add(theme.fg("accent", "─".repeat(width)));
+
+					for (let qIdx = 0; qIdx < normalizedQuestions.length; qIdx++) {
+						const q = normalizedQuestions[qIdx];
+						add(theme.fg("text", ` ${q.question}`));
+
+						for (let oIdx = 0; oIdx < q.options.length; oIdx++) {
+							const opt = q.options[oIdx];
+							const itemIdx = selectableItems.findIndex(
+								(it) => it.type === "option" && it.questionIndex === qIdx && it.optionIndex === oIdx,
+							);
+							const isFocused = cursorIndex === itemIdx;
+							const isSelected = selectedOptions[qIdx] === oIdx;
+
+							const radio = isSelected ? "●" : "○";
+							const prefix = isFocused ? theme.fg("accent", "> ") : "  ";
+							const radioColored = isSelected ? theme.fg("accent", radio) : theme.fg("text", radio);
+
+							let label = opt.label;
+							if (opt.isOther && customAnswers[qIdx]) {
+								label = `Type your own answer... (${customAnswers[qIdx]})`;
+							}
+
+							let text = `${prefix}${radioColored} ${label}`;
+							if (isFocused) {
+								add(theme.fg("accent", text));
+							} else {
+								add(theme.fg("text", text));
+							}
+
+							if (opt.description) {
+								add(`      ${theme.fg("muted", opt.description)}`);
+							}
+						}
+						lines.push("");
+					}
+
+					const submitIdx = selectableItems.findIndex((it) => it.type === "submit");
+					const submitFocused = cursorIndex === submitIdx;
+					const allAnswered = selectedOptions.every((opt) => opt !== null);
+
+					const submitText = "[ Submit ]";
+					if (submitFocused) {
+						add(theme.fg("accent", ` > ${submitText}`));
+					} else {
+						add(`   ${allAnswered ? theme.fg("text", submitText) : theme.fg("muted", submitText)}`);
+					}
+
+					if (editMode) {
+						lines.push("");
+						add(theme.fg("muted", " Your answer:"));
+						for (const line of editor.render(width - 2)) {
+							add(` ${line}`);
+						}
+					}
+
+					lines.push("");
+					if (editMode) {
+						add(theme.fg("dim", " Enter to save • Esc to cancel"));
+					} else {
+						add(theme.fg("dim", " ↑↓ navigate • Enter/Space to select • Esc to cancel"));
+						if (!allAnswered) {
+							add(theme.fg("warning", " Please answer all questions before submitting"));
+						}
+					}
+					add(theme.fg("accent", "─".repeat(width)));
+
+					cachedLines = lines;
+					return lines;
+				}
+
+				return {
+					render,
+					invalidate: () => {
+						cachedLines = undefined;
+					},
+					handleInput,
+				};
+			});
 
 			if (!result) {
 				return {
 					content: [{ type: "text", text: "User cancelled the selection" }],
-					details: { question: params.question, options: simpleOptions, answer: null } as QuestionDetails,
-				};
-			}
-
-			if (result.wasCustom) {
-				return {
-					content: [{ type: "text", text: `User wrote: ${result.answer}` }],
 					details: {
-						question: params.question,
-						options: simpleOptions,
-						answer: result.answer,
-						wasCustom: true,
+						results: questionsToProcess.map((q) => ({
+							question: q.question,
+							answer: null,
+							id: (q as any).id,
+						})),
 					} as QuestionDetails,
 				};
 			}
+
+			const contentText = result
+				.map((r, i) => `Q${i + 1}: ${r.question}\nA: ${r.answer}${r.wasCustom ? " (custom)" : ""}`)
+				.join("\n\n");
+
 			return {
-				content: [{ type: "text", text: `User selected: ${result.index}. ${result.answer}` }],
-				details: {
-					question: params.question,
-					options: simpleOptions,
-					answer: result.answer,
-					wasCustom: false,
-				} as QuestionDetails,
+				content: [{ type: "text", text: contentText }],
+				details: { results: result } as QuestionDetails,
 			};
 		},
 
 		renderCall(args, theme) {
-			let text = theme.fg("toolTitle", theme.bold("question ")) + theme.fg("muted", args.question);
-			const opts = Array.isArray(args.options) ? args.options : [];
-			if (opts.length) {
+			const questions = "questions" in args ? args.questions : [{ question: args.question, options: args.options }];
+			let text = theme.fg("toolTitle", theme.bold("question")) + "\n";
+
+			for (let i = 0; i < questions.length; i++) {
+				const q = questions[i];
+				text += `${theme.fg("text", `  ${i + 1}. ${q.question}`)}\n`;
+				const opts = Array.isArray(q.options) ? q.options : [];
 				const labels = opts.map((o: string | { label: string }) => (typeof o === "string" ? o : o.label));
-				const numbered = [...labels, "Type something."].map((o, i) => `${i + 1}. ${o}`);
-				text += `\n${theme.fg("dim", `  Options: ${numbered.join(", ")}`)}`;
+				const optionsList = [...labels, "Type your own answer..."].join(", ");
+				text += `${theme.fg("dim", `     Options: ${optionsList}`)}\n`;
 			}
-			return new Text(text, 0, 0);
+			return new Text(text.trimEnd(), 0, 0);
 		},
 
 		renderResult(result, _options, theme) {
 			const details = result.details as QuestionDetails | undefined;
-			if (!details) {
+			if (!details || !details.results) {
 				const text = result.content[0];
 				return new Text(text?.type === "text" ? text.text : "", 0, 0);
 			}
 
-			if (details.answer === null) {
-				return new Text(theme.fg("warning", "Cancelled"), 0, 0);
+			if (details.results.some((r) => r.answer === null)) {
+				return new Text(theme.fg("warning", "Cancelled or incomplete"), 0, 0);
 			}
 
-			if (details.wasCustom) {
-				return new Text(
-					theme.fg("success", "✓ ") + theme.fg("muted", "(wrote) ") + theme.fg("accent", details.answer),
-					0,
-					0,
-				);
+			let text = "";
+			for (let i = 0; i < details.results.length; i++) {
+				const r = details.results[i];
+				const check = theme.fg("success", "✓ ");
+				const questionText = theme.fg("muted", `Q${i + 1}: ${r.question}`);
+				const answerText = theme.fg("accent", r.answer || "");
+				const wasCustom = r.wasCustom ? theme.fg("muted", " (custom)") : "";
+				text += `${check}${questionText}\n   ${answerText}${wasCustom}\n`;
 			}
-			const idx = details.options.indexOf(details.answer) + 1;
-			const display = idx > 0 ? `${idx}. ${details.answer}` : details.answer;
-			return new Text(theme.fg("success", "✓ ") + theme.fg("accent", display), 0, 0);
+			return new Text(text.trimEnd(), 0, 0);
 		},
 	});
 }
