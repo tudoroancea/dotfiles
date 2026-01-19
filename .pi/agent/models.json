@@ -16,7 +16,7 @@
           "input": ["text"],
           "contextWindow": 400000,
           "maxTokens": 128000,
-          "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+          "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
         }
       ]
     }
