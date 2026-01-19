@@ -11,15 +11,12 @@ unfocused-split-opacity = 1
 background-blur = true
 macos-titlebar-style = tabs
 
-keybind = unconsumed:ctrl+k=goto_split:top
-keybind = unconsumed:ctrl+j=goto_split:bottom
-keybind = unconsumed:ctrl+h=goto_split:left
-keybind = unconsumed:ctrl+l=goto_split:right
+#keybind = unconsumed:ctrl+k=goto_split:top
+#keybind = unconsumed:ctrl+j=goto_split:bottom
+#keybind = unconsumed:ctrl+h=goto_split:left
+#keybind = unconsumed:ctrl+l=goto_split:right
 
 # see https://ghostty.org/docs/help/terminfo#ssh
 shell-integration-features = ssh-terminfo
-
-# new line in claude code
-keybind = shift+enter=text:\x1b\r
 
 macos-option-as-alt = true

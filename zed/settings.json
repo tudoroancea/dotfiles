@@ -214,16 +214,16 @@
     "edit_prediction_provider": "zed",
   },
   "agent": {
-    "default_profile": "write",
+    "default_profile": "ask",
     "default_model": {
       "provider": "openrouter",
       "model": "minimax/minimax-m2.1",
     },
     "inline_assistant_model": {
-      "provider": "copilot_chat",
-      "model": "claude-haiku-4.5",
+      "provider": "openrouter",
+      "model": "minimax/minimax-m2.1",
     },
-    "enabled": false,
+    "enabled": true,
   },
   // Git
   "git": {
