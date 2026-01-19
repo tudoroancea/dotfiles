@@ -58,20 +58,6 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Detect tool errors - notify immediately
-	pi.on("tool_result", async (event) => {
-		if (event.isError) {
-			if (shouldNotify()) {
-				// Don't await - don't block the agent loop
-				sendNotification({
-					title: "⚠️ Tool error",
-					message: `Error in ${event.toolName}`,
-					critical: true,
-					sound: getSound(),
-				});
-			}
-		}
-	});
 
 	// Handle agent end - confetti on success
 	pi.on("agent_end", async () => {
