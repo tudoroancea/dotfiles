@@ -52,7 +52,7 @@ export default function (pi: ExtensionAPI) {
 					render(_width: number): string[] {
 						const mascotLines = getPiMascot(theme);
 						// Add a subtitle with hint
-						const subtitle = theme.fg("muted", "   a shitty coding agent");
+						const subtitle = theme.fg("muted", "   my shitty coding agent");
 						return [...mascotLines, subtitle];
 					},
 					invalidate() {},
