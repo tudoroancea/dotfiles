@@ -259,7 +259,7 @@ export default function (pi: ExtensionAPI) {
       const displayCmd = command.length > maxLen ? command.slice(0, maxLen) + "…" : command;
 
       return new Text(
-        theme.fg("toolTitle", theme.bold("$ ")) + theme.fg("muted", displayCmd),
+        theme.fg("toolTitle", theme.bold("bash ")) + theme.fg("accent", displayCmd),
         0,
         0
       );
@@ -270,9 +270,14 @@ export default function (pi: ExtensionAPI) {
       const text = textContent?.type === "text" ? textContent.text : "";
       const lines = countLines(text.trim());
       const truncated = result.details?.truncation?.truncated;
+      const exitCodeMatch = text.match(/Command exited with code (\d+)/);
+      const explicitError = "isError" in result ? Boolean((result as { isError?: boolean }).isError) : false;
+      const isError = explicitError || exitCodeMatch !== null;
 
-      if (result.isError) {
-        const errorPreview = text.split("\n")[0] || "Command failed";
+      if (isError) {
+        const errorPreview = exitCodeMatch
+          ? `Command exited with code ${exitCodeMatch[1]}`
+          : text.split("\n")[0] || "Command failed";
         let output = theme.fg("error", "✗ ") + theme.fg("error", errorPreview);
         if (expanded && text) {
           output = theme.fg("error", "✗ Error:\n") + theme.fg("muted", text);

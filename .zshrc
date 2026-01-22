@@ -187,6 +187,7 @@ export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 source ~/gemini-cli.sh
 source ~/pave_api_key.sh
 source ~/zen_api_key.sh
+source ~/openrouter_api_key.sh
 
 # (oh my) zsh customization ==========================================================
 export EDITOR="nvim"

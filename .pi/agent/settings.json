@@ -1,8 +1,14 @@
 {
-  "lastChangelogVersion": "0.49.2",
-  "theme": "dark",
+  "lastChangelogVersion": "0.49.3",
+  "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
   "defaultModel": "gpt-5.2-codex",
-  "defaultThinkingLevel": "medium"
+  "defaultThinkingLevel": "medium",
+  "enabledModels": [
+    "pave/gpt-5.2-codex",
+    "opencode/minimax-m2.1-free",
+    "opencode/glm-4.7-free",
+    "google-antigravity/claude-opus-4-5-thinking"
+  ]
 }
