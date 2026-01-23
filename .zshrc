@@ -96,6 +96,33 @@ alias upy='uv run python'
 alias updb='uv run python -m pdb'
 alias uscript='uv run --script'
 
+create_worktree() {
+    local new_branch="$1"
+    local base_branch="${2:-$(git config --get init.defaultBranch || echo main)}"
+
+    # Validate inputs
+    if [ -z "$new_branch" ]; then
+        echo "Usage: create_worktree <new_branch> [base_branch]" >&2
+        return 1
+    fi
+
+    # Check if base branch exists (local or remote)
+    if ! git show-ref --verify --quiet "refs/heads/$base_branch" && \
+       ! git show-ref --verify --quiet "refs/remotes/origin/$base_branch"; then
+        echo "Error: Base branch '$base_branch' does not exist" >&2
+        return 1
+    fi
+
+    # Check if worktree path already exists
+    if [ -d ".worktrees/$new_branch" ]; then
+        echo "Error: Worktree path '.worktrees/$new_branch' already exists" >&2
+        return 1
+    fi
+
+    # Create worktree with new branch based on base branch
+    git worktree add ".worktrees/$new_branch" -b "$new_branch" "$base_branch"
+}
+
 # project specific aliases and configurations ===============================================
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
 alias purge="./scripts/purge.sh"
