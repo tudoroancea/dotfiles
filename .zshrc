@@ -122,6 +122,12 @@ create_worktree() {
     # Create worktree with new branch based on base branch
     git worktree add ".worktrees/$new_branch" -b "$new_branch" "$base_branch"
 }
+pi-usage() {
+   local days="${1:-1}"
+   local since
+   since="$(date -v-"$days"d +%Y-%m-%d)"
+   ccusage-pi daily --since "$since"
+ }
 
 # project specific aliases and configurations ===============================================
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'

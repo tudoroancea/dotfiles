@@ -4,7 +4,7 @@
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
   "defaultModel": "gpt-5.2-codex",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "low",
   "enabledModels": [
     "pave/gpt-5.2-codex",
     "opencode/minimax-m2.1-free",

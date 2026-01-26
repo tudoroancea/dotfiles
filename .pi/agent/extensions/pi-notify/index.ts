@@ -45,7 +45,7 @@ export default function (pi: ExtensionAPI) {
 
 	// Detect question tool usage - notify immediately
 	pi.on("tool_call", async (event) => {
-		if (event.toolName === "question") {
+		if (event.toolName === "question" || event.toolName === "questionnaire") {
 			if (shouldNotify()) {
 				// Don't await - would block the question tool from showing its UI
 				sendNotification({
@@ -60,11 +60,18 @@ export default function (pi: ExtensionAPI) {
 
 
 	// Handle agent end - confetti on success
-	pi.on("agent_end", async () => {
+	pi.on("agent_end", async (event) => {
 		const noConfetti = pi.getFlag("--no-confetti") as boolean;
 
+		const lastAssistant = [...event.messages]
+			.reverse()
+			.find((message) => message.role === "assistant");
+
+		const finishedSuccessfully =
+			lastAssistant?.stopReason === "stop" || lastAssistant?.stopReason === "toolUse";
+
 		// Confetti on successful completion (if not focused and not disabled)
-		if (!noConfetti && !isFocused()) {
+		if (!noConfetti && !isFocused() && finishedSuccessfully) {
 			await triggerConfetti();
 		}
 	});
