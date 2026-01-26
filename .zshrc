@@ -128,6 +128,7 @@ pi-usage() {
    since="$(date -v-"$days"d +%Y-%m-%d)"
    ccusage-pi daily --since "$since"
  }
+alias pirc="cd ~/.pi && pi --provider google-antigravity --model gemini-3-flash --thinking low"
 
 # project specific aliases and configurations ===============================================
 alias brains2='cd ~/dev/brains2 && conda activate brains2 && . install/setup.sh'
