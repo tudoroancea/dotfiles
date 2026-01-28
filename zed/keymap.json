@@ -93,8 +93,9 @@
 				"task::Spawn",
 				{ "task_name": "lazygit", "target": "center" }
 			],
+			"space g w": "git::Worktree",
 			"space g b": "git::Branch",
-			"space g B": "git::Blame"
+			"space g B": "git::Blame",
 		}
 	},
 	{

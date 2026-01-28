@@ -1,14 +1,15 @@
 {
-  "lastChangelogVersion": "0.49.3",
+  "lastChangelogVersion": "0.50.1",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
-  "defaultProvider": "pave",
-  "defaultModel": "gpt-5.2-codex",
-  "defaultThinkingLevel": "low",
+  "defaultProvider": "google-antigravity",
+  "defaultModel": "gemini-3-pro-high",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.2-codex",
-    "opencode/minimax-m2.1-free",
-    "opencode/glm-4.7-free",
-    "google-antigravity/claude-opus-4-5-thinking"
+    "google-antigravity/claude-opus-4-5-thinking",
+    "google-antigravity/gemini-3-flash",
+    "google-antigravity/gemini-3-pro-high",
+    "google-antigravity/gemini-3-pro-low"
   ]
 }
