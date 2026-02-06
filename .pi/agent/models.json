@@ -28,40 +28,6 @@
           "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
         }
       ]
-    },
-    "opencode": {
-			"baseUrl": "https://opencode.ai/zen/v1",
-			"apiKey": "OPENCODE_ZEN_API_KEY",
-			"api": "openai-completions",
-			"authHeader": true,
-			"models": [
-				{
-					"id": "kimi-k2.5",
-					"name": "Kimi k2.5",
-					"contextWindow": 262144,
-					"maxTokens": 262144,
-					"input": ["text", "image"],
-					"reasoning": false,
-					"cost": { "input": 0.6, "output": 3, "cacheRead": 0.1, "cacheWrite": 0 }
-				}
-			]
-		},
-
-    "openrouter": {
-      "baseUrl": "https://openrouter.ai/api/v1",
-      "apiKey": "OPENROUTER_API_KEY",
-      "api": "openai-completions",
-      "models": [
-        {
-          "id": "moonshotai/kimi-k2.5",
-          "name": "kimi k2.5",
-          "reasoning": true,
-          "input": ["text", "image"],
-          "contextWindow": 262144,
-          "maxTokens": 262144,
-          "cost": {"input": 0.60, "output": 3, "cacheRead": 0.1, "cacheWrite": 0}
-        }
-      ]
     }
   }
 }

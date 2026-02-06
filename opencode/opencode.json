@@ -1,71 +1,107 @@
 {
-	"$schema": "https://opencode.ai/config.json",
-	"autoupdate": true,
-	"enabled_providers": ["opencode", "azure-cognitive-services", "google", "proxy"],
-	"default_agent": "plan",
-	"small_model": "opencode/grok-code",
-	"provider": {
-		"proxy": {
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
-				"baseURL": "http://localhost:8317/v1",
-				"apiKey" : "quotio-local-2E67C552"
-			},
-			"models": {
-				"gemini-claude-sonnet-4-5-thinking": { "name": "Sonnet 4.5 (antigravity)" },
-				"gemini-claude-opus-4-5-thinking": { "name": "Opus 4.5 (antigravity)" },
-				"claude-opus-4-5-20251101": { "name": "Opus 4.5" },
-				"claude-sonnet-4-5-20250929": { "name": "Sonnet 4.5" },
-				"claude-haiku-4-5-20251001": { "name": "Haiku 4.5" }
-			}
-		},
-		"google": {
-			"models": {
-				"claude-sonnet-4-5-thinking-low": {
-					"name": "Sonnet 4.5",
-					"limit": { "context": 200000, "output": 64000 },
-					"modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
-				},
-				"claude-opus-4-5-thinking-low": {
-					"name": "Opus 4.5",
-					"limit": { "context": 200000, "output": 64000 },
-					"modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
-				}
-			}
-		},
-		"azure-cognitive-services": {
-			"models": {
-				"gpt-5.1-codex": { "name": "GPT 5.1 Codex" }
-			}
-		},
-		"lmstudio": {
-			"npm": "@ai-sdk/openai-compatible",
-			"name": "LM Studio (local)",
-			"options": {
-				"baseURL": "http://127.0.0.1:1234/v1"
-			},
-			"models": {
-				"nvidia/nemotron-3-nano": {
-					"name": "Nemotron 3 nano"
-				},
-				"openai/gpt-oss-20b": {
-					"name": "GPT OSS 20b"
-				}
-			}
-		}
-	},
-	"permission": {
-		"bash": {
-			"fd": "allow",
-			"rg": "allow",
-			"uv pip list": "allow",
-			"ls": "allow",
-			"tree": "allow"
-		}
-	},
-	//"agent": {
-		//"plan": { "model": "google/claude-opus-4-5-thinking-low" },
-		//"build": { "model": "google/claude-opus-4-5-thinking-low" }
-	//},
-	"plugin": ["opencode-antigravity-auth"]
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "opencode-antigravity-auth"
+  ],
+  "autoupdate": true,
+  "small_model": "opencode/grok-code",
+  "default_agent": "plan",
+  "provider": {
+    "proxy": {
+      "npm": "@ai-sdk/openai-compatible",
+      "models": {
+        "gemini-claude-sonnet-4-5-thinking": {
+          "name": "Sonnet 4.5 (antigravity)"
+        },
+        "gemini-claude-opus-4-5-thinking": {
+          "name": "Opus 4.5 (antigravity)"
+        },
+        "claude-opus-4-5-20251101": {
+          "name": "Opus 4.5"
+        },
+        "claude-sonnet-4-5-20250929": {
+          "name": "Sonnet 4.5"
+        },
+        "claude-haiku-4-5-20251001": {
+          "name": "Haiku 4.5"
+        }
+      },
+      "options": {
+        "apiKey": "quotio-local-2E67C552",
+        "baseURL": "http://localhost:8317/v1"
+      }
+    },
+    "google": {
+      "models": {
+        "claude-sonnet-4-5-thinking-low": {
+          "name": "Sonnet 4.5",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        },
+        "claude-opus-4-5-thinking-low": {
+          "name": "Opus 4.5",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        }
+      }
+    },
+    "azure-cognitive-services": {
+      "models": {
+        "gpt-5.1-codex": {
+          "name": "GPT 5.1 Codex"
+        }
+      }
+    },
+    "lmstudio": {
+      "name": "LM Studio (local)",
+      "npm": "@ai-sdk/openai-compatible",
+      "models": {
+        "nvidia/nemotron-3-nano": {
+          "name": "Nemotron 3 nano"
+        },
+        "openai/gpt-oss-20b": {
+          "name": "GPT OSS 20b"
+        }
+      },
+      "options": {
+        "baseURL": "http://127.0.0.1:1234/v1"
+      }
+    }
+  },
+  "permission": {
+    "bash": {
+      "fd": "allow",
+      "rg": "allow",
+      "uv pip list": "allow",
+      "ls": "allow",
+      "tree": "allow"
+    }
+  },
+  "disabled_providers": [
+    "proxy"
+  ]
 }
