@@ -16,10 +16,27 @@ export default function (pi: ExtensionAPI) {
         (typeof c.updateResult === 'function' && typeof c.updateArgs === 'function');
 
       const getHexColor = (type: "success" | "error" | "successBg" | "errorBg" | "dim") => {
-        if (type === "success") return "\x1b[38;2;78;186;101m";
-        if (type === "error") return "\x1b[38;2;255;107;128m";
-        if (type === "successBg") return "\x1b[48;2;34;92;43m";
-        if (type === "errorBg") return "\x1b[48;2;122;41;54m";
+        // Simple dark mode detection based on text color brightness
+        const textFg = theme.fg("text", "!");
+        const match = textFg.match(/\x1b\[38;2;(\d+);(\d+);(\d+)m/);
+        let isDark = true;
+        if (match) {
+          const [_, r, g, b] = match.map(Number);
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          isDark = brightness > 128;
+        }
+
+        if (isDark) {
+          if (type === "success") return "\x1b[38;2;78;186;101m";
+          if (type === "error") return "\x1b[38;2;255;107;128m";
+          if (type === "successBg") return "\x1b[48;2;34;92;43m";
+          if (type === "errorBg") return "\x1b[48;2;122;41;54m";
+        } else {
+          if (type === "success") return "\x1b[38;2;26;125;50m";
+          if (type === "error") return "\x1b[38;2;207;34;46m";
+          if (type === "successBg") return "\x1b[48;2;218;251;225m";
+          if (type === "errorBg") return "\x1b[48;2;255;235;233m";
+        }
         return theme.fg("dim", "");
       };
 

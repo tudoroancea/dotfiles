@@ -1,10 +1,10 @@
 {
   "lastChangelogVersion": "0.52.6",
-  "theme": "rosepine-moon",
+  "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "github-copilot",
   "defaultModel": "claude-opus-4.6",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "enabledModels": [
     "pave/gpt-5.2-codex",
     "google-antigravity/gemini-3-flash",
