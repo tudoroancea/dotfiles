@@ -171,74 +171,75 @@ export default function (pi: ExtensionAPI) {
           const header = dot + " " + theme.bold(toolName) + theme.fg("dim", `(${args})`);
           const truncatedHeader = truncateToWidth(header, width);
 
-          let result: string[] = [];
+          let result: string[] = ["", truncatedHeader];
 
-          if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
-             const output = tool.getTextOutput() || "";
-             const lines = output.split('\n');
-             const lineCount = lines.length;
-             result = ["", truncatedHeader, ` ⎿ ${theme.fg("dim", `Read ${lineCount} lines`)}`];
-          } else {
-            const originalLines = originalRender(width - 4);
-            let skipCount = 0;
-            for (let i = 0; i < Math.min(originalLines.length, 5); i++) {
-              const line = originalLines[i];
-              const plain = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
-              if (plain === "" && i > 0 && i < 3) {
-                skipCount = i + 1;
-                break;
-              }
-            }
-            if (skipCount === 0 && originalLines.length > 0) {
-              const firstPlain = originalLines[0].replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-              if (firstPlain.includes(tool.toolName.toLowerCase()) || firstPlain.startsWith("$ ")) {
-                skipCount = 1;
-                if (originalLines[1] && originalLines[1].replace(/\x1b\[[0-9;]*m/g, '').trim() === "") {
-                  skipCount = 2;
+          if (tool.expanded) {
+            if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
+               const output = tool.getTextOutput() || "";
+               const lines = output.split('\n');
+               const lineCount = lines.length;
+               result.push(` ⎿ ${theme.fg("dim", `Read ${lineCount} lines`)}`);
+            } else {
+              const originalLines = originalRender(width - 4);
+              let skipCount = 0;
+              for (let i = 0; i < Math.min(originalLines.length, 5); i++) {
+                const line = originalLines[i];
+                const plain = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
+                if (plain === "" && i > 0 && i < 3) {
+                  skipCount = i + 1;
+                  break;
                 }
               }
-            }
-
-            const contentLines = originalLines.slice(skipCount);
-            result = ["", truncatedHeader];
-            
-            let contentStarted = false;
-            for (let i = 0; i < contentLines.length; i++) {
-              let line = contentLines[i];
-              if (!contentStarted && line.trim() === "") continue;
-
-              if (tool.toolName === "edit") {
-                const plainLine = line.replace(/\x1b\[[0-9;]*m/g, '');
-                const match = plainLine.match(/^([+-])(\s*\d*)\s(.*)$/);
-                if (match) {
-                  const [_, sign, lineNum, rest] = match;
-                  const bgColor = sign === "+" ? getHexColor("successBg") : getHexColor("errorBg");
-                  const dotColor = sign === "+" ? getHexColor("success") : getHexColor("error");
-                  line = bgColor + dotColor + sign + theme.fg("dim", lineNum) + "\x1b[0m" + bgColor + " " + rest + "\x1b[0m";
-                } else {
-                  const contextMatch = plainLine.match(/^(\s)(\s*\d*)\s(.*)$/);
-                  if (contextMatch) {
-                    const [_, sign, lineNum, rest] = contextMatch;
-                    line = " " + theme.fg("dim", lineNum) + " " + rest;
+              if (skipCount === 0 && originalLines.length > 0) {
+                const firstPlain = originalLines[0].replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+                if (firstPlain.includes(tool.toolName.toLowerCase()) || firstPlain.startsWith("$ ")) {
+                  skipCount = 1;
+                  if (originalLines[1] && originalLines[1].replace(/\x1b\[[0-9;]*m/g, '').trim() === "") {
+                    skipCount = 2;
                   }
                 }
               }
-              
-              const prefix = !contentStarted ? " ⎿ " : "   ";
-              result.push(truncateToWidth(prefix + line, width));
-              contentStarted = true;
-            }
 
-            if (!contentStarted && !tool.isPartial) {
-              if (tool.result?.isError) {
-                const errorText = tool.getTextOutput() || "";
-                if (errorText.includes("Validation failed")) {
-                  result.push(truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width));
-                } else {
-                  result.push(truncateToWidth(" ⎿ " + theme.fg("error", errorText), width));
+              const contentLines = originalLines.slice(skipCount);
+              
+              let contentStarted = false;
+              for (let i = 0; i < contentLines.length; i++) {
+                let line = contentLines[i];
+                if (!contentStarted && line.trim() === "") continue;
+
+                if (tool.toolName === "edit") {
+                  const plainLine = line.replace(/\x1b\[[0-9;]*m/g, '');
+                  const match = plainLine.match(/^([+-])(\s*\d*)\s(.*)$/);
+                  if (match) {
+                    const [_, sign, lineNum, rest] = match;
+                    const bgColor = sign === "+" ? getHexColor("successBg") : getHexColor("errorBg");
+                    const dotColor = sign === "+" ? getHexColor("success") : getHexColor("error");
+                    line = bgColor + dotColor + sign + theme.fg("dim", lineNum) + "\x1b[0m" + bgColor + " " + rest + "\x1b[0m";
+                  } else {
+                    const contextMatch = plainLine.match(/^(\s)(\s*\d*)\s(.*)$/);
+                    if (contextMatch) {
+                      const [_, sign, lineNum, rest] = contextMatch;
+                      line = " " + theme.fg("dim", lineNum) + " " + rest;
+                    }
+                  }
                 }
-              } else {
-                result.push(truncateToWidth(" ⎿ " + theme.fg("dim", "(no output)"), width));
+                
+                const prefix = !contentStarted ? " ⎿ " : "   ";
+                result.push(truncateToWidth(prefix + line, width));
+                contentStarted = true;
+              }
+
+              if (!contentStarted && !tool.isPartial) {
+                if (tool.result?.isError) {
+                  const errorText = tool.getTextOutput() || "";
+                  if (errorText.includes("Validation failed")) {
+                    result.push(truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width));
+                  } else {
+                    result.push(truncateToWidth(" ⎿ " + theme.fg("error", errorText), width));
+                  }
+                } else {
+                  result.push(truncateToWidth(" ⎿ " + theme.fg("dim", "(no output)"), width));
+                }
               }
             }
           }

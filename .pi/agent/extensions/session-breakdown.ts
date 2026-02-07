@@ -76,7 +76,7 @@ interface BreakdownData {
 }
 
 const SESSION_ROOT = path.join(os.homedir(), ".pi", "agent", "sessions");
-const RANGE_DAYS = [7, 30, 90] as const;
+const RANGE_DAYS = [1, 7, 30, 90] as const;
 
 // Dark-ish background and empty cell color (close to GitHub dark)
 const DEFAULT_BG: RGB = { r: 13, g: 17, b: 23 };
@@ -607,7 +607,8 @@ function renderLeftRight(left: string, right: string, width: number): string {
 function rangeSummary(range: RangeAgg, days: number): string {
 	const avg = range.sessions > 0 ? range.totalCost / range.sessions : 0;
 	const costPart = range.totalCost > 0 ? `${formatUsd(range.totalCost)} · avg ${formatUsd(avg)}/session` : `$0.0000`;
-	return `Last ${days} days: ${range.sessions} sessions · ${costPart}`;
+	const label = days === 1 ? "Today" : `Last ${days} days`;
+	return `${label}: ${range.sessions} sessions · ${costPart}`;
 }
 
 async function computeBreakdown(signal?: AbortSignal): Promise<BreakdownData> {
@@ -662,7 +663,7 @@ class BreakdownComponent implements Component {
 	private data: BreakdownData;
 	private tui: TUI;
 	private onDone: () => void;
-	private rangeIndex = 1; // default 30d
+	private rangeIndex = 0; // default 1d (today)
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
@@ -712,6 +713,11 @@ class BreakdownComponent implements Component {
 			this.invalidate();
 			this.tui.requestRender();
 		}
+		if (data === "4") {
+			this.rangeIndex = 3;
+			this.invalidate();
+			this.tui.requestRender();
+		}
 	}
 
 	render(width: number): string[] {
@@ -727,7 +733,7 @@ class BreakdownComponent implements Component {
 			return selected ? bold(`[${label}]`) : dim(` ${label} `);
 		};
 
-		const header = `${bold("Session breakdown")}  ${tab(7, 0)} ${tab(30, 1)} ${tab(90, 2)}  ${dim("←/→ to switch · q to close")}`;
+		const header = `${bold("Session breakdown")}  ${tab(1, 0)} ${tab(7, 1)} ${tab(30, 2)} ${tab(90, 3)}  ${dim("←/→ to switch · q to close")}`;
 
 		const legendItems = renderLegendItems(
 			this.data.palette.modelColors,
@@ -737,7 +743,7 @@ class BreakdownComponent implements Component {
 
 		const summary = rangeSummary(range, selectedDays) + dim(`   (graph: ${metric.kind}/day)`);
 
-		const maxScale = selectedDays === 7 ? 4 : selectedDays === 30 ? 3 : 2;
+		const maxScale = selectedDays === 1 ? 6 : selectedDays === 7 ? 4 : selectedDays === 30 ? 3 : 2;
 		const weeks = weeksForRange(range);
 		const leftMargin = 4; // "Mon " (or 4 spaces)
 		const gap = 1;
@@ -806,16 +812,16 @@ class BreakdownComponent implements Component {
 
 export default function sessionBreakdownExtension(pi: ExtensionAPI) {
 	pi.registerCommand("session-breakdown", {
-		description: "Interactive breakdown of last 7/30/90 days of ~/.pi session usage (sessions + cost by model)",
+		description: "Interactive breakdown of today/7/30/90 days of ~/.pi session usage (sessions + cost by model)",
 		handler: async (_args, ctx: ExtensionContext) => {
 			if (!ctx.hasUI) {
 				// Non-interactive fallback: just notify.
 				const data = await computeBreakdown(undefined);
-				const range = data.ranges.get(30)!;
+				const range = data.ranges.get(1)!;
 				pi.sendMessage(
 					{
 						customType: "session-breakdown",
-						content: `Session breakdown (non-interactive)\n${rangeSummary(range, 30)}`,
+						content: `Session breakdown (non-interactive)\n${rangeSummary(range, 1)}`,
 						display: true,
 					},
 					{ triggerTurn: false },
