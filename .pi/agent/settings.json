@@ -1,21 +1,17 @@
 {
-  "lastChangelogVersion": "0.52.6",
+  "lastChangelogVersion": "0.52.7",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
-  "defaultProvider": "github-copilot",
-  "defaultModel": "claude-opus-4.6",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-6",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.2-codex",
     "google-antigravity/gemini-3-flash",
     "google-antigravity/gemini-3-pro-high",
-    "google-antigravity/gemini-3-pro-low",
-    "opencode/kimi-k2.5",
-    "opencode/glm-4.7-free",
     "opencode/kimi-k2.5-free",
-    "opencode/minimax-m2.1-free",
-    "github-copilot/claude-opus-4.6",
-    "azure-openai-responses/gpt-5.3-codex"
+    "anthropic/claude-opus-4-6",
+    "anthropic/claude-haiku-4-5"
   ],
   "quietStartup": true,
   "collapseChangelog": true,

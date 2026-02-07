@@ -26,6 +26,15 @@
           "contextWindow": 400000,
           "maxTokens": 128000,
           "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
+        },
+        {
+          "id": "gpt-5.3-codex",
+          "name": "GPT 5.3 codex",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 400000,
+          "maxTokens": 128000,
+          "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
         }
       ]
     }
