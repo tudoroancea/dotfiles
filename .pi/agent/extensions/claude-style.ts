@@ -47,7 +47,26 @@ export default function (pi: ExtensionAPI) {
           p = path.relative(ctx.cwd, p) || ".";
         }
 
-        if (name === "bash") return args.command || "";
+        if (name === "bash") {
+          const cmd = args.command || "";
+          const firstLine = cmd.split('\n')[0];
+          if (cmd.includes('\n')) {
+            return firstLine + " ...";
+          }
+          return firstLine;
+        }
+        if (name === "todo") {
+          if (args.action === "add") return `Add: "${args.text?.slice(0, 40)}${args.text?.length > 40 ? '...' : ''}"`;
+          if (args.action === "toggle") return `Toggle todo #${args.id}`;
+          if (args.action === "list") return "List todos";
+          return `${args.action || ""}: "${args.text || ""}"`;
+        }
+        if (name === "questionnaire") {
+          if (args.questions && Array.isArray(args.questions)) {
+            return args.questions.map((q: any) => `Q: "${q.prompt?.slice(0, 30)}${q.prompt?.length > 30 ? '...' : ''}"`).join(", ");
+          }
+          return "Ask question(s)";
+        }
         if (name === "read" || name === "write" || name === "ls" || name === "edit") return p;
         if (name === "grep" || name === "find") return `${args.pattern || ""}, ${p || ""}`;
         
@@ -150,11 +169,13 @@ export default function (pi: ExtensionAPI) {
         let cachedResult: string[] | undefined;
         let lastResultId: any;
         let lastExpanded: boolean | undefined;
+        let lastArgs: string | undefined;
 
         tool.render = (width: number) => {
           const currentResultId = tool.result;
           const currentExpanded = tool.expanded;
-          if (cachedResult && cachedWidth === width && lastResultId === currentResultId && lastExpanded === currentExpanded) {
+          const currentArgs = JSON.stringify(tool.args);
+          if (cachedResult && cachedWidth === width && lastResultId === currentResultId && lastExpanded === currentExpanded && lastArgs === currentArgs) {
             return cachedResult;
           }
 
@@ -166,7 +187,21 @@ export default function (pi: ExtensionAPI) {
           let toolName = tool.toolName.charAt(0).toUpperCase() + tool.toolName.slice(1);
           if (tool.toolName === "edit") toolName = "Update";
 
-          const args = formatArgs(tool.toolName, tool.args);
+          let args = formatArgs(tool.toolName, tool.args);
+          
+          // For todo toggle, try to get the text from the result
+          if (tool.toolName === "todo" && tool.args?.action === "toggle" && tool.result && !tool.isPartial) {
+            // The result details contain the full todos array
+            const details = tool.result.details;
+            if (details?.todos && tool.args.id !== undefined) {
+              const todo = details.todos.find((t: any) => t.id === tool.args.id);
+              if (todo) {
+                const text = todo.text;
+                args = `toggled "${text.slice(0, 30)}${text.length > 30 ? '...' : ''}"`;
+              }
+            }
+          }
+          
           const dot = dotType === "dim" ? theme.fg("dim", "⏺") : getHexColor(dotType) + "⏺\x1b[0m";
           const header = dot + " " + theme.bold(toolName) + theme.fg("dim", `(${args})`);
           const truncatedHeader = truncateToWidth(header, width);
@@ -174,7 +209,25 @@ export default function (pi: ExtensionAPI) {
           let result: string[] = ["", truncatedHeader];
 
           if (tool.expanded) {
-            if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
+            if (tool.toolName === "todo") {
+              const action = tool.args?.action;
+              const text = tool.args?.text;
+              const id = tool.args?.id;
+              
+              if (action === "add") {
+                // result.push(` ⎿ ${theme.fg("success", "Added todo")}: "${text}"`);
+              } else if (action === "toggle") {
+                // result.push(` ⎿ ${theme.fg("dim", "Toggled todo")}: "${text}"`);
+              } else if (action === "list") {
+                const todos = tool.result?.todos || [];
+                for (const t of todos) {
+                  const mark = t.completed ? "✓" : "○";
+                  result.push(` ⎿ ${mark} ${t.text}`);
+                }
+              } else {
+                result.push(` ⎿ ${theme.fg("dim", action || "unknown")}`);
+              }
+            } else if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
                const output = tool.getTextOutput() || "";
                const lines = output.split('\n');
                const lineCount = lines.length;
@@ -248,6 +301,7 @@ export default function (pi: ExtensionAPI) {
           cachedResult = result;
           lastResultId = currentResultId;
           lastExpanded = currentExpanded;
+          lastArgs = currentArgs;
           return result;
         };
 

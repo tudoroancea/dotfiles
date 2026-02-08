@@ -49,7 +49,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("tool_call", async (event) => {
 		if (event.toolName === "question" || event.toolName === "questionnaire") {
-			sendNotification("🔴 Pi has a question", "Check the terminal to provide input.");
+			sendNotification("❓ Pi has a question", "Check the terminal to provide input.");
 		}
 	});
 
