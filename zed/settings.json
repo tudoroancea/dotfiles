@@ -206,7 +206,7 @@
   // AI
   "show_edit_predictions": true,
   "edit_predictions": {
-    "provider": "sweep",
+    "provider": "copilot",
     "disabled_globs": ["*.mlir"],
     "mode": "subtle",
     "enabled_in_text_threads": true,
@@ -219,7 +219,7 @@
     },
     "inline_assistant_model": {
       "provider": "openrouter",
-      "model": "minimax/minimax-m2.1",
+      "model": "openrouter/free",
     },
     "enabled": true,
   },

@@ -2,10 +2,12 @@
  * Custom Header Extension
  *
  * Demonstrates ctx.ui.setHeader() for replacing the built-in header
- * (logo + keybinding hints) with a custom component showing the pi mascot.
+ * (logo + keybinding hints) with a custom component showing the pi mascot
+ * alongside agent version and model info.
  */
 
 import type { ExtensionAPI, Theme } from "@mariozechner/pi-coding-agent";
+import * as os from "node:os";
 
 // --- PI MASCOT ---
 // Based on pi_mascot.ts - the pi agent character
@@ -40,7 +42,20 @@ function getPiMascot(theme: Theme): string[] {
 	const lineLeg = `     ${piBlue(BLOCK.repeat(2))}    ${piBlue(BLOCK.repeat(2))}`;
 
 	// --- ASSEMBLY ---
-	return ["", lineEyes, lineBar, lineLeg, lineLeg, lineLeg, lineLeg, ""];
+	return [lineEyes, lineBar, lineLeg, lineLeg, lineLeg, lineLeg];
+}
+
+function abbreviatePath(fullPath: string): string {
+	const home = os.homedir();
+	if (fullPath.startsWith(home)) {
+		return "~" + fullPath.slice(home.length);
+	}
+	return fullPath;
+}
+
+// Strip ANSI codes to calculate visual width
+function stripAnsi(str: string): string {
+	return str.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 export default function (pi: ExtensionAPI) {
@@ -51,9 +66,47 @@ export default function (pi: ExtensionAPI) {
 				return {
 					render(_width: number): string[] {
 						const mascotLines = getPiMascot(theme);
-						// Add a subtitle with hint
-						const subtitle = theme.fg("muted", "   my shitty coding agent");
-						return [...mascotLines, subtitle];
+
+						// Get model info
+						const model = ctx.model;
+						const modelDisplay = model
+							? `${model.displayName || model.id}`
+							: "No model";
+
+						// Get abbreviated path
+						const displayPath = abbreviatePath(ctx.cwd);
+
+						// Build info text
+						const muted = (text: string) => theme.fg("muted", text);
+						const accent = (text: string) => theme.fg("accent", text);
+
+						// Info lines to display on the right (pi agent, not Claude Code)
+						const infoLines = [
+							accent("pi v0.52.9"), // pi agent version
+							muted(modelDisplay),
+							muted(displayPath),
+							muted("keep working on hard things"),
+						];
+
+						// Create the combined layout
+						const combined: string[] = [];
+						combined.push(""); // Empty line at top
+
+						// Combine mascot and info lines
+						for (let i = 0; i < Math.max(mascotLines.length, infoLines.length); i++) {
+							const mascotLine = mascotLines[i] || "";
+							const infoLine = infoLines[i] || "";
+
+							// Calculate visual width (strip ANSI codes)
+							const visualWidth = stripAnsi(mascotLine).length;
+							const padding = " ".repeat(Math.max(0, 18 - visualWidth)) + "  ";
+
+							combined.push(mascotLine + padding + infoLine);
+						}
+
+						combined.push(""); // Empty line at bottom
+
+						return combined;
 					},
 					invalidate() {},
 				};
