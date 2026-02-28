@@ -1,17 +1,12 @@
 {
-  "lastChangelogVersion": "0.52.9",
+  "lastChangelogVersion": "0.55.3",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-4-6",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "pave",
+  "defaultModel": "gpt-5.3-codex",
+  "defaultThinkingLevel": "medium",
   "enabledModels": [
-    "pave/gpt-5.2-codex",
-    "google-antigravity/gemini-3-flash",
-    "google-antigravity/gemini-3-pro-high",
-    "opencode/kimi-k2.5-free",
-    "anthropic/claude-opus-4-6",
-    "anthropic/claude-haiku-4-5"
+    "pave/gpt-5.3-codex"
   ],
   "quietStartup": true,
   "collapseChangelog": true,

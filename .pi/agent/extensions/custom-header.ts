@@ -30,7 +30,7 @@ function getPiMascot(theme: Theme): string[] {
 
 	// 2. Line 1: The Eyes
 	// 5 spaces indent aligns them with the start of the legs
-	const lineEyes = `     ${eye}  ${eye}`;
+	const lineEyes = `      ${eye}  ${eye}`;
 
 	// 3. Line 2: The Wide Top Bar (The "Overhang")
 	// 14 blocks wide for that serif-style roof
@@ -85,7 +85,7 @@ export default function (pi: ExtensionAPI) {
 							accent("pi v0.52.9"), // pi agent version
 							muted(modelDisplay),
 							muted(displayPath),
-							muted("keep working on hard things"),
+							theme.italic(muted("keep working on hard things")),
 						];
 
 						// Create the combined layout

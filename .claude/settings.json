@@ -30,7 +30,6 @@
     ],
     "defaultMode": "default"
   },
-  "model": "opus",
   "hooks": {
     "Stop": [
       {
@@ -43,10 +42,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bun ~/.claude/scripts/statusline/generate.ts"
-  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
@@ -55,5 +50,11 @@
     "typescript-lsp@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true
   },
-  "syntaxHighlightingDisabled": false
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "syntaxHighlightingDisabled": false,
+  "effortLevel": "medium",
+  "model": "sonnet"
 }

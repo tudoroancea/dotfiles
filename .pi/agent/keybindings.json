@@ -1,3 +1,11 @@
 {
-  "interrupt": "ctrl+alt+shift+i"
+  "selectModel": ["alt+m"],
+  "cursorDown": ["ctrl+j", "down"],
+  "cursorUp": ["ctrl+k", "up"],
+  "cursorLeft": ["ctrl+h", "left"],
+  "cursorRight": ["ctrl+l", "right"],
+  "cursorWordLeft": ["alt+h", "alt+left"],
+  "cursorWordRight": ["alt+l", "alt+right"],
+  "newLine": ["enter", "shift+enter"],
+  "submit": ["ctrl+enter"]
 }
