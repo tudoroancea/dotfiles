@@ -3,7 +3,7 @@
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
-  "defaultModel": "gpt-5.4",
+  "defaultModel": "gpt-5.3-codex",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.3-codex",
