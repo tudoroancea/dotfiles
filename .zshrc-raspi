@@ -93,7 +93,6 @@ alias build="./scripts/build.sh"
 # general tools configuration =====================================================
 eval "$(uv generate-shell-completion zsh)"
 export UV_PYTHON_PREFERENCE=only-managed
-export UV_PYTHON=3.12
 
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
@@ -139,3 +138,30 @@ source $ZSH/oh-my-zsh.sh
 
 # run zsh profiling
 # zprof
+
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'mamba init' !!
+export MAMBA_EXE='/home/raspi/y/micromamba';
+export MAMBA_ROOT_PREFIX='/home/raspi/y';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias micromamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
+
+# bun completions
+[ -s "/home/raspi/.bun/_bun" ] && source "/home/raspi/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+export PATH="$PATH:$HOME/pi"
+
+# opencode
+export PATH=/home/raspi/.opencode/bin:$PATH
+
+source ~/pave_api_key.sh
