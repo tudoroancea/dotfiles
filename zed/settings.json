@@ -1,7 +1,12 @@
 {
   // Editor
+  "agent_servers": {
+    "pi-acp": {
+      "type": "registry",
+    },
+  },
   "session": {
-    "trust_all_worktrees": true
+    "trust_all_worktrees": true,
   },
   "git_panel": {
     "tree_view": true,
@@ -42,6 +47,7 @@
   "terminal": {
     "copy_on_select": true,
     "font_family": "JetBrainsMono Nerd Font",
+    "font_weight": 400,
     "detect_venv": "off",
   },
   // Keymap
@@ -54,7 +60,7 @@
   "theme": {
     "mode": "system",
     "light": "Zed Legacy: Rosé Pine Dawn",
-    "dark": "Rosé Pine Moon",
+    "dark": "Zed Legacy: Rosé Pine",
   },
   "icon_theme": {
     "mode": "system",
@@ -85,30 +91,31 @@
   // LSP
   "format_on_save": "off",
   "enable_language_server": true,
+  // "language_servers": ["!biome"],
   "languages": {
     "YAML": {
       "tab_size": 2,
     },
-    "TypeScript": {
-      "formatter": [
-        {
-          "language_server": {
-            "name": "biome",
-          },
-        },
-        { "code_action": "source.organizeImports.biome" },
-      ],
-    },
-    "TSX": {
-      "formatter": [
-        {
-          "language_server": {
-            "name": "biome",
-          },
-        },
-        { "code_action": "source.organizeImports.biome" },
-      ],
-    },
+    // "TypeScript": {
+    //   "formatter": [
+    //     {
+    //       "language_server": {
+    //         "name": "biome",
+    //       },
+    //     },
+    //     { "code_action": "source.organizeImports.biome" },
+    //   ],
+    // },
+    // "TSX": {
+    //   "formatter": [
+    //     {
+    //       "language_server": {
+    //         "name": "biome",
+    //       },
+    //     },
+    //     { "code_action": "source.organizeImports.biome" },
+    //   ],
+    // },
     "JSON": {
       "tab_size": 2,
     },
@@ -159,49 +166,124 @@
       "args": [],
       "projects": [
         {
-          "paths": ["/home/ted/dev/anvil"],
+          "paths": [
+            "/home/raspi/dev/babyfoot_league"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/anvil/examples"],
+          "paths": [
+            "/home/ted/dev/anvil"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/stablehlo"],
+          "paths": [
+            "/home/ted/dev/anvil/examples"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/tinyanvil"],
+          "paths": [
+            "/home/ted/dev/stablehlo"
+          ]
         },
         {
-          "paths": ["~/dev"],
+          "paths": [
+            "/home/ted/dev/tinyanvil"
+          ]
         },
         {
-          "paths": ["~/dev/blasfeo"],
+          "paths": [
+            "/home/ubuntu/Documents/quanser-aero-tp-instructor/python"
+          ]
         },
         {
-          "paths": ["~/dev/brains2"],
+          "paths": [
+            "/home/ubuntu/Documents/robotics-practicals"
+          ]
         },
         {
-          "paths": ["~/dev/nanoGPT"],
+          "paths": [
+            "~/dev"
+          ]
         },
         {
-          "paths": ["~/dev/ngpt"],
+          "paths": [
+            "~/dev/blasfeo"
+          ]
         },
         {
-          "paths": ["~/dev/pymanopt"],
+          "paths": [
+            "~/dev/brains2"
+          ]
         },
         {
-          "paths": ["~/dev/tadam"],
+          "paths": [
+            "~/dev/nanoGPT"
+          ]
         },
-      ],
+        {
+          "paths": [
+            "~/dev/ngpt"
+          ]
+        },
+        {
+          "paths": [
+            "~/dev/pymanopt"
+          ]
+        },
+        {
+          "paths": [
+            "~/dev/tadam"
+          ]
+        }
+      ]
     },
     {
       "host": "miranda",
       "args": [],
       "projects": [
         {
-          "paths": ["/home/tudor/dev/tinyanvil"],
-        },
-      ],
+          "paths": [
+            "/home/tudor/dev/tinyanvil"
+          ]
+        }
+      ]
     },
+    {
+      "host": "Lab",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "Lab",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "Lab",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/ubuntu/Documents/quanser-aero-tp-instructor"
+          ]
+        }
+      ]
+    },
+    {
+      "host": "raspi",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "raspi",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "LA017",
+      "args": [],
+      "projects": []
+    }
   ],
   // AI
   "show_edit_predictions": true,

@@ -13,7 +13,9 @@
       "Bash(bun add:*)",
       "Bash(bun x biome:*)",
       "Bash(uv run python:*)",
-      "Bash(uv run pytest:*)"
+      "Bash(uv run pytest:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs"
     ],
     "deny": [
       "Bash(bun run dev:*)",
@@ -42,6 +44,10 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
@@ -50,11 +56,6 @@
     "typescript-lsp@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
-  },
   "syntaxHighlightingDisabled": false,
-  "effortLevel": "medium",
   "model": "sonnet"
 }

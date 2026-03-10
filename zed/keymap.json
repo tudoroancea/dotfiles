@@ -107,10 +107,10 @@
 			"g [": ["workspace::SendKeystrokes", "^ t ["],
 			"g {": ["workspace::SendKeystrokes", "^ t {"],
 			"g shift-d": "editor::GoToDefinitionSplit",
-			// "space s j": "pane::SplitDown",
-			// "space s k": "pane::SplitUp",
-			// "space s h": "pane::SplitLeft",
-			// "space s l": "pane::SplitRight",
+			"ctrl-alt-j": "pane::SplitAndMoveDown",
+			"ctrl-alt-k": "pane::SplitAndMoveUp",
+			"ctrl-alt-h": "pane::SplitAndMoveLeft",
+			"ctrl-alt-l": "pane::SplitAndMoveRight",
 			// "space s s": "pane::SplitHorizontal",
 			// "space s v": "pane::SplitVertical"
 		}
