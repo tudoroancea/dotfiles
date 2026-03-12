@@ -1,0 +1,77 @@
+model = "gpt-5.4"
+model_provider = "azure"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+plan_mode_reasoning_effort = "high"
+
+[model_providers.azure]
+name = "Azure OpenAI"
+base_url = "https://pave-openai-sweden-central.cognitiveservices.azure.com/openai/v1"
+env_key = "AZURE_OPENAI_API_KEY"
+wire_api = "responses"
+
+[projects."/Users/tudoroancea/dev/tinyanvil"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/tinygrad"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/zigbind"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/tanstack-start-pwa/codex"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/laopt"]
+trust_level = "untrusted"
+
+[projects."/Users/tudoroancea/dev/hexahedron2/hexahedron2"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dotfiles"]
+trust_level = "untrusted"
+
+[projects."/Users/tudoroancea/dev/hexahedron2"]
+trust_level = "untrusted"
+
+[projects."/Users/tudoroancea/Library/Mobile Documents/iCloud~md~obsidian/Documents/Ted/phd/kernels"]
+trust_level = "untrusted"
+
+[projects."/Users/tudoroancea/dev/piqp"]
+trust_level = "untrusted"
+
+[projects."/Users/tudoroancea/dev/bourbaki"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/anvil"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/babyfoot_league"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/openforces"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/.local/share/opencode/worktree/007c7198c77e5cac072cb1aa9b99ccd580647781/curious-otter"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/tests/bun-hono"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/t3code"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/robotics-practicals"]
+trust_level = "trusted"
+
+[notice]
+hide_gpt5_1_migration_prompt = true
+"hide_gpt-5.1-codex-max_migration_prompt" = true
+
+[notice.model_migrations]
+"gpt-5.2" = "gpt-5.2-codex"
+"gpt-5.3-codex" = "gpt-5.4"
+
+[features]
+steer = true
+unified_exec = false

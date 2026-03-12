@@ -57,5 +57,5 @@
     "lua-lsp@claude-plugins-official": true
   },
   "syntaxHighlightingDisabled": false,
-  "model": "opus"
+  "skipDangerousModePermissionPrompt": true
 }

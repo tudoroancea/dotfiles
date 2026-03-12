@@ -1,5 +1,18 @@
 {
   // Editor
+  "ssh_connections": [
+    {
+      "host": "LA015",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/ted/dev/anvil2/./"
+          ]
+        }
+      ]
+    }
+  ],
   "agent_servers": {
     "pi-acp": {
       "type": "registry",
@@ -160,131 +173,6 @@
     },
   },
   // Remote
-  "ssh_connections": [
-    {
-      "host": "thebeauty",
-      "args": [],
-      "projects": [
-        {
-          "paths": [
-            "/home/raspi/dev/babyfoot_league"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ted/dev/anvil"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ted/dev/anvil/examples"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ted/dev/stablehlo"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ted/dev/tinyanvil"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ubuntu/Documents/quanser-aero-tp-instructor/python"
-          ]
-        },
-        {
-          "paths": [
-            "/home/ubuntu/Documents/robotics-practicals"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/blasfeo"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/brains2"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/nanoGPT"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/ngpt"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/pymanopt"
-          ]
-        },
-        {
-          "paths": [
-            "~/dev/tadam"
-          ]
-        }
-      ]
-    },
-    {
-      "host": "miranda",
-      "args": [],
-      "projects": [
-        {
-          "paths": [
-            "/home/tudor/dev/tinyanvil"
-          ]
-        }
-      ]
-    },
-    {
-      "host": "Lab",
-      "args": [],
-      "projects": []
-    },
-    {
-      "host": "Lab",
-      "args": [],
-      "projects": []
-    },
-    {
-      "host": "Lab",
-      "args": [],
-      "projects": [
-        {
-          "paths": [
-            "/home/ubuntu/Documents/quanser-aero-tp-instructor"
-          ]
-        }
-      ]
-    },
-    {
-      "host": "raspi",
-      "args": [],
-      "projects": []
-    },
-    {
-      "host": "raspi",
-      "args": [],
-      "projects": []
-    },
-    {
-      "host": "LA017",
-      "args": [],
-      "projects": []
-    }
-  ],
   // AI
   "show_edit_predictions": true,
   "edit_predictions": {

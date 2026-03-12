@@ -17,5 +17,9 @@
   "followUpMode": "all",
   "steeringMode": "all",
   "doubleEscapeAction": "tree",
-  "packages": []
+  "packages": [
+    "npm:pi-web-access",
+    "npm:pi-subagents",
+    "npm:pi-boomerang"
+  ]
 }
