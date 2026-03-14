@@ -3,7 +3,7 @@
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
-  "defaultModel": "gpt-5.3-codex",
+  "defaultModel": "gpt-5.4",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.3-codex",
@@ -18,8 +18,27 @@
   "steeringMode": "all",
   "doubleEscapeAction": "tree",
   "packages": [
-    "npm:pi-web-access",
-    "npm:pi-subagents",
-    "npm:pi-boomerang"
+    {
+      "source": "npm:pi-web-access",
+      "extensions": [
+        "+index.ts"
+      ],
+      "skills": [
+        "+skills/librarian/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:pi-subagents",
+      "extensions": [
+        "+index.ts",
+        "+notify.ts"
+      ]
+    },
+    {
+      "source": "npm:pi-boomerang",
+      "extensions": [
+        "+index.ts"
+      ]
+    }
   ]
 }

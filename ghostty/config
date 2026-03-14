@@ -17,6 +17,6 @@ macos-titlebar-style = tabs
 #keybind = unconsumed:ctrl+l=goto_split:right
 
 # see https://ghostty.org/docs/help/terminfo#ssh
-shell-integration-features = ssh-terminfo
+# shell-integration-features = ssh-terminfo
 
 macos-option-as-alt = true
