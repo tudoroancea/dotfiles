@@ -99,7 +99,6 @@
     "lua": true,
     "sql": true,
     "log": true,
-    "matlab": true,
   },
   // LSP
   "format_on_save": "off",
@@ -184,8 +183,10 @@
   "agent": {
     "default_profile": "ask",
     "default_model": {
-      "provider": "openrouter",
-      "model": "openrouter/free",
+      "effort": "high",
+      "enable_thinking": true,
+      "provider": "zed.dev",
+      "model": "claude-sonnet-4-6",
     },
     "inline_assistant_model": {
       "provider": "openrouter",

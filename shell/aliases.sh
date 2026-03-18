@@ -42,6 +42,7 @@ submodule_rm() {
   rm -rf .git/modules/"$1"
 }
 alias oc="opencode"
+alias clauded="claude --dangerously-skip-permissions"
 
 # mamba aliases
 alias ma=mamba

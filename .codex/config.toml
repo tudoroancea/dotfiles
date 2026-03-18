@@ -75,3 +75,4 @@ hide_gpt5_1_migration_prompt = true
 [features]
 steer = true
 unified_exec = false
+multi_agent = true

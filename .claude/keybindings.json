@@ -7,7 +7,6 @@
       "bindings": {
         "esc esc": "chat:cancel",
         "cmd-enter": "chat:submit",
-        "esc": null,
         "enter": null
       }
     }
