@@ -5,9 +5,6 @@
     {
       "context": "Chat",
       "bindings": {
-        "esc esc": "chat:cancel",
-        "cmd-enter": "chat:submit",
-        "enter": null
       }
     }
   ]

@@ -1,0 +1,9 @@
+[projects."github.com/PREDICT-EPFL/anvil"]
+approved-commands = [
+    "uv run ruff format --check",
+    "uv run ruff check",
+    "uv run pytest -n=auto --ignore=tests/integration",
+    "uv run pytest tests/integration",
+    "uv run ty check",
+    "wt step copy-ignored",
+]

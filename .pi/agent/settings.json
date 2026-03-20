@@ -1,16 +1,16 @@
 {
-  "lastChangelogVersion": "0.58.4",
+  "lastChangelogVersion": "0.61.0",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "opencode-go",
-  "defaultModel": "minimax-m2.5",
+  "defaultModel": "minimax-m2.7",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.3-codex",
     "pave/gpt-5.4",
     "opencode-go/glm-5",
     "opencode-go/kimi-k2.5",
-    "opencode-go/minimax-m2.5"
+    "opencode-go/minimax-m2.7"
   ],
   "quietStartup": true,
   "collapseChangelog": true,

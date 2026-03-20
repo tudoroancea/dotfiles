@@ -181,9 +181,9 @@
     "enabled_in_text_threads": true,
   },
   "agent": {
-    "default_profile": "ask",
+    "default_profile": "write",
     "default_model": {
-      "effort": "high",
+      "effort": "medium",
       "enable_thinking": true,
       "provider": "zed.dev",
       "model": "claude-sonnet-4-6",
