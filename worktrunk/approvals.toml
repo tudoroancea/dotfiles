@@ -7,3 +7,11 @@ approved-commands = [
     "uv run ty check",
     "wt step copy-ignored",
 ]
+
+[projects."github.com/tudoroancea/babyfoot_league"]
+approved-commands = [
+    "bun run typecheck",
+    "bun run lint",
+    "bun run fmt",
+    "bun run test:e2e",
+]

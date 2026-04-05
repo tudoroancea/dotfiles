@@ -1,4 +1,5 @@
 {
+  "restore_on_startup": "empty_tab",
   // Editor
   "ssh_connections": [
     {
@@ -6,12 +7,10 @@
       "args": [],
       "projects": [
         {
-          "paths": [
-            "/home/ted/dev/anvil2/./"
-          ]
-        }
-      ]
-    }
+          "paths": ["/home/ted/dev/anvil2/./"],
+        },
+      ],
+    },
   ],
   "agent_servers": {
     "pi-acp": {
@@ -175,10 +174,18 @@
   // AI
   "show_edit_predictions": true,
   "edit_predictions": {
-    "provider": "copilot",
+    "provider": "zed",
     "disabled_globs": ["*.mlir"],
     "mode": "subtle",
     "enabled_in_text_threads": true,
+    // "provider": "open_ai_compatible_api",
+    // "open_ai_compatible_api": {
+    //   "api_url": "http://localhost:8080/v1/completions",
+    //   // "model": "zed-industries_zeta-2-Q4_K_M.gguf",
+
+    //   "prompt_format": "zeta2",
+    //   "max_output_tokens": 256,
+    // },
   },
   "agent": {
     "default_profile": "write",

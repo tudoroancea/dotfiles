@@ -1,23 +1,22 @@
-auto-update-channel = tip
+#### see https://ghostty.org/docs/config
+#### appearence
 font-family = JetBrainsMono Nerd Font Mono
 font-style = SemiBold
 font-size = 12
 theme = dark:Rose Pine,light:Rose Pine Dawn
+macos-titlebar-style = tabs
+macos-icon = "blueprint"
+# background-opacity = 0.85
+# background-blur = true
+#### behavior
 copy-on-select = true
-# quit-after-last-window-closed = true
 focus-follows-mouse = true
 unfocused-split-opacity = 1
-# background-opacity = 0.85
-background-blur = true
-macos-titlebar-style = tabs
-
+shell-integration-features = ssh-env
+#### keybinds
+macos-option-as-alt = true
 keybind = cmd+enter=unbind
 #keybind = unconsumed:ctrl+k=goto_split:top
 #keybind = unconsumed:ctrl+j=goto_split:bottom
 #keybind = unconsumed:ctrl+h=goto_split:left
 #keybind = unconsumed:ctrl+l=goto_split:right
-
-# see https://ghostty.org/docs/help/terminfo#ssh
-# shell-integration-features = ssh-terminfo
-
-macos-option-as-alt = true

@@ -46,6 +46,26 @@
           "cost": {"input": 2.5, "output": 15, "cacheRead": 0.25, "cacheWrite": 0}
         }
       ]
+    },
+    "llamacpp": {
+      "baseUrl": "http://localhost:2276/v1",
+      "apiKey": "llama.cpp",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "gemma-4-26b-a4b-q4",
+          "name": "Gemma 4 26B A4B Q4 (local llama.cpp)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 131072,
+          "maxTokens": 16384,
+          "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0},
+          "compat": {
+            "supportsDeveloperRole": false,
+            "maxTokensField": "max_tokens"
+          }
+        }
+      ]
     }
   }
 }

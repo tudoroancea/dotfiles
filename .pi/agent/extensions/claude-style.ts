@@ -1,10 +1,38 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
+import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
+import { getAgentDir, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { truncateToWidth } from "@mariozechner/pi-tui";
+
+type CollapsedToolCallMode = "hidden" | "excerpt";
+
+function getCollapsedToolCallMode(settings: any): CollapsedToolCallMode | undefined {
+  const mode = settings?.claudeStyle?.collapsedToolCalls;
+  return mode === "hidden" || mode === "excerpt" ? mode : undefined;
+}
+
+function loadCollapsedToolCallMode(cwd: string): CollapsedToolCallMode {
+  let mode: CollapsedToolCallMode = "hidden";
+  const settingsPaths = [path.join(getAgentDir(), "settings.json"), path.join(cwd, ".pi", "settings.json")];
+
+  for (const settingsPath of settingsPaths) {
+    if (!existsSync(settingsPath)) continue;
+
+    try {
+      const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
+      mode = getCollapsedToolCallMode(settings) ?? mode;
+    } catch {
+      // Ignore invalid/unreadable settings here and fall back to default/current mode.
+    }
+  }
+
+  return mode;
+}
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     if (!ctx.hasUI) return;
+
+    const collapsedToolCallMode = loadCollapsedToolCallMode(ctx.cwd);
 
     ctx.ui.custom((tui, theme, _kb, done) => {
       const isAssistantComponent = (c: any) => 
@@ -14,6 +42,10 @@ export default function (pi: ExtensionAPI) {
       const isToolComponent = (c: any) => 
         c.constructor.name === "ToolExecutionComponent" || 
         (typeof c.updateResult === 'function' && typeof c.updateArgs === 'function');
+
+      const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, '');
+      const ellipsize = (text: string, max: number) =>
+        text.length > max ? `${text.slice(0, max)}...` : text;
 
       const getHexColor = (type: "success" | "error" | "successBg" | "errorBg" | "dim") => {
         // Simple dark mode detection based on text color brightness
@@ -171,6 +203,118 @@ export default function (pi: ExtensionAPI) {
         let lastExpanded: boolean | undefined;
         let lastArgs: string | undefined;
 
+        const buildPreviewLines = (width: number, maxLines?: number): string[] => {
+          if (tool.toolName === "todo") {
+            const action = tool.args?.action;
+            const text = tool.args?.text;
+            const id = tool.args?.id;
+            const lines: string[] = [];
+
+            if (action === "add") {
+              if (maxLines !== undefined && text) {
+                lines.push(truncateToWidth(` ⎿ ${theme.fg("dim", `Added todo: \"${ellipsize(text, 50)}\"`)}`, width));
+              }
+            } else if (action === "toggle") {
+              let todoText = text;
+              const details = tool.result?.details;
+              if (!todoText && details?.todos && id !== undefined) {
+                const todo = details.todos.find((t: any) => t.id === id);
+                todoText = todo?.text;
+              }
+              if (maxLines !== undefined) {
+                const summary = todoText ? `Toggled todo: \"${ellipsize(todoText, 50)}\"` : "Toggled todo";
+                lines.push(truncateToWidth(` ⎿ ${theme.fg("dim", summary)}`, width));
+              }
+            } else if (action === "list") {
+              const todos = tool.result?.todos || tool.result?.details?.todos || [];
+              for (const t of todos) {
+                const mark = t.completed ? "✓" : "○";
+                lines.push(truncateToWidth(` ⎿ ${mark} ${t.text}`, width));
+                if (maxLines !== undefined && lines.length >= maxLines) break;
+              }
+            } else {
+              lines.push(truncateToWidth(` ⎿ ${theme.fg("dim", action || "unknown")}`, width));
+            }
+
+            return maxLines !== undefined ? lines.slice(0, maxLines) : lines;
+          }
+
+          if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
+            const output = tool.getTextOutput() || "";
+            const lineCount = output === "" ? 0 : output.split('\n').length;
+            return [truncateToWidth(` ⎿ ${theme.fg("dim", `Read ${lineCount} lines`)}`, width)];
+          }
+
+          const originalLines = originalRender(Math.max(1, width - 4));
+          let skipCount = 0;
+          for (let i = 0; i < Math.min(originalLines.length, 5); i++) {
+            const line = originalLines[i];
+            const plain = stripAnsi(line).trim();
+            if (plain === "" && i > 0 && i < 3) {
+              skipCount = i + 1;
+              break;
+            }
+          }
+          if (skipCount === 0 && originalLines.length > 0) {
+            const firstPlain = stripAnsi(originalLines[0]).toLowerCase();
+            if (firstPlain.includes(tool.toolName.toLowerCase()) || firstPlain.startsWith("$ ")) {
+              skipCount = 1;
+              if (originalLines[1] && stripAnsi(originalLines[1]).trim() === "") {
+                skipCount = 2;
+              }
+            }
+          }
+
+          const contentLines = originalLines.slice(skipCount);
+          const previewLines: string[] = [];
+          let contentStarted = false;
+
+          for (let i = 0; i < contentLines.length; i++) {
+            let line = contentLines[i];
+            if (!contentStarted && line.trim() === "") continue;
+
+            if (tool.toolName === "edit") {
+              const plainLine = stripAnsi(line);
+              const match = plainLine.match(/^([+-])(\s*\d*)\s(.*)$/);
+              if (match) {
+                const [_, sign, lineNum, rest] = match;
+                const bgColor = sign === "+" ? getHexColor("successBg") : getHexColor("errorBg");
+                const dotColor = sign === "+" ? getHexColor("success") : getHexColor("error");
+                line = bgColor + dotColor + sign + theme.fg("dim", lineNum) + "\x1b[0m" + bgColor + " " + rest + "\x1b[0m";
+              } else {
+                const contextMatch = plainLine.match(/^(\s)(\s*\d*)\s(.*)$/);
+                if (contextMatch) {
+                  const [_, sign, lineNum, rest] = contextMatch;
+                  line = sign + theme.fg("dim", lineNum) + " " + rest;
+                }
+              }
+            }
+            
+            const prefix = !contentStarted ? " ⎿ " : "   ";
+            previewLines.push(truncateToWidth(prefix + line, width));
+            contentStarted = true;
+
+            if (maxLines !== undefined && previewLines.length >= maxLines) {
+              break;
+            }
+          }
+
+          if (!contentStarted && !tool.isPartial) {
+            if (tool.result?.isError) {
+              const errorText = tool.getTextOutput() || "";
+              if (errorText.includes("Validation failed")) {
+                previewLines.push(truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width));
+              } else {
+                previewLines.push(truncateToWidth(" ⎿ " + theme.fg("error", errorText), width));
+              }
+            } else {
+              previewLines.push(truncateToWidth(" ⎿ " + theme.fg("dim", "(no output)"), width));
+            }
+          }
+
+          return maxLines !== undefined ? previewLines.slice(0, maxLines) : previewLines;
+        };
+
         tool.render = (width: number) => {
           const currentResultId = tool.result;
           const currentExpanded = tool.expanded;
@@ -209,92 +353,9 @@ export default function (pi: ExtensionAPI) {
           let result: string[] = ["", truncatedHeader];
 
           if (tool.expanded) {
-            if (tool.toolName === "todo") {
-              const action = tool.args?.action;
-              const text = tool.args?.text;
-              const id = tool.args?.id;
-              
-              if (action === "add") {
-                // result.push(` ⎿ ${theme.fg("success", "Added todo")}: "${text}"`);
-              } else if (action === "toggle") {
-                // result.push(` ⎿ ${theme.fg("dim", "Toggled todo")}: "${text}"`);
-              } else if (action === "list") {
-                const todos = tool.result?.todos || [];
-                for (const t of todos) {
-                  const mark = t.completed ? "✓" : "○";
-                  result.push(` ⎿ ${mark} ${t.text}`);
-                }
-              } else {
-                result.push(` ⎿ ${theme.fg("dim", action || "unknown")}`);
-              }
-            } else if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
-               const output = tool.getTextOutput() || "";
-               const lines = output.split('\n');
-               const lineCount = lines.length;
-               result.push(` ⎿ ${theme.fg("dim", `Read ${lineCount} lines`)}`);
-            } else {
-              const originalLines = originalRender(width - 4);
-              let skipCount = 0;
-              for (let i = 0; i < Math.min(originalLines.length, 5); i++) {
-                const line = originalLines[i];
-                const plain = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
-                if (plain === "" && i > 0 && i < 3) {
-                  skipCount = i + 1;
-                  break;
-                }
-              }
-              if (skipCount === 0 && originalLines.length > 0) {
-                const firstPlain = originalLines[0].replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-                if (firstPlain.includes(tool.toolName.toLowerCase()) || firstPlain.startsWith("$ ")) {
-                  skipCount = 1;
-                  if (originalLines[1] && originalLines[1].replace(/\x1b\[[0-9;]*m/g, '').trim() === "") {
-                    skipCount = 2;
-                  }
-                }
-              }
-
-              const contentLines = originalLines.slice(skipCount);
-              
-              let contentStarted = false;
-              for (let i = 0; i < contentLines.length; i++) {
-                let line = contentLines[i];
-                if (!contentStarted && line.trim() === "") continue;
-
-                if (tool.toolName === "edit") {
-                  const plainLine = line.replace(/\x1b\[[0-9;]*m/g, '');
-                  const match = plainLine.match(/^([+-])(\s*\d*)\s(.*)$/);
-                  if (match) {
-                    const [_, sign, lineNum, rest] = match;
-                    const bgColor = sign === "+" ? getHexColor("successBg") : getHexColor("errorBg");
-                    const dotColor = sign === "+" ? getHexColor("success") : getHexColor("error");
-                    line = bgColor + dotColor + sign + theme.fg("dim", lineNum) + "\x1b[0m" + bgColor + " " + rest + "\x1b[0m";
-                  } else {
-                    const contextMatch = plainLine.match(/^(\s)(\s*\d*)\s(.*)$/);
-                    if (contextMatch) {
-                      const [_, sign, lineNum, rest] = contextMatch;
-                      line = " " + theme.fg("dim", lineNum) + " " + rest;
-                    }
-                  }
-                }
-                
-                const prefix = !contentStarted ? " ⎿ " : "   ";
-                result.push(truncateToWidth(prefix + line, width));
-                contentStarted = true;
-              }
-
-              if (!contentStarted && !tool.isPartial) {
-                if (tool.result?.isError) {
-                  const errorText = tool.getTextOutput() || "";
-                  if (errorText.includes("Validation failed")) {
-                    result.push(truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width));
-                  } else {
-                    result.push(truncateToWidth(" ⎿ " + theme.fg("error", errorText), width));
-                  }
-                } else {
-                  result.push(truncateToWidth(" ⎿ " + theme.fg("dim", "(no output)"), width));
-                }
-              }
-            }
+            result.push(...buildPreviewLines(width));
+          } else if (collapsedToolCallMode === "excerpt") {
+            result.push(...buildPreviewLines(width, 1));
           }
 
           cachedWidth = width;

@@ -3,6 +3,7 @@ model_provider = "azure"
 model_reasoning_effort = "high"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "high"
+approvals_reviewer = "user"
 
 [model_providers.azure]
 name = "Azure OpenAI"
@@ -76,3 +77,6 @@ hide_gpt5_1_migration_prompt = true
 steer = true
 unified_exec = false
 multi_agent = true
+
+[tui]
+status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-used"]

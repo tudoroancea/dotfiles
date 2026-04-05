@@ -4,3 +4,6 @@
 - In python projects containing a venv called `.venv`, unless otherwise mentioned, always use `uv run python` to spawn an interpreter, `uv run pytest` to call pytest, `uv run <module>` to run a python file, etc. NEVER activate the venv to use python directly.
 - When asked to perform a task, DO NOT start writing a plethora of markdown files to explain everything you did. You will be asked to if you need to.
 - If there is one, use the local `AGENTS.md` file to store your knowledge about the project, user preferences, important implementation details that might be reused later like how to fix certain bugs, etc.
+
+## Notes
+- `agent/extensions/worktrunk-statusline.ts` replaces pi's footer with `wt list statusline --format=claude-code`, passes model/context via stdin JSON, and mirrors pi activity into worktrunk markers (`🤖` while running, `💬` while idle).
