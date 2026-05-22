@@ -1,5 +1,16 @@
 {
-  "restore_on_startup": "empty_tab",
+  "diff_view_style": "split",
+  "cli_default_open_behavior": "existing_window",
+  "project_panel": {
+    "dock": "right",
+  },
+  "outline_panel": {
+    "dock": "right",
+  },
+  "collaboration_panel": {
+    "dock": "right",
+  },
+  "restore_on_startup": "launchpad",
   // Editor
   "ssh_connections": [
     {
@@ -7,20 +18,63 @@
       "args": [],
       "projects": [
         {
-          "paths": ["/home/ted/dev/anvil2/./"],
+          "paths": [
+            "/home/ted/dev/anvil2/./"
+          ]
         },
-      ],
+        {
+          "paths": [
+            "/home/tudor"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ubuntu/Documents/robotics-practicals"
+          ]
+        }
+      ]
     },
+    {
+      "host": "LA016",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "predict",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/tudor/dev/alloy"
+          ]
+        }
+      ]
+    }
   ],
   "agent_servers": {
+    "claude-acp": {
+      "favorite_config_option_values": {
+        "model": ["default"],
+        "mode": ["auto"],
+      },
+      "default_config_options": {
+        "model": "default",
+        "mode": "bypassPermissions",
+      },
+      "type": "registry",
+    },
+    "codex-acp": {
+      "type": "registry",
+    },
     "pi-acp": {
       "type": "registry",
     },
   },
   "session": {
-    "trust_all_worktrees": true,
+    "trust_all_worktrees": false,
   },
   "git_panel": {
+    "dock": "right",
     "tree_view": true,
   },
   "use_smartcase_search": true,
@@ -174,6 +228,17 @@
   // AI
   "show_edit_predictions": true,
   "edit_predictions": {
+    "open_ai_compatible_api": {
+      "api_url": "http://localhost:8080/v1/completions",
+      "max_output_tokens": 1024,
+      "prompt_format": "zeta2",
+      "model": "bartowski/zed-industries_zeta-2-GGUF",
+    },
+    "ollama": {
+      "max_output_tokens": 1024,
+      "prompt_format": "zeta2",
+      "api_url": "http://localhost:2276/v1",
+    },
     "provider": "zed",
     "disabled_globs": ["*.mlir"],
     "mode": "subtle",
@@ -188,6 +253,14 @@
     // },
   },
   "agent": {
+    "enable_feedback": false,
+    "play_sound_when_agent_done": "when_hidden",
+    "expand_edit_card": false,
+    "expand_terminal_card": false,
+    "cancel_generation_on_terminal_stop": false,
+    "show_turn_stats": true,
+    "use_modifier_to_send": true,
+    "dock": "left",
     "default_profile": "write",
     "default_model": {
       "effort": "medium",
@@ -196,8 +269,8 @@
       "model": "claude-sonnet-4-6",
     },
     "inline_assistant_model": {
-      "provider": "openrouter",
-      "model": "openrouter/free",
+      "provider": "zed.dev",
+      "model": "claude-sonnet-4-6",
     },
     "enabled": true,
   },

@@ -95,7 +95,7 @@ async function triggerConfetti() {
 	if (!shouldNotify()) return;
 	// Only run on macOS
 	if (process.platform === "darwin") {
-		exec("open -g raycast://extensions/raycast/raycast/confetti");
+		exec("open -g raycast-x://extensions/raycast/raycast/confetti");
 	}
 }
 

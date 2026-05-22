@@ -1,4 +1,4 @@
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_provider = "azure"
 model_reasoning_effort = "high"
 personality = "pragmatic"
@@ -65,6 +65,12 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/dev/robotics-practicals"]
 trust_level = "trusted"
 
+[projects."/Users/tudoroancea/Desktop/phd/candidacy"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/controls_challenge"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true
@@ -77,6 +83,38 @@ hide_gpt5_1_migration_prompt = true
 steer = true
 unified_exec = false
 multi_agent = true
+terminal_resize_reflow = true
+goals = true
 
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-used"]
+
+[tui.model_availability_nux]
+"gpt-5.5" = 2
+
+[marketplaces.openai-bundled]
+last_updated = "2026-05-16T14:13:09Z"
+source_type = "local"
+source = "/Users/tudoroancea/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-16T13:13:58Z"
+source_type = "local"
+source = "/Users/tudoroancea/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[hooks.state]
+
+[hooks.state."/Users/tudoroancea/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:40a02a817f671c861fab27b7e6d0dbdef8635e5d230b47afaf57abbe936a6326"

@@ -1,3 +1,21 @@
+[projects."/Users/tudoroancea/dev/alloy"]
+approved-commands = [
+    "uv run ty check",
+    "uv run ruff format --check",
+    "uv run ruff check",
+    "uv run pytest -n=auto",
+    "uv run pytest -n=auto tests",
+]
+
+[projects."github.com/PREDICT-EPFL/alloy"]
+approved-commands = [
+    "wt step copy-ignored",
+    "uv run ty check",
+    "uv run ruff format --check",
+    "uv run ruff check",
+    "uv run pytest -n=auto tests",
+]
+
 [projects."github.com/PREDICT-EPFL/anvil"]
 approved-commands = [
     "uv run ruff format --check",

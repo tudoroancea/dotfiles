@@ -107,3 +107,8 @@ esac
 # opencode
 export PATH=/Users/tudoroancea/.opencode/bin:$PATH
 
+export GEMFURY_TOKEN="DNruk-h7GTz1EeMJL9vxJeBdxd3Qr3Hko"
+export UV_INDEX_MOREAU_USERNAME="$GEMFURY_TOKEN"
+export UV_INDEX_MOREAU_PASSWORD=""
+
+export PATH="$PATH:$HOME/.cargo/bin"

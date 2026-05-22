@@ -1,17 +1,17 @@
 {
-  "lastChangelogVersion": "0.66.1",
+  "lastChangelogVersion": "0.75.4",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
-  "defaultProvider": "llamacpp",
-  "defaultModel": "gemma-4-26b-a4b-q4",
-  "defaultThinkingLevel": "low",
+  "defaultProvider": "pave",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.3-codex",
     "pave/gpt-5.4",
     "opencode-go/glm-5",
     "opencode-go/kimi-k2.5",
     "opencode-go/minimax-m2.7",
-    "llamacpp/gemma-4-26b-a4b-q4"
+    "pave/gpt-5.5"
   ],
   "quietStartup": true,
   "collapseChangelog": true,
@@ -29,38 +29,28 @@
       ]
     },
     {
-      "source": "npm:pi-subagents",
-      "extensions": [
-        "-index.ts",
-        "-notify.ts"
-      ]
-    },
-    {
       "source": "npm:pi-boomerang",
       "extensions": [
         "+index.ts"
       ]
     },
     {
-      "source": "https://github.com/davebcn87/pi-autoresearch",
-      "extensions": [
-        "-extensions/pi-autoresearch/index.ts"
-      ],
+      "source": "git:github.com/championswimmer/pi-context-usage",
       "skills": [
-        "-skills/autoresearch-create/SKILL.md",
-        "-skills/autoresearch-finalize/SKILL.md"
+        "-.agents/skills/planning/SKILL.md",
+        "-.agents/skills/release/SKILL.md"
       ]
     },
-    {
-      "source": "git:https://github.com/badlogic/pi-diff-review",
-      "extensions": [
-        "-src/index.ts"
-      ]
-    },
-    "git:github.com/championswimmer/pi-context-usage",
-    "npm:pi-read-mode"
+    "npm:pi-goal",
+    "npm:pi-tool-display"
   ],
   "claudeStyle": {
     "collapsedToolCalls": "excerpt"
-  }
+  },
+  "extensions": [
+    "-extensions/claude-style.ts"
+  ],
+  "skills": [
+    "-skills/frontend-design/SKILL.md"
+  ]
 }

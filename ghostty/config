@@ -1,11 +1,12 @@
 #### see https://ghostty.org/docs/config
+auto-update-channel = stable
 #### appearence
 font-family = JetBrainsMono Nerd Font Mono
 font-style = SemiBold
 font-size = 12
 theme = dark:Rose Pine,light:Rose Pine Dawn
 macos-titlebar-style = tabs
-macos-icon = "blueprint"
+macos-icon = "xray"
 # background-opacity = 0.85
 # background-blur = true
 #### behavior

@@ -19,7 +19,10 @@
       "Bash(uv run python:*)",
       "Bash(uv run pytest:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs"
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(typst compile:*)",
+      "Bash(mdls -name kMDItemNumberOfPages /Users/tudoroancea/Desktop/phd/candidacy/report.pdf)",
+      "WebFetch(domain:touying-typ.github.io)"
     ],
     "deny": [
       "Bash(bun run dev:*)",
@@ -34,7 +37,7 @@
       "Bash(uv sync)",
       "Bash(uv add:*)"
     ],
-    "defaultMode": "default"
+    "defaultMode": "auto"
   },
   "hooks": {
     "Stop": [
@@ -42,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "open -g \"raycast://extensions/raycast/raycast/confetti\""
+            "command": "open -g \"raycast-x://extensions/raycast/raycast/confetti\""
           }
         ]
       }
@@ -59,13 +62,20 @@
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true,
-    "worktrunk@worktrunk": true
+    "worktrunk@worktrunk": true,
+    "warp@claude-code-warp": true
   },
   "extraKnownMarketplaces": {
     "worktrunk": {
       "source": {
         "source": "github",
         "repo": "max-sixty/worktrunk"
+      }
+    },
+    "claude-code-warp": {
+      "source": {
+        "source": "github",
+        "repo": "warpdotdev/claude-code-warp"
       }
     }
   },
@@ -461,8 +471,13 @@
     ]
   },
   "syntaxHighlightingDisabled": false,
-  "effortLevel": "medium",
-  "voiceEnabled": true,
+  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
-  "model": "sonnet"
+  "theme": "auto",
+  "editorMode": "vim",
+  "preferredNotifChannel": "auto",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }

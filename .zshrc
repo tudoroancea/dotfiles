@@ -16,6 +16,7 @@ export LC_ALL="en_US.UTF-8"
 
 # general functions and aliases
 source $HOME/dotfiles/shell/aliases.sh
+export CLAUDE_CODE_NO_FLICKER=1
 
 # machine specific config
 if [[ "$(uname -s)" == "Darwin" ]]; then
