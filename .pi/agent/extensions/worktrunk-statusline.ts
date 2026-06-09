@@ -1,5 +1,5 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
 
 const MARKERS = {
@@ -11,6 +11,13 @@ const STATUSLINE_REFRESH_MS = 15_000;
 const WT_TIMEOUT_MS = 4_000;
 
 type AgentState = keyof typeof MARKERS;
+
+type StatuslineSnapshot = {
+  cwd: string;
+  hasUI: boolean;
+  modelDisplayName?: string;
+  contextPercent?: number;
+};
 
 type CommandResult = {
   stdout: string;
@@ -101,17 +108,24 @@ function getContextPercent(ctx: ExtensionContext): number | undefined {
   return Number(usage.percent.toFixed(1));
 }
 
-function buildStatuslineContext(ctx: ExtensionContext): string {
+function takeStatuslineSnapshot(ctx: ExtensionContext): StatuslineSnapshot {
+  return {
+    cwd: ctx.cwd,
+    hasUI: ctx.hasUI,
+    modelDisplayName: getModelDisplayName(ctx),
+    contextPercent: getContextPercent(ctx),
+  };
+}
+
+function buildStatuslineContext(snapshot: StatuslineSnapshot): string {
   const payload: Record<string, unknown> = {
-    workspace: { current_dir: ctx.cwd },
+    workspace: { current_dir: snapshot.cwd },
   };
 
-  const modelName = getModelDisplayName(ctx);
-  if (modelName) payload.model = { display_name: modelName };
+  if (snapshot.modelDisplayName) payload.model = { display_name: snapshot.modelDisplayName };
 
-  const contextPercent = getContextPercent(ctx);
-  if (contextPercent != null) {
-    payload.context_window = { used_percentage: contextPercent };
+  if (snapshot.contextPercent != null) {
+    payload.context_window = { used_percentage: snapshot.contextPercent };
   }
 
   return JSON.stringify(payload);
@@ -119,7 +133,7 @@ function buildStatuslineContext(ctx: ExtensionContext): string {
 
 export default function (pi: ExtensionAPI) {
   let agentState: AgentState = "waiting";
-  let lastCtx: ExtensionContext | undefined;
+  let lastSnapshot: StatuslineSnapshot | undefined;
   let statusline = "";
   let statuslineError: string | undefined;
   let requestRender: (() => void) | undefined;
@@ -129,10 +143,18 @@ export default function (pi: ExtensionAPI) {
   let currentBranch: string | null = null;
   let lastMarkerKey: string | undefined;
   let worktrunkMissing = false;
+  let shuttingDown = false;
+  let disposeFooterResources: (() => void) | undefined;
 
-  const queueRefresh = (ctx: ExtensionContext, delayMs = 0) => {
-    if (worktrunkMissing || !ctx.hasUI) return;
-    lastCtx = ctx;
+  const rememberContext = (ctx: ExtensionContext) => {
+    const snapshot = takeStatuslineSnapshot(ctx);
+    lastSnapshot = snapshot;
+    return snapshot;
+  };
+
+  const queueRefresh = (snapshot: StatuslineSnapshot, delayMs = 0) => {
+    if (shuttingDown || worktrunkMissing || !snapshot.hasUI) return;
+    lastSnapshot = snapshot;
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
       refreshTimer = undefined;
@@ -141,23 +163,25 @@ export default function (pi: ExtensionAPI) {
   };
 
   const refreshStatusline = async () => {
-    if (!lastCtx || worktrunkMissing) return;
+    const snapshot = lastSnapshot;
+    if (!snapshot || shuttingDown || worktrunkMissing) return;
     if (refreshInFlight) {
       refreshPending = true;
       return;
     }
 
-    const ctx = lastCtx;
     refreshInFlight = (async () => {
       const result = await runCommand(
         "wt",
-        ["-C", ctx.cwd, "list", "statusline", "--format=claude-code"],
+        ["-C", snapshot.cwd, "list", "statusline", "--format=claude-code"],
         {
-          cwd: ctx.cwd,
-          stdin: buildStatuslineContext(ctx),
+          cwd: snapshot.cwd,
+          stdin: buildStatuslineContext(snapshot),
           timeoutMs: WT_TIMEOUT_MS,
         },
       );
+
+      if (shuttingDown) return;
 
       if (result.error?.code === "ENOENT") {
         worktrunkMissing = true;
@@ -190,20 +214,22 @@ export default function (pi: ExtensionAPI) {
       requestRender?.();
     })().finally(() => {
       refreshInFlight = undefined;
-      if (refreshPending) {
+      if (refreshPending && !shuttingDown) {
         refreshPending = false;
         void refreshStatusline();
+      } else {
+        refreshPending = false;
       }
     });
 
     await refreshInFlight;
   };
 
-  const runMarkerCommand = async (ctx: ExtensionContext, args: string[]) => {
+  const runMarkerCommand = async (cwd: string, args: string[]) => {
     if (worktrunkMissing) return false;
 
     const result = await runCommand("wt", args, {
-      cwd: ctx.cwd,
+      cwd,
       timeoutMs: WT_TIMEOUT_MS,
     });
 
@@ -215,51 +241,61 @@ export default function (pi: ExtensionAPI) {
     return result.code === 0;
   };
 
-  const setMarker = async (ctx: ExtensionContext, marker: string | undefined, branch?: string | null) => {
-    const args = ["-C", ctx.cwd, "config", "state", "marker", marker ? "set" : "clear"];
+  const setMarker = async (snapshot: StatuslineSnapshot, marker: string | undefined, branch?: string | null) => {
+    const args = ["-C", snapshot.cwd, "config", "state", "marker", marker ? "set" : "clear"];
     if (marker) args.push(marker);
     if (branch) args.push("--branch", branch);
-    return runMarkerCommand(ctx, args);
+    return runMarkerCommand(snapshot.cwd, args);
   };
 
-  const applyMarkerState = async (ctx: ExtensionContext) => {
+  const applyMarkerState = async (snapshot: StatuslineSnapshot) => {
+    if (shuttingDown) return;
+
     const marker = MARKERS[agentState];
     const markerKey = `${currentBranch ?? ""}:${marker}`;
     if (lastMarkerKey === markerKey) return;
 
-    const ok = await setMarker(ctx, marker, currentBranch);
-    if (!ok) return;
+    const ok = await setMarker(snapshot, marker, currentBranch);
+    if (!ok || shuttingDown) return;
 
     lastMarkerKey = markerKey;
-    queueRefresh(ctx, 0);
+    queueRefresh(snapshot, 0);
   };
 
-  const clearMarker = async (ctx: ExtensionContext, branch?: string | null) => {
+  const clearMarker = async (
+    snapshot: StatuslineSnapshot,
+    branch?: string | null,
+    options: { refresh?: boolean } = {},
+  ) => {
     const markerKey = `${branch ?? currentBranch ?? ""}:clear`;
     if (lastMarkerKey === markerKey) return;
 
-    const ok = await setMarker(ctx, undefined, branch ?? currentBranch);
+    const ok = await setMarker(snapshot, undefined, branch ?? currentBranch);
     if (!ok) return;
 
     lastMarkerKey = markerKey;
-    queueRefresh(ctx, 0);
+    if (options.refresh ?? true) queueRefresh(snapshot, 0);
   };
 
   pi.on("session_start", async (_event, ctx) => {
-    lastCtx = ctx;
+    shuttingDown = false;
+    const snapshot = rememberContext(ctx);
     agentState = "waiting";
     statusline = "";
     statuslineError = undefined;
     currentBranch = null;
     lastMarkerKey = undefined;
+    refreshPending = false;
 
-    if (ctx.hasUI) {
+    if (snapshot.hasUI) {
       ctx.ui.setFooter((tui, theme, footerData) => {
+        disposeFooterResources?.();
+
         requestRender = () => tui.requestRender();
         currentBranch = footerData.getGitBranch();
 
         const intervalId = setInterval(() => {
-          if (lastCtx) void refreshStatusline();
+          void refreshStatusline();
         }, STATUSLINE_REFRESH_MS);
 
         const unsubscribeBranch = footerData.onBranchChange(() => {
@@ -267,25 +303,36 @@ export default function (pi: ExtensionAPI) {
           currentBranch = footerData.getGitBranch();
           tui.requestRender();
 
-          if (!lastCtx) return;
+          const snapshot = lastSnapshot;
+          if (!snapshot || shuttingDown) return;
 
           if (previousBranch && previousBranch !== currentBranch) {
-            void clearMarker(lastCtx, previousBranch).then(() => applyMarkerState(lastCtx!));
+            void clearMarker(snapshot, previousBranch).then(() => {
+              const latestSnapshot = lastSnapshot;
+              if (latestSnapshot && !shuttingDown) void applyMarkerState(latestSnapshot);
+            });
           } else {
-            void applyMarkerState(lastCtx);
+            void applyMarkerState(snapshot);
           }
 
-          queueRefresh(lastCtx, 0);
+          queueRefresh(snapshot, 0);
         });
 
-        queueRefresh(ctx, 0);
+        let disposed = false;
+        const dispose = () => {
+          if (disposed) return;
+          disposed = true;
+          clearInterval(intervalId);
+          unsubscribeBranch();
+          if (disposeFooterResources === dispose) disposeFooterResources = undefined;
+          requestRender = undefined;
+        };
+
+        disposeFooterResources = dispose;
+        queueRefresh(snapshot, 0);
 
         return {
-          dispose() {
-            clearInterval(intervalId);
-            unsubscribeBranch();
-            requestRender = undefined;
-          },
+          dispose,
           invalidate() {},
           render(width: number): string[] {
             const primaryLine = statusline
@@ -308,45 +355,56 @@ export default function (pi: ExtensionAPI) {
       });
     }
 
-    void applyMarkerState(ctx);
+    void applyMarkerState(snapshot);
   });
 
   pi.on("session_switch", async (_event, ctx) => {
-    lastCtx = ctx;
+    const snapshot = rememberContext(ctx);
     agentState = "waiting";
-    void applyMarkerState(ctx);
-    queueRefresh(ctx, 0);
+    void applyMarkerState(snapshot);
+    queueRefresh(snapshot, 0);
   });
 
   pi.on("session_fork", async (_event, ctx) => {
-    lastCtx = ctx;
+    const snapshot = rememberContext(ctx);
     agentState = "waiting";
-    void applyMarkerState(ctx);
-    queueRefresh(ctx, 0);
+    void applyMarkerState(snapshot);
+    queueRefresh(snapshot, 0);
   });
 
   pi.on("agent_start", async (_event, ctx) => {
-    lastCtx = ctx;
+    const snapshot = rememberContext(ctx);
     agentState = "working";
-    void applyMarkerState(ctx);
-    queueRefresh(ctx, 0);
+    void applyMarkerState(snapshot);
+    queueRefresh(snapshot, 0);
   });
 
   pi.on("agent_end", async (_event, ctx) => {
-    lastCtx = ctx;
+    const snapshot = rememberContext(ctx);
     agentState = "waiting";
-    void applyMarkerState(ctx);
-    queueRefresh(ctx, 0);
+    void applyMarkerState(snapshot);
+    queueRefresh(snapshot, 0);
   });
 
   pi.on("model_select", async (_event, ctx) => {
-    lastCtx = ctx;
-    queueRefresh(ctx, 0);
+    const snapshot = rememberContext(ctx);
+    queueRefresh(snapshot, 0);
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
-    lastCtx = ctx;
-    if (refreshTimer) clearTimeout(refreshTimer);
-    await clearMarker(ctx);
+    const snapshot = takeStatuslineSnapshot(ctx);
+    shuttingDown = true;
+    lastSnapshot = undefined;
+    refreshPending = false;
+
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = undefined;
+    }
+
+    disposeFooterResources?.();
+    disposeFooterResources = undefined;
+
+    await clearMarker(snapshot, undefined, { refresh: false });
   });
 }

@@ -1,5 +1,5 @@
 {
-  "diff_view_style": "split",
+  "diff_view_style": "unified",
   "cli_default_open_behavior": "existing_window",
   "project_panel": {
     "dock": "right",
@@ -45,31 +45,14 @@
       "projects": [
         {
           "paths": [
-            "/home/tudor/dev/alloy"
+            "/home/tudor/dev/controls_challenge/./"
           ]
         }
       ]
     }
   ],
   "agent_servers": {
-    "claude-acp": {
-      "favorite_config_option_values": {
-        "model": ["default"],
-        "mode": ["auto"],
-      },
-      "default_config_options": {
-        "model": "default",
-        "mode": "bypassPermissions",
-      },
-      "type": "registry",
     },
-    "codex-acp": {
-      "type": "registry",
-    },
-    "pi-acp": {
-      "type": "registry",
-    },
-  },
   "session": {
     "trust_all_worktrees": false,
   },
@@ -224,6 +207,7 @@
       },
     },
   },
+  "file_scan_exclusions": [".worktrees/**"],
   // Remote
   // AI
   "show_edit_predictions": true,
@@ -242,7 +226,6 @@
     "provider": "zed",
     "disabled_globs": ["*.mlir"],
     "mode": "subtle",
-    "enabled_in_text_threads": true,
     // "provider": "open_ai_compatible_api",
     // "open_ai_compatible_api": {
     //   "api_url": "http://localhost:8080/v1/completions",

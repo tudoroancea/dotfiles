@@ -1,17 +1,14 @@
 {
-  "lastChangelogVersion": "0.75.4",
+  "lastChangelogVersion": "0.79.0",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "pave/gpt-5.3-codex",
-    "pave/gpt-5.4",
-    "opencode-go/glm-5",
-    "opencode-go/kimi-k2.5",
-    "opencode-go/minimax-m2.7",
-    "pave/gpt-5.5"
+    "pave/gpt-5.5",
+    "opencode/nemotron-3-ultra-free",
+    "opencode/deepseek-v4-flash-free"
   ],
   "quietStartup": true,
   "collapseChangelog": true,

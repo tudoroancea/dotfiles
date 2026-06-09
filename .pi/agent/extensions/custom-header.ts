@@ -6,7 +6,7 @@
  * alongside agent version and model info.
  */
 
-import type { ExtensionAPI, Theme } from "@mariozechner/pi-coding-agent";
+import { VERSION, type ExtensionAPI, type Theme } from "@mariozechner/pi-coding-agent";
 import * as os from "node:os";
 
 // --- PI MASCOT ---
@@ -82,7 +82,7 @@ export default function (pi: ExtensionAPI) {
 
 						// Info lines to display on the right (pi agent, not Claude Code)
 						const infoLines = [
-							accent("pi v0.52.9"), // pi agent version
+							accent(`pi v${VERSION}`), // pi agent version
 							muted(modelDisplay),
 							muted(displayPath),
 							theme.italic(muted("keep working on hard things")),

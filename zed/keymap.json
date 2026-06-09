@@ -157,6 +157,10 @@
   },
   {
     "context": "Terminal",
+    "bindings": {
+      // hack because ctrl-enter isn't yet recognized by zed
+      "ctrl-enter": ["terminal::SendText", "\u001b[13;5u"],
+    },
     "unbind": {
       "ctrl-enter": "assistant::InlineAssist",
     },

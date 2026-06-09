@@ -2,7 +2,7 @@
   "providers": {
     "pave": {
       "baseUrl": "https://pave-openai-sweden-central.cognitiveservices.azure.com/openai/v1",
-      "apiKey": "AZURE_OPENAI_API_KEY",
+      "apiKey": "$AZURE_OPENAI_API_KEY",
       "api": "openai-responses",
       "headers": {
         "api-key": "${AZURE_OPENAI_API_KEY}",
@@ -13,46 +13,86 @@
           "id": "gpt-5.2",
           "name": "GPT 5.2",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 400000,
           "maxTokens": 128000,
-          "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
+          "cost": {
+            "input": 1.75,
+            "output": 14,
+            "cacheRead": 0.175,
+            "cacheWrite": 0
+          }
         },
         {
           "id": "gpt-5.2-codex",
           "name": "GPT 5.2 codex",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 400000,
           "maxTokens": 128000,
-          "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
+          "cost": {
+            "input": 1.75,
+            "output": 14,
+            "cacheRead": 0.175,
+            "cacheWrite": 0
+          }
         },
         {
           "id": "gpt-5.3-codex",
           "name": "GPT 5.3 codex",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 400000,
           "maxTokens": 128000,
-          "cost": {"input": 1.75, "output": 14, "cacheRead": 0.175, "cacheWrite": 0}
+          "cost": {
+            "input": 1.75,
+            "output": 14,
+            "cacheRead": 0.175,
+            "cacheWrite": 0
+          }
         },
         {
           "id": "gpt-5.4",
           "name": "GPT 5.4",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 1050000,
           "maxTokens": 128000,
-          "cost": {"input": 2.5, "output": 15, "cacheRead": 0.25, "cacheWrite": 0}
+          "cost": {
+            "input": 2.5,
+            "output": 15,
+            "cacheRead": 0.25,
+            "cacheWrite": 0
+          }
         },
         {
           "id": "gpt-5.5",
           "name": "GPT 5.5",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 1050000,
           "maxTokens": 128000,
-          "cost": {"input": 5, "output": 30, "cacheRead": 0.5, "cacheWrite": 0}
+          "cost": {
+            "input": 5,
+            "output": 30,
+            "cacheRead": 0.5,
+            "cacheWrite": 0
+          }
         }
       ]
     },
@@ -65,10 +105,18 @@
           "id": "qwen-3.6-35b-a3b-q4",
           "name": "Qwen 3.6 (local)",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 256000,
           "maxTokens": 16384,
-          "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0},
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
           "compat": {
             "supportsDeveloperRole": false,
             "maxTokensField": "max_tokens"
