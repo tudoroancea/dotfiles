@@ -3,3 +3,4 @@
 .zed
 .claude/settings.local.json
 .pi/pi-acp
+.pi/workflows

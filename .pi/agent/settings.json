@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.0",
+  "lastChangelogVersion": "0.80.2",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
@@ -39,7 +39,8 @@
       ]
     },
     "npm:pi-goal",
-    "npm:pi-tool-display"
+    "npm:pi-tool-display",
+    "npm:@quintinshaw/pi-dynamic-workflows"
   ],
   "claudeStyle": {
     "collapsedToolCalls": "excerpt"

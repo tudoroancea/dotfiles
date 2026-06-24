@@ -19,6 +19,16 @@
       "projects": [
         {
           "paths": [
+            "/home/ted"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/alloy"
+          ]
+        },
+        {
+          "paths": [
             "/home/ted/dev/anvil2/./"
           ]
         },

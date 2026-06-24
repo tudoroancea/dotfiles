@@ -82,6 +82,7 @@ export default function (pi: ExtensionAPI) {
 
 						// Info lines to display on the right (pi agent, not Claude Code)
 						const infoLines = [
+              null,
 							accent(`pi v${VERSION}`), // pi agent version
 							muted(modelDisplay),
 							muted(displayPath),
