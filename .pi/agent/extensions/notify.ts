@@ -91,6 +91,60 @@ function sendNotification(title: string, message: string) {
 }
 
 // --- Confetti Logic ---
+type MinimalMessage = {
+	role?: string;
+	content?: unknown;
+};
+
+function messageContentToText(content: unknown): string {
+	if (typeof content === "string") return content;
+
+	if (Array.isArray(content)) {
+		return content
+			.map((part) => {
+				if (
+					typeof part === "object" &&
+					part !== null &&
+					"text" in part &&
+					typeof part.text === "string"
+				) {
+					return part.text;
+				}
+				return "";
+			})
+			.join(" ");
+	}
+
+	return "";
+}
+
+function isWorkflowSubagentSession(
+	event: { messages?: MinimalMessage[] },
+	ctx: { mode?: string; sessionManager?: unknown },
+): boolean {
+	const sessionManager = ctx.sessionManager as
+		| {
+				isPersisted?: () => boolean;
+				getSessionFile?: () => string | undefined;
+		  }
+		| undefined;
+
+	// pi-dynamic-workflows uses SDK-created in-memory print-mode sessions for agent().
+	const isInMemoryPrintSession =
+		ctx.mode === "print" &&
+		(sessionManager?.isPersisted?.() === false ||
+			sessionManager?.getSessionFile?.() === undefined);
+
+	// WorkflowAgent prepends this to every workflow subagent prompt.
+	const hasWorkflowTaskLabel = event.messages?.some(
+		(message) =>
+			message.role === "user" &&
+			messageContentToText(message.content).includes("Task label:"),
+	);
+
+	return isInMemoryPrintSession && Boolean(hasWorkflowTaskLabel);
+}
+
 async function triggerConfetti() {
 	if (!shouldNotify()) return;
 	// Only run on macOS
@@ -113,7 +167,7 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	pi.on("agent_end", async (event) => {
+	pi.on("agent_end", async (event, ctx) => {
 		const noConfetti = pi.getFlag("--no-confetti") as boolean;
 		const lastAssistant = [...event.messages]
 			.reverse()
@@ -138,7 +192,7 @@ export default function (pi: ExtensionAPI) {
 			summary || "Task completed.",
 		);
 
-		if (!noConfetti && success) {
+		if (!noConfetti && success && !isWorkflowSubagentSession(event, ctx)) {
 			await triggerConfetti();
 		}
 	});

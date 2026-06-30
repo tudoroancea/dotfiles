@@ -40,7 +40,8 @@
     },
     "npm:pi-goal",
     "npm:pi-tool-display",
-    "npm:@quintinshaw/pi-dynamic-workflows"
+    "npm:@quintinshaw/pi-dynamic-workflows",
+    "npm:@plannotator/pi-extension"
   ],
   "claudeStyle": {
     "collapsedToolCalls": "excerpt"

@@ -34,6 +34,16 @@
         },
         {
           "paths": [
+            "/home/ted/dev/automating-automation/./"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/robotics-practicals/./"
+          ]
+        },
+        {
+          "paths": [
             "/home/tudor"
           ]
         },
@@ -200,7 +210,7 @@
     },
     "ty": {
       "binary": {
-        "path": "/Users/tudoroancea/.local/bin/ty",
+        "path": "~/.local/bin/ty",
         "arguments": ["server"],
       },
     },
