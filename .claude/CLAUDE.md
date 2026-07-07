@@ -1,5 +1,42 @@
-# Instructions
-- When looking for files, use `fd` instead of `find`.
-- When looking for text in files, use `rg` instead of `grep`. When looking for code specifically, use `ast-grep`
-- In python projects containing a venv called `.venv`, unless otherwise mentioned, always use `uv run python` to spawn an interpreter, `uv run pytest` to call pytest, `uv run <module>` to run a python file, etc. NEVER activate the venv to use python directly.
-- When asked to perform a task, DO NOT start writing a plethora of markdown files to explain everything you did. You will be asked to if you need to.
+## Personal preferences
+
+### Python
+
+- prefer uv (docs.astral.sh/uv) for any python project.
+- in particular prefer the builtin project management workflow (`uv sync`, `uv add`, etc.) instead of plain venv creation with `uv venv` and pip-like commands with `uv pip`
+- when running standalone scripts, always use `uv run --script` and add whenever possible inline dependencies (PEP 723)
+- always use ruff for linting/formatting and ty for typechecking. If they are not already present as dev dependencies in a project, suggest adding them, otherwise use the global ones installed with `uv tool install`
+
+### Webdev/JS/TS/etc.
+
+- always use nub (nubjs.com) as a package manager (which will shell out to pnpm or others if the project explicitly states it), script runner (`nub run`), package runner (`nubx`), etc.
+- Whenever possible let nub manage the node installations.
+- in new projects, always default to oxlint and oxfmt for linting and formatting
+
+## Picking the right models for workflows and subagents
+
+Rankings, higher = better. Cost reflects what I actually pay (OpenAI is near-free for me), not list price. Intelligence is how hard a problem you can hand the model unsupervised. Taste covers UI/UX, code quality, API design, and copy.
+
+| model    | cost | intelligence | taste |
+| -------- | ---- | ------------ | ----- |
+| gpt-5.5  | 9    | 8            | 5     |
+| sonnet-5 | 5    | 5            | 7     |
+| opus-4.8 | 4    | 7            | 8     |
+| fable-5  | 2    | 9            | 9     |
+How to apply:
+- These are defaults, not limits. You have standing permission to override them: if a cheaper model's output doesn't meet the bar, rerun or redo the work with a smarter model without asking. Judge the output, not the price tag. Escalating costs less than shipping mediocre work.
+- Don't let cost prevent you from using the right model for the job. Instead, take advantage of cheaper options to get more information and try things before moving the work to a more expensive option.
+- Bulk/mechanical work (clear-spec implementation, data analysis, migrations): gpt-5.5 - it's effectively free.
+- Anything user-facing (UI, copy, API design) needs taste ≥ 7.
+- Reviews of plans/implementations: fable-5 or opus-4.8, optionally gpt-5.5 as an extra independent perspective.
+- Never use Haiku.
+- Mechanics: gpt-5.5 is only reachable through the Codex CLI - `codex exec` / `codex review` (my `~/.codex/config.toml` defaults to gpt-5.5). Use the `codex-implementation` and  `codex-review` skills; for work they don't cover (investigation, data analysis), run `codex exec -s read-only` directly with a self-contained prompt.
+- Claude models (sonnet-5, opus-4.8, fable-5) run via the Agent/Workflow model parameter. 
+
+Using gpt-5.5 inside workflows and subagents (the model parameter only takes Claude models, so use a wrapper):
+- Spawn a thin Claude wrapper agent with `model: 'sonnet', effort: 'low'` whose prompt instructs it to write a self-contained codex prompt, run `codex exec` via Bash, and return the report (use `schema` on the wrapper to get structured output back).
+- Always label these agents with a `gpt-5.5:` prefix, e.g. `{label: 'gpt-5.5: review-auth'}` - the workflow UI shows the wrapper's Claude model, so the label is the only indication the real worker is gpt-5.5.
+- Codex runs can exceed Bash's 10-minute timeout: pass an explicit timeout, or run in the background and poll for the report file.
+- Parallel gpt-5.5 implementation agents must use `isolation: 'worktree'` so codex edits don't collide in the shared checkout.
+- Workflow token budgets only count Claude tokens; codex work is free and invisible to `budget.spent()`.
+
