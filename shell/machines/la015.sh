@@ -9,7 +9,7 @@ export PATH="$PATH:/opt/fzf"
 . "$HOME/.local/bin/env"
 
 eval "$(uv generate-shell-completion zsh)"
-export UV_PYTHON_PREFERENCE=only-managed
+# export UV_PYTHON_PREFERENCE=only-managed
 
 # bun completions
 [ -s "/home/ted/.bun/_bun" ] && source "/home/ted/.bun/_bun"
@@ -25,3 +25,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+
+# nub
+export PATH="$HOME/.nub/bin:$PATH"
+export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
+
