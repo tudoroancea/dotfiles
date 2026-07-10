@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.2",
+  "lastChangelogVersion": "0.80.6",
   "theme": "rosepine-dawn",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
@@ -7,8 +7,13 @@
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "pave/gpt-5.5",
-    "opencode/nemotron-3-ultra-free",
-    "opencode/deepseek-v4-flash-free"
+    "openai-codex/gpt-5.5",
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-5.6-luna",
+    "pave/gpt-5.6-sol",
+    "pave/gpt-5.6-terra",
+    "pave/gpt-5.6-luna"
   ],
   "quietStartup": true,
   "collapseChangelog": true,
@@ -22,7 +27,7 @@
         "+index.ts"
       ],
       "skills": [
-        "+skills/librarian/SKILL.md"
+        "-skills/librarian/SKILL.md"
       ]
     },
     {

@@ -1,4 +1,5 @@
 {
+  "markdown_preview_font_size": 14.0,
   "diff_view_style": "unified",
   "cli_default_open_behavior": "existing_window",
   "project_panel": {
@@ -39,7 +40,27 @@
         },
         {
           "paths": [
+            "/home/ted/dev/quanser-control-test-0"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/quanser-control-test-2"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/quanser_aero_sdk"
+          ]
+        },
+        {
+          "paths": [
             "/home/ted/dev/robotics-practicals/./"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/vibe-quanser"
           ]
         },
         {

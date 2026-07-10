@@ -1,6 +1,6 @@
-model = "gpt-5.5"
-model_provider = "azure"
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+# model_provider = "azure"
+model_reasoning_effort = "medium"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "high"
 approvals_reviewer = "user"
@@ -73,6 +73,9 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/dev/controls_challenge"]
 trust_level = "trusted"
 
+[projects."/Users/tudoroancea/dev/alloy"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true
@@ -94,15 +97,15 @@ js_repl = false
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-used"]
 
 [tui.model_availability_nux]
-"gpt-5.5" = 2
+"gpt-5.5" = 3
 
 [marketplaces.openai-bundled]
-last_updated = "2026-06-01T08:09:08Z"
+last_updated = "2026-07-10T06:54:54Z"
 source_type = "local"
 source = "/Users/tudoroancea/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
-last_updated = "2026-05-16T13:13:58Z"
+last_updated = "2026-07-09T08:14:39Z"
 source_type = "local"
 source = "/Users/tudoroancea/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
@@ -113,6 +116,15 @@ enabled = true
 enabled = true
 
 [plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
 enabled = true
 
 [plugins."browser@openai-bundled"]
@@ -130,7 +142,7 @@ trusted_hash = "sha256:85ec42ddf6bc313aab6f4a6392ff61a7d39ad72c620e6c8fa811ee58c
 trusted_hash = "sha256:7764f6da15ad62a8f82bed5972af52eb5c41b75c7ee20a71d9438810d9f462f5"
 
 [hooks.state."/Users/tudoroancea/.codex/hooks.json:session_start:0:0"]
-trusted_hash = "sha256:341ff9a3823cb02d14a363ef0186bb84ca7e4dbfdf47eed9cfa18c912ada5d0a"
+trusted_hash = "sha256:81e2b489131ef6819bc3f5757d133cd9cb21ca0ade5c83ed12620b36255d2fcb"
 
 [hooks.state."/Users/tudoroancea/.codex/hooks.json:user_prompt_submit:0:0"]
 trusted_hash = "sha256:233f09eb9d95a5036f931343fb4911f462e928d777e077c225e8118340266598"
@@ -149,9 +161,10 @@ preventSleepWhileRunning = true
 keepRemoteControlAwakeWhilePluggedIn = true
 git-branch-prefix = ""
 notifications-turn-mode = "always"
-conversationDetailMode = "STEPS_COMMANDS"
+conversationDetailMode = "STEPS_PROSE"
 worktree-auto-cleanup-enabled = false
 show-context-window-usage = true
+dock-icon-preference = "codex-system"
 
 [desktop.appearanceLightChromeTheme]
 accent = "#d7827e"
@@ -202,17 +215,26 @@ global = "zed"
 
 [mcp_servers.node_repl]
 args = []
-command = "/Applications/Codex.app/Contents/Resources/node_repl"
+command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
 startup_timeout_sec = 120
 
 [mcp_servers.node_repl.env]
 NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
-NODE_REPL_NODE_MODULE_DIRS = ""
-NODE_REPL_NODE_PATH = "/Applications/Codex.app/Contents/Resources/node"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
 NODE_REPL_TRUSTED_CODE_PATHS = "/Users/tudoroancea/.codex"
 CODEX_HOME = "/Users/tudoroancea/.codex"
-NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "0b0d41e7a14a4903d2f95b0b3f427ed796b12c8edca2fa392a03df43997075ae"
-BROWSER_USE_AVAILABLE_BACKENDS = "iab"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "6d25aa7656feac858f3a3bdaea5bcbab0dbfd426c9de8e6931ce90c399ee8e4f,c8b7e809d7cf9e20a57123b2530d476ccec9a01a6230a7b2b924fea7d94d7f4a"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
 NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = "Control desktop apps on macOS through Computer Use."
 BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
-CODEX_CLI_PATH = "/Applications/Codex.app/Contents/Resources/codex"
+BROWSER_USE_CODEX_APP_VERSION = "26.707.31428"
+CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
+
+[mcp_servers.computer-use]
+command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+args = ["mcp"]
+cwd = "."
+enabled = false

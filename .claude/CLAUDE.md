@@ -2,10 +2,11 @@
 
 ### Python
 
-- prefer uv (docs.astral.sh/uv) for any python project.
+- prefer uv (docs.astral.sh/uv) for any python project for package management.
 - in particular prefer the builtin project management workflow (`uv sync`, `uv add`, etc.) instead of plain venv creation with `uv venv` and pip-like commands with `uv pip`
 - when running standalone scripts, always use `uv run --script` and add whenever possible inline dependencies (PEP 723)
 - always use ruff for linting/formatting and ty for typechecking. If they are not already present as dev dependencies in a project, suggest adding them, otherwise use the global ones installed with `uv tool install`
+- prefer python interpreters manages by uv when creating environments (either via `uv sync` or `uv venv`) unless you need to overlay system dependencies (e.g. packages installed via `apt` so need to use the system python interpreter)
 
 ### Webdev/JS/TS/etc.
 
