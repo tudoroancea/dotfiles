@@ -4,3 +4,5 @@
 .claude/settings.local.json
 .pi/pi-acp
 .pi/workflows
+.pi/agent/agentflow
+.wrangler/cache
