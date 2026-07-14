@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 /**
  * Pi Notify Extension (Consolidated)
@@ -168,7 +168,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("agent_end", async (event, ctx) => {
-		const noConfetti = pi.getFlag("--no-confetti") as boolean;
+		const noConfetti = pi.getFlag("no-confetti") as boolean;
 		const lastAssistant = [...event.messages]
 			.reverse()
 			.find((m) => m.role === "assistant");
@@ -197,7 +197,7 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	pi.registerFlag("--no-confetti", {
+	pi.registerFlag("no-confetti", {
 		description: "Disable confetti",
 		type: "boolean",
 		default: false,

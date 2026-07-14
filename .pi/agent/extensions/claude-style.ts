@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
+import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 
 type CollapsedToolCallMode = "hidden" | "excerpt";
 

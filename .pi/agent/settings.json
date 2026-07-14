@@ -1,25 +1,23 @@
 {
   "lastChangelogVersion": "0.80.6",
-  "theme": "rosepine-dawn",
-  "hideThinkingBlock": true,
+  "theme": "rosepine-dawn/rosepine-moon",
+  "hideThinkingBlock": false,
   "defaultProvider": "pave",
-  "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "medium",
   "enabledModels": [
     "pave/gpt-5.5",
+    "pave/gpt-5.6-sol",
+    "pave/gpt-5.6-luna",
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.6-sol",
-    "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-luna",
-    "pave/gpt-5.6-sol",
-    "pave/gpt-5.6-terra",
-    "pave/gpt-5.6-luna"
+    "openai-codex/gpt-5.6-luna"
   ],
   "quietStartup": true,
   "collapseChangelog": true,
   "followUpMode": "all",
   "steeringMode": "all",
-  "doubleEscapeAction": "tree",
+  "doubleEscapeAction": "none",
   "packages": [
     {
       "source": "npm:pi-web-access",
@@ -31,30 +29,31 @@
       ]
     },
     {
-      "source": "npm:pi-boomerang",
-      "extensions": [
-        "+index.ts"
-      ]
-    },
-    {
       "source": "git:github.com/championswimmer/pi-context-usage",
       "skills": [
         "-.agents/skills/planning/SKILL.md",
         "-.agents/skills/release/SKILL.md"
       ]
     },
-    "npm:pi-goal",
-    "npm:pi-tool-display",
-    "npm:@quintinshaw/pi-dynamic-workflows",
+    {
+      "source": "npm:pi-tool-display",
+      "extensions": [
+        "-index.ts"
+      ]
+    },
     "npm:@plannotator/pi-extension"
   ],
   "claudeStyle": {
     "collapsedToolCalls": "excerpt"
   },
   "extensions": [
-    "-extensions/claude-style.ts"
+    "-extensions/claude-style.ts",
+    "-extensions/mac-system-theme.ts"
   ],
   "skills": [
-    "-skills/frontend-design/SKILL.md"
+    "-skills/frontend-design/SKILL.md",
+    "-skills/plannotator-annotate/SKILL.md",
+    "-skills/plannotator-last/SKILL.md",
+    "-skills/plannotator-review/SKILL.md"
   ]
 }

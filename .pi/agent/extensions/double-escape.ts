@@ -1,5 +1,5 @@
-import { CustomEditor, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { matchesKey } from "@mariozechner/pi-tui";
+import { CustomEditor, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { matchesKey } from "@earendil-works/pi-tui";
 
 class DoubleEscapeEditor extends CustomEditor {
   private lastEscape = 0;
@@ -11,31 +11,42 @@ class DoubleEscapeEditor extends CustomEditor {
 
   handleInput(data: string): void {
     if (matchesKey(data, "escape")) {
-      const now = Date.now();
-      
-      if (now - this.lastEscape < this.timeout) {
-        // Double tap detected!
+      // Let a single Escape dismiss autocomplete without counting it as an
+      // interrupt request. CustomEditor will delegate to the base editor while
+      // autocomplete is visible instead of invoking the app interrupt handler.
+      if (this.isShowingAutocomplete()) {
         this.lastEscape = 0;
         this.ctx.ui.setStatus("escape-hint", undefined);
-        this.ctx.abort(); // Triggers the agent interrupt
+        super.handleInput(data);
         return;
       }
-      
+
+      const now = Date.now();
+
+      if (now - this.lastEscape < this.timeout) {
+        this.lastEscape = 0;
+        this.ctx.ui.setStatus("escape-hint", undefined);
+        // Pi wires this to its current interrupt handler, so this also handles
+        // bash, retries, and compaction rather than only aborting an agent turn.
+        this.onEscape?.();
+        return;
+      }
+
       this.lastEscape = now;
-      
-      // Show hint in status bar
-      this.ctx.ui.setStatus("escape-hint", this.ctx.ui.theme.fg("warning", " Press Escape again to interrupt "));
-      
-      // Clear hint after timeout
+      this.ctx.ui.setStatus(
+        "escape-hint",
+        this.ctx.ui.theme.fg("warning", " Press Escape again to interrupt "),
+      );
+
       setTimeout(() => {
         if (this.lastEscape === now) {
+          this.lastEscape = 0;
           this.ctx.ui.setStatus("escape-hint", undefined);
         }
       }, this.timeout);
 
-      // Pass the first escape to the base editor so it can still 
-      // handle things like cancelling autocomplete.
-      super.handleInput(data);
+      // Intentionally swallow the first Escape. Passing it to CustomEditor
+      // would invoke pi's normal single-Escape interrupt handler.
       return;
     }
 

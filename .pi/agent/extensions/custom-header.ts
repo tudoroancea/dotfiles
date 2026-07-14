@@ -6,7 +6,7 @@
  * alongside agent version and model info.
  */
 
-import { VERSION, type ExtensionAPI, type Theme } from "@mariozechner/pi-coding-agent";
+import { VERSION, type ExtensionAPI, type Theme } from "@earendil-works/pi-coding-agent";
 import * as os from "node:os";
 
 // --- PI MASCOT ---
