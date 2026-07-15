@@ -47,7 +47,8 @@
   "extensions": [
     "-extensions/claude-style.ts",
     "-extensions/mac-system-theme.ts",
-    "-extensions/worktrunk-statusline.ts"
+    "-extensions/worktrunk-statusline.ts",
+    "-extensions/double-escape.ts"
   ],
   "skills": [
     "-skills/frontend-design/SKILL.md",
