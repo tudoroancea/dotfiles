@@ -1,9 +1,61 @@
 # Instructions
-- When looking for files, use `fd` instead of `find`.
-- When looking for text in files, use `rg` instead of `grep`. When looking for code specifically, use `ast-grep`
-- In python projects containing a venv called `.venv`, unless otherwise mentioned, always use `uv run python` to spawn an interpreter, `uv run pytest` to call pytest, `uv run <module>` to run a python file, etc. NEVER activate the venv to use python directly.
-- When asked to perform a task, DO NOT start writing a plethora of markdown files to explain everything you did. You will be asked to if you need to.
-- If there is one, use the local `AGENTS.md` file to store your knowledge about the project, user preferences, important implementation details that might be reused later like how to fix certain bugs, etc.
+
+These guidelines apply to the main agent and all child agents. Follow only the sections relevant to your assigned task and the tools available to you.
+
+## Agency
+
+- Take initiative when the user asks you to perform a task, including necessary follow-up actions, while avoiding surprising actions that exceed the request.
+- If the user asks for advice, an explanation, or a plan, answer that request rather than immediately making changes.
+- Do not add an extra code-explanation summary unless the user requests one.
+
+## Tool usage
+
+- Prefer specialized tools over shell commands for file operations: use `read` rather than `cat`, `head`, or `tail`, and use `edit` rather than `sed` or `awk`. Reserve `bash` for actual system commands.
+- When searching from the shell, use `fd` rather than the `find` command, `rg` rather than `grep`, and `ast-grep` when searching code structurally.
+- Call independent read-only tools in parallel. Use sequential calls only when one depends on another's result.
+- Never use placeholders or guess missing tool parameters.
+
+## Editing files
+
+- Do not create files unless they are necessary to achieve the task. Prefer focused edits to existing files; temporary debugging scripts are acceptable when they simplify verification.
+- Make the smallest reasonable diff. Do not rewrite a whole file to change a few lines.
+- Do not create extra Markdown files merely to explain completed work unless the user asks for them.
+
+## Doing tasks
+
+- Never propose or make changes to code you have not read. Understand the relevant implementation and surrounding context first.
+- Avoid over-engineering. Make only changes directly requested or clearly necessary, and keep each line of code justified.
+- Do not add unrelated features, refactors, configurability, validation, fallbacks, or speculative abstractions.
+- Validate at system boundaries, but trust internal code and framework guarantees where the invalid state cannot occur.
+- Delete unused code rather than adding compatibility shims, renamed placeholder variables, or removal comments.
+- Work incrementally: make a focused change, verify it, and then continue.
+- If the project has a local `AGENTS.md`, use it to record durable project knowledge, user preferences, or reusable implementation details when appropriate.
+
+## Following conventions
+
+- Understand and follow the existing code style, libraries, naming, architecture, and neighboring implementation patterns.
+- Check project manifests before assuming a dependency or framework is available.
+- When adding a component, inspect comparable existing components and follow their conventions.
+- Follow security best practices and never expose or log secrets or keys.
+- Do not add comments unless requested or the code is sufficiently complex that the context is necessary.
+
+## Language-specific guidance
+
+### Python
+
+- In Python projects with a `.venv`, use `uv run python`, `uv run pytest`, and `uv run <module>` rather than activating the environment or invoking its Python directly.
+- Prefer uv's project workflow (`uv sync`, `uv add`) over direct virtualenv or pip-style management.
+- For standalone scripts, prefer `uv run --script` and use PEP 723 inline dependencies when practical.
+- Prefer Ruff for linting and formatting and ty for type checking. Use existing project dependencies when present; otherwise suggest or use globally installed tools as appropriate.
+- Prefer Python interpreters managed by uv unless system dependencies require the system interpreter.
+
+### Web development, JavaScript, and TypeScript
+
+- Prefer `nub` for package management, script execution, and package execution unless the project explicitly establishes another workflow.
+- Let `nub` manage Node installations when practical.
+- For new projects, default to Oxlint and Oxfmt.
 
 ## Notes
-- `agent/extensions/worktrunk-statusline.ts` replaces pi's footer with `wt list statusline --format=claude-code`, passes model/context via stdin JSON, and mirrors pi activity into worktrunk markers (`🤖` while running, `💬` while idle).
+
+- `agent/extensions/worktrunk-statusline.ts` replaces Pi's footer with `wt list statusline --format=claude-code`, passes model/context via stdin JSON, and mirrors Pi activity into Worktrunk markers (`🤖` while running, `💬` while idle).
+- `agent/extensions/agentflow` is the standalone Agentflow package. Its background/workflow status uses Pi extension statuses so the Worktrunk footer can display it without being replaced.

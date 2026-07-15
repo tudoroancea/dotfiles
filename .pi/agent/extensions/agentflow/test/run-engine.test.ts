@@ -1,0 +1,182 @@
+import { describe, expect, it, vi } from "vitest";
+import { RunEngine, type ChildRunner } from "../src/runtime/run-engine.ts";
+import type { AgentNodeSpec, ChildExecutionResult } from "../src/types.ts";
+
+const context = {} as never;
+const usage = { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, total: 10, cost: 0 };
+const childResult = (text: string): ChildExecutionResult => ({ text, usage });
+const engineWith = (
+  run: ChildRunner["run"],
+  options: {
+    globalConcurrency?: number;
+    deliver?: (message: string) => void;
+    idle?: () => boolean;
+  } = {},
+) =>
+  new RunEngine(
+    undefined,
+    undefined,
+    options.deliver,
+    undefined,
+    { run },
+    options.globalConcurrency,
+    options.idle,
+  );
+
+describe("RunEngine settlement", () => {
+  it("is first-writer-wins and does not duplicate settlement side effects", () => {
+    const emit = vi.fn();
+    const engine = new RunEngine(emit);
+    let runId = "";
+    runId = engine.startRun({ kind: "agent" }, context, undefined, () => {
+      // Exercise synchronous re-entry through snapshot notification.
+      engine.finish(runId, "aborted", undefined, "late cancellation");
+    });
+
+    const first = engine.finish(runId, "completed", "first result");
+    const second = engine.finish(runId, "failed", undefined, "late failure");
+
+    expect(first.status).toBe("completed");
+    expect(second).toEqual(first);
+    expect(engine.getSnapshot(runId)).toMatchObject({
+      status: "completed",
+      resultPreview: "first result",
+    });
+    expect(engine.getSnapshot(runId)).not.toHaveProperty("error");
+    expect(emit.mock.calls.filter(([name]) => name === "agentflow:run.completed")).toHaveLength(1);
+    expect(
+      emit.mock.calls.filter(([name]) => String(name).startsWith("agentflow:run.failed")),
+    ).toHaveLength(0);
+  });
+
+  it("bounds cancellation when task initialization ignores abort", async () => {
+    vi.useFakeTimers();
+    try {
+      const engine = engineWith(async () => new Promise(() => undefined));
+      const runId = engine.startRun({ kind: "agent", background: true }, context);
+      void engine.runTask(runId, { id: "agent", label: "agent", prompt: "test" });
+      await Promise.resolve();
+
+      const cancellation = engine.cancel([runId]);
+      await vi.advanceTimersByTimeAsync(3_001);
+      await cancellation;
+
+      expect(engine.getResult(runId)?.status).toBe("aborted");
+      expect(engine.getSnapshot(runId)).toMatchObject({
+        status: "aborted",
+        nodes: [{ status: "aborted" }],
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("waits for active task bookkeeping before cancellation settles the run", async () => {
+    const engine = engineWith(
+      async (_runId: string, _node: AgentNodeSpec, _ctx: unknown, signal: AbortSignal) =>
+        new Promise((_, reject) =>
+          signal.addEventListener(
+            "abort",
+            () => queueMicrotask(() => reject(new DOMException("aborted", "AbortError"))),
+            { once: true },
+          ),
+        ),
+    );
+    const runId = engine.startRun({ kind: "agent", background: true }, context);
+    const task = engine.runTask(runId, { id: "agent", label: "agent", prompt: "test" });
+
+    await engine.cancel([runId]);
+    await expect(task).resolves.toMatchObject({ ok: false, aborted: true });
+    expect(engine.getSnapshot(runId)).toMatchObject({
+      status: "aborted",
+      nodes: [{ status: "aborted" }],
+    });
+    expect(engine.getResult(runId)?.status).toBe("aborted");
+  });
+
+  it("returns one normalized task envelope with provenance", async () => {
+    const engine = engineWith(async () => ({
+      ...childResult("explanation"),
+      structured: { answer: 42 },
+      sessionFile: "/tmp/child.jsonl",
+    }));
+    const runId = engine.startRun(
+      { kind: "agent", originTool: "agentflow_review", semanticRole: "review" },
+      context,
+    );
+    const result = await engine.runTask(runId, {
+      id: "review",
+      label: "review",
+      prompt: "inspect",
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      output: "explanation",
+      structured: { answer: 42 },
+      aborted: false,
+      sessionFile: "/tmp/child.jsonl",
+      usage,
+    });
+    expect(engine.getSnapshot(runId)).toMatchObject({
+      originTool: "agentflow_review",
+      semanticRole: "review",
+      nodes: [{ originTool: "agentflow_review", semanticRole: "review", usage }],
+    });
+  });
+
+  it("layers process-wide concurrency over independent runs", async () => {
+    let active = 0;
+    let peak = 0;
+    const releases: Array<() => void> = [];
+    const engine = engineWith(
+      async () => {
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise<void>((resolve) => releases.push(resolve));
+        active--;
+        return childResult("done");
+      },
+      { globalConcurrency: 2 },
+    );
+    const ids = Array.from({ length: 3 }, () =>
+      engine.startRun({ kind: "agent", limits: { concurrency: 1 } }, context),
+    );
+    const tasks = ids.map((id, index) =>
+      engine.runTask(id, { id: `n${index}`, label: `n${index}`, prompt: "work" }),
+    );
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+    releases.shift()!();
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+    releases.splice(0).forEach((release) => release());
+    await Promise.all(tasks);
+
+    expect(peak).toBe(2);
+  });
+
+  it("delivers a background result once, and only while the parent is idle", async () => {
+    let idle = false;
+    const deliver = vi.fn();
+    const engine = engineWith(async () => childResult("done"), { deliver, idle: () => idle });
+    const result = await engine.launchAgent(
+      { id: "agent", label: "agent", prompt: "work" },
+      context,
+      { background: true },
+    );
+    await engine.wait([result.runId]);
+    engine.flushBackgroundDeliveries();
+    expect(deliver).not.toHaveBeenCalled();
+
+    // wait() consumes delivery. A second run exercises idle-triggered delivery.
+    const second = await engine.launchAgent(
+      { id: "agent", label: "agent", prompt: "work" },
+      context,
+      { background: true },
+    );
+    await vi.waitFor(() => expect(engine.getResult(second.runId)).toBeDefined());
+    idle = true;
+    engine.flushBackgroundDeliveries();
+    engine.flushBackgroundDeliveries();
+    expect(deliver).toHaveBeenCalledOnce();
+  });
+});

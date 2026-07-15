@@ -1,15 +1,13 @@
 {
-  "lastChangelogVersion": "0.80.6",
+  "lastChangelogVersion": "0.80.7",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
-  "defaultModel": "gpt-5.6-luna",
+  "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
-    "pave/gpt-5.5",
     "pave/gpt-5.6-sol",
     "pave/gpt-5.6-luna",
-    "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna"
   ],
