@@ -1,6 +1,6 @@
 ---
 name: github
-description: Work with GitHub repositories, code, commits, pull requests, issues, releases, and Actions using the authenticated gh CLI, direct URL extraction, or cited research. Use for GitHub-specific inspection, search, comparison, review, or explicitly requested mutations.
+description: Work with GitHub-hosted resources using gh or GitHub URLs, including remote repositories, pull requests, issues, releases, Actions, and remote commit inspection. Do not use for ordinary local git operations such as status, diff, add, commit, branch, merge, or rebase unless the request also involves GitHub.
 compatibility: Requires gh for authenticated or private-repository operations; public URL reading and broader research can use Pi web tools.
 ---
 
