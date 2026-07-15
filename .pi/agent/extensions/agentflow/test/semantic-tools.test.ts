@@ -12,6 +12,7 @@ describe("semantic tool registration", () => {
       "agentflow_finder",
       "agentflow_oracle",
       "agentflow_librarian",
+      "agentflow_look_at",
       "agentflow_delegate",
       "agentflow_review",
     ]);
@@ -19,5 +20,22 @@ describe("semantic tool registration", () => {
       expect(tool.promptGuidelines).toHaveLength(1);
       expect(tool.promptGuidelines[0]).toContain(tool.name);
     }
+
+    const lookAt = tools.find((tool) => tool.name === "agentflow_look_at");
+    const theme = {
+      fg: (_color: string, text: string) => text,
+      bold: (text: string) => text,
+    };
+    const rendered = lookAt.renderCall(
+      {
+        path: "screens/current.png",
+        objective: "Compare navigation",
+        referenceFiles: ["screens/expected.png"],
+      },
+      theme,
+    );
+    expect(rendered.render(200)[0]).toContain(
+      "look_at screens/current.png — Compare navigation (+1 ref)",
+    );
   });
 });

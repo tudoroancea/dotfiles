@@ -27,6 +27,7 @@ process.on("message", async (message) => {
   const finder = (input) => request("finder", input);
   const oracle = (input) => request("oracle", input);
   const librarian = (input) => request("librarian", input);
+  const look_at = (input) => request("look_at", input);
   const delegate = (input) => request("delegate", input);
   const review = (input) => request("review", input);
   const phase = (title) => {
@@ -52,6 +53,7 @@ process.on("message", async (message) => {
       finder,
       oracle,
       librarian,
+      look_at,
       delegate,
       review,
       phase,

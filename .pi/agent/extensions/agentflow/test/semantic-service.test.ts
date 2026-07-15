@@ -17,12 +17,18 @@ describe("semantic profiles", () => {
     });
   });
 
-  it.each(["finder", "oracle", "review"] as const)(
+  it.each(["finder", "oracle", "look_at", "review"] as const)(
     "confines %s to read-only tools and normal Pi context",
     async (role) => {
       const node = await service().createNode(
         role,
-        role === "oracle" ? { question: "why?" } : role === "finder" ? { task: "find it" } : {},
+        role === "oracle"
+          ? { question: "why?" }
+          : role === "finder"
+            ? { task: "find it" }
+            : role === "look_at"
+              ? { path: "screen.png", objective: "find visual regressions" }
+              : {},
       );
       expect(node.config?.tools).not.toContain("bash");
       expect(node.config?.tools).not.toContain("edit");
@@ -38,6 +44,7 @@ describe("semantic profiles", () => {
   it.each([
     ["finder", { task: "find it" }, "gpt-5.6-luna", "low"],
     ["oracle", { question: "why?" }, "gpt-5.6-sol", "xhigh"],
+    ["look_at", { path: "screen.png", objective: "inspect it" }, "gpt-5.6-luna", "low"],
     ["review", {}, "gpt-5.6-sol", "xhigh"],
   ] as const)(
     "uses the configured %s model and thinking level",
@@ -50,6 +57,53 @@ describe("semantic profiles", () => {
       });
     },
   );
+
+  it("strictly validates bounded look_at input", () => {
+    const input = {
+      path: "screen.png",
+      objective: "Compare the navigation states",
+      context: "Regression check",
+      referenceFiles: ["expected.png"],
+      mode: "background",
+    };
+    expect(validateSemanticInput("look_at", input)).toEqual(input);
+    expect(() => validateSemanticInput("look_at", { ...input, unexpected: true })).toThrow(
+      "Invalid look_at input",
+    );
+    expect(() => validateSemanticInput("look_at", { path: "", objective: "inspect" })).toThrow(
+      "Invalid look_at input",
+    );
+    expect(() =>
+      validateSemanticInput("look_at", {
+        path: "screen.png",
+        objective: "inspect",
+        referenceFiles: Array.from({ length: 33 }, () => "reference.png"),
+      }),
+    ).toThrow("Invalid look_at input");
+  });
+
+  it("compiles look_at as an isolated read-only multimodal child", async () => {
+    const node = await service().createNode("look_at", {
+      path: "screen.png",
+      objective: "Compare layout",
+      context: "Desktop breakpoint",
+      referenceFiles: ["expected.png"],
+    });
+    expect(node.prompt).toContain("screen.png");
+    expect(node.prompt).toContain("expected.png");
+    expect(node.prompt).toContain("Compare layout");
+    expect(node.config).toMatchObject({
+      model: "gpt-5.6-luna",
+      thinking: "low",
+      tools: ["read"],
+      skills: false,
+      extensions: false,
+      session: { mode: "memory" },
+    });
+    expect(node.config?.outputSchema).toBeDefined();
+    expect(node.config?.appendSystemPrompt).toContain("Never guess");
+    expect(node.config?.appendSystemPrompt).toContain("every reference");
+  });
 
   it("uses the configured librarian model and thinking level", async () => {
     const tools = ["web_search", "fetch_content", "get_search_content"].map((name) => ({

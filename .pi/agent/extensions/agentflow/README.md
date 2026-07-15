@@ -33,6 +33,7 @@ Semantic tools are registered by default:
 - `agentflow_finder`
 - `agentflow_oracle`
 - `agentflow_librarian`
+- `agentflow_look_at`
 - `agentflow_delegate`
 - `agentflow_review`
 
@@ -52,7 +53,9 @@ The low-level launch tools are intentionally hidden in normal sessions. Enable t
 pi --agentflow-raw
 ```
 
-Raw workflows execute JavaScript in a Node permission-restricted child process. Their `agent()`, `finder()`, `oracle()`, `librarian()`, `delegate()`, and `review()` requests pass through the shared scheduler and child runner. Semantic helpers expose strict role inputs and cannot override trusted model, prompt, tool, extension, or mutation policy. Project trust controls whether project resources are loaded; it is not a filesystem sandbox.
+Raw workflows execute JavaScript in a Node permission-restricted child process. Their `agent()`, `finder()`, `oracle()`, `librarian()`, `look_at()`, `delegate()`, and `review()` requests pass through the shared scheduler and child runner. Semantic helpers expose strict role inputs and cannot override trusted model, prompt, tool, extension, or mutation policy. Project trust controls whether project resources are loaded; it is not a filesystem sandbox.
+
+`agentflow_look_at` performs objective-focused analysis of a local image or other file. It requires `path` and `objective`, accepts optional `context`, `referenceFiles`, and foreground/background `mode`, and uses an image-capable Luna child with low thinking. The child has an in-memory session, no skills or extensions, and only the read and structured-output tools. Reference files are read and compared systematically; uncertain or unavailable evidence is reported rather than guessed.
 
 ## Dotfiles integration policy
 

@@ -172,6 +172,7 @@ async function runSandbox(
             "finder",
             "oracle",
             "librarian",
+            "look_at",
             "delegate",
             "review",
           ];

@@ -43,7 +43,7 @@ describe("workflow sandbox process", () => {
 
   it("exposes semantic helpers through the same request channel", async () => {
     const result = await run(
-      `(async () => ({ output: (await finder({ task: "inspect" })).output }))()`,
+      `(async () => ({ output: (await look_at({ path: "screen.png", objective: "inspect" })).output }))()`,
     );
     expect(result).toMatchObject({ type: "done", result: { output: "ok" } });
   });

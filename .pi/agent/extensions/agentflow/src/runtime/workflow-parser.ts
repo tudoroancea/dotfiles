@@ -57,7 +57,9 @@ export function validateWorkflowScript(script: string): WorkflowMeta {
     CallExpression(node: any) {
       if (
         node.callee?.type === "Identifier" &&
-        ["agent", "finder", "oracle", "librarian", "delegate", "review"].includes(node.callee.name)
+        ["agent", "finder", "oracle", "librarian", "look_at", "delegate", "review"].includes(
+          node.callee.name,
+        )
       )
         childCalls += 1;
       if (

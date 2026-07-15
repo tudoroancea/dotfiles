@@ -4,7 +4,7 @@ import type { TSchema } from "typebox";
 export type RunKind = "agent" | "workflow";
 export type RunStatus = "queued" | "running" | "completed" | "failed" | "aborted";
 export type NodeStatus = RunStatus;
-export type SemanticRole = "finder" | "oracle" | "librarian" | "delegate" | "review";
+export type SemanticRole = "finder" | "oracle" | "librarian" | "look_at" | "delegate" | "review";
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type JsonSchemaObject = TSchema;
 

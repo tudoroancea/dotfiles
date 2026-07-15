@@ -16,7 +16,7 @@ export function registerWorkflowTool(
     name: "agentflow_workflow",
     label: "Agentflow Workflow",
     description:
-      "Run an inline JavaScript workflow in a permission-restricted subprocess. APIs: agent, finder, oracle, librarian, delegate, review (all return normalized envelopes), parallel, pipeline, phase, log, args, cwd, budget. Supports foreground/background.",
+      "Run an inline JavaScript workflow in a permission-restricted subprocess. APIs: agent, finder, oracle, librarian, look_at, delegate, review (all return normalized envelopes), parallel, pipeline, phase, log, args, cwd, budget. Supports foreground/background.",
     promptSnippet: "Run a sandboxed dynamic multi-agent workflow",
     parameters: Type.Object({
       script: Type.String(),

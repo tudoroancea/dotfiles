@@ -6,6 +6,7 @@ import {
   DelegateInputSchema,
   FinderInputSchema,
   LibrarianInputSchema,
+  LookAtInputSchema,
   OracleInputSchema,
   ReviewInputSchema,
 } from "../semantic/profiles.ts";
@@ -42,6 +43,14 @@ const definitions: Array<{
     guideline:
       "Only use agentflow_librarian for remote documentation, GitHub, or cross-repository research.",
     schema: LibrarianInputSchema,
+  },
+  {
+    role: "look_at",
+    description:
+      "Analyze a local image or other file for a specific objective, optionally comparing it with reference files.",
+    guideline:
+      "Use agentflow_look_at for objective-focused visual or file analysis, especially images, diagrams, and systematic reference comparisons; use read directly when literal text contents are sufficient.",
+    schema: LookAtInputSchema,
   },
   {
     role: "delegate",
@@ -107,6 +116,14 @@ export function registerSemanticTools(pi: ExtensionAPI, service: SemanticAgentSe
         };
       },
       renderCall(args: any, theme: any) {
+        if (definition.role === "look_at") {
+          const references = Array.isArray(args.referenceFiles) ? args.referenceFiles.length : 0;
+          return new Text(
+            `${theme.fg("toolTitle", theme.bold("look_at "))}${theme.fg("dim", String(args.path ?? "…").slice(0, 80))}${args.objective ? theme.fg("muted", ` — ${String(args.objective).slice(0, 60)}`) : ""}${references ? theme.fg("muted", ` (+${references} ref${references === 1 ? "" : "s"})`) : ""}`,
+            0,
+            0,
+          );
+        }
         const task = args.task ?? args.question ?? "Review integrated diff";
         return new Text(
           `${theme.fg("toolTitle", theme.bold(`${definition.role} `))}${theme.fg("dim", String(task).slice(0, 120))}`,

@@ -15,6 +15,7 @@ import {
   type DelegateInput,
   type FinderInput,
   type LibrarianInput,
+  type LookAtInput,
   type OracleInput,
   type ReviewInput,
   type SemanticInput,
@@ -49,6 +50,10 @@ function taskMessage(role: SemanticRole, input: SemanticInput): string {
     return `${value.question}${list("Files available for selective inspection", value.files)}`;
   }
   if (role === "librarian") return (input as LibrarianInput).question;
+  if (role === "look_at") {
+    const value = input as LookAtInput;
+    return `Read and analyze the main file: ${value.path}\n\nObjective: ${value.objective}${value.context ? `\n\nContext: ${value.context}` : ""}${list("Reference files to read and compare systematically", value.referenceFiles)}`;
+  }
   if (role === "review") {
     const value = input as ReviewInput;
     return `${value.task ?? "Review the current integrated working-tree diff."}${value.base ? `\n\nDiff base: ${value.base}` : ""}${list("Limit review to paths", value.paths)}`;

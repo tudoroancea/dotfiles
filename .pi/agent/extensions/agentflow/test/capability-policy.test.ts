@@ -5,7 +5,7 @@ import { ownershipOverlaps } from "../src/semantic/ownership.ts";
 import { semanticProfiles } from "../src/semantic/profiles.ts";
 
 describe("semantic capability policy", () => {
-  it.each(["finder", "oracle", "librarian", "review"] as const)(
+  it.each(["finder", "oracle", "librarian", "look_at", "review"] as const)(
     "keeps %s mechanically read-only",
     (role) => {
       const profile = semanticProfiles[role];
@@ -15,6 +15,11 @@ describe("semantic capability policy", () => {
       expect(profile.tools).not.toContain("write");
     },
   );
+
+  it("limits look_at to the read capability", () => {
+    expect(semanticProfiles.look_at.tools).toEqual(["read"]);
+    expect(semanticProfiles.look_at.mutates).toBe(false);
+  });
 
   it("rejects workflow attempts to select trusted policy", () => {
     expect(() => assertNoTrustedPolicySelection({ semanticRole: "delegate" })).toThrow(

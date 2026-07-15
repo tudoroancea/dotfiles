@@ -29,6 +29,18 @@ export const LibrarianInputSchema = Type.Object(
   },
   strict,
 );
+export const LookAtInputSchema = Type.Object(
+  {
+    path: Type.String({ minLength: 1, maxLength: 4096 }),
+    objective: Type.String({ minLength: 1, maxLength: 16_384 }),
+    context: Type.Optional(Type.String({ minLength: 1, maxLength: 16_384 })),
+    referenceFiles: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 4096 }), { maxItems: 32 }),
+    ),
+    mode: Type.Optional(mode),
+  },
+  strict,
+);
 export const DelegateInputSchema = Type.Object(
   {
     task: Type.String({ minLength: 1 }),
@@ -91,6 +103,24 @@ export const LibrarianOutputSchema = Type.Object(
   },
   strict,
 );
+export const LookAtOutputSchema = Type.Object(
+  {
+    summary: Type.String(),
+    observations: Type.Array(Type.String()),
+    comparisons: Type.Array(
+      Type.Object(
+        {
+          referenceFile: Type.String(),
+          similarities: Type.Array(Type.String()),
+          differences: Type.Array(Type.String()),
+        },
+        strict,
+      ),
+    ),
+    uncertainties: Type.Array(Type.String()),
+  },
+  strict,
+);
 export const DelegateOutputSchema = Type.Object(
   {
     summary: Type.String(),
@@ -131,12 +161,14 @@ export const ReviewOutputSchema = Type.Object(
 export type FinderInput = Static<typeof FinderInputSchema>;
 export type OracleInput = Static<typeof OracleInputSchema>;
 export type LibrarianInput = Static<typeof LibrarianInputSchema>;
+export type LookAtInput = Static<typeof LookAtInputSchema>;
 export type DelegateInput = Static<typeof DelegateInputSchema>;
 export type ReviewInput = Static<typeof ReviewInputSchema>;
 export type SemanticInput =
   | FinderInput
   | OracleInput
   | LibrarianInput
+  | LookAtInput
   | DelegateInput
   | ReviewInput;
 
@@ -185,6 +217,17 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     promptAsset: "librarian.md",
     mutates: false,
     timeoutMs: 300_000,
+  },
+  look_at: {
+    role: "look_at",
+    inputSchema: LookAtInputSchema,
+    outputSchema: LookAtOutputSchema,
+    tools: ["read"],
+    modelId: "gpt-5.6-luna",
+    thinking: "low",
+    promptAsset: "look_at.md",
+    mutates: false,
+    timeoutMs: 120_000,
   },
   delegate: {
     role: "delegate",

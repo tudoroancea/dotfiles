@@ -13,7 +13,7 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

@@ -14,7 +14,7 @@ describe("workflow parser", () => {
   });
 
   it("accepts semantic child helpers without a raw agent call", () => {
-    const script = `export const meta = { name: "semantic", description: "Semantic" }\nreturn await finder({ task: "inspect" })`;
+    const script = `export const meta = { name: "semantic", description: "Semantic" }\nreturn await look_at({ path: "screen.png", objective: "inspect" })`;
     expect(validateWorkflowScript(script).name).toBe("semantic");
   });
 

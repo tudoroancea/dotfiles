@@ -71,6 +71,9 @@ describe("semantic snapshot renderer", () => {
     expect(semanticResultSummary("librarian", JSON.stringify({ sources: [{}, {}] }), 2, 500)).toBe(
       "2 sources · 2 tools · 500 tokens",
     );
+    expect(
+      semanticResultSummary("look_at", JSON.stringify({ observations: [{}, {}, {}] }), 2, 600),
+    ).toBe("3 observations · 2 tools · 600 tokens");
   });
 
   it("renders a compact tail and never exceeds narrow terminal width", () => {

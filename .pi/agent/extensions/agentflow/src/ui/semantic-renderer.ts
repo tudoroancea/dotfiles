@@ -31,6 +31,8 @@ export function semanticResultSummary(
         return `${value.findings.length} findings · ${tools} tools · ${tokens} tokens`;
       if (role === "librarian" && Array.isArray(value.sources))
         return `${value.sources.length} sources · ${tools} tools · ${tokens} tokens`;
+      if (role === "look_at" && Array.isArray(value.observations))
+        return `${value.observations.length} observations · ${tools} tools · ${tokens} tokens`;
       if (role === "delegate" && Array.isArray(value.filesChanged))
         return `${value.filesChanged.length} files · ${tools} tools · ${tokens} tokens`;
       if (role === "oracle" && typeof value.recommendation === "string")
