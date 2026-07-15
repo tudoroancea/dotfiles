@@ -8,11 +8,19 @@ import {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function harness(generateName: any) {
+function harness(
+  generateName: any,
+  renameHerdrTab: (name: string) => Promise<void> = vi.fn().mockResolvedValue(undefined),
+  noHerdrTabRenaming = false,
+) {
   const handlers = new Map<string, Array<(event: any, ctx: any) => void>>();
   const entries: any[] = [];
   let name: string | undefined;
   const pi = {
+    registerFlag: vi.fn(),
+    getFlag: vi.fn((flag: string) =>
+      flag === "no-herdr-tab-renaming" ? noHerdrTabRenaming : undefined,
+    ),
     on(event: string, handler: (event: any, ctx: any) => void) {
       handlers.set(event, [...(handlers.get(event) ?? []), handler]);
     },
@@ -50,7 +58,7 @@ function harness(generateName: any) {
     modelRegistry: {},
     sessionManager,
   };
-  createAutomaticSessionNameExtension({ generateName })(pi as never);
+  createAutomaticSessionNameExtension({ generateName, renameHerdrTab })(pi as never);
   const emit = (event: string, payload: any = {}) => {
     for (const handler of handlers.get(event) ?? []) handler(payload, context);
   };
@@ -78,6 +86,42 @@ describe("automatic session naming", () => {
 
     expect(generateName).toHaveBeenCalledTimes(1);
     expect(test.pi.setSessionName).toHaveBeenCalledWith("refactor auth flow");
+  });
+
+  it("renames the current Herdr tab after applying the automatic name", async () => {
+    const renameHerdrTab = vi.fn().mockResolvedValue(undefined);
+    const test = harness(vi.fn().mockResolvedValue("refactor auth flow"), renameHerdrTab);
+    test.emit("session_start", { reason: "startup" });
+    test.emit("agent_settled");
+    await flush();
+
+    expect(renameHerdrTab).toHaveBeenCalledWith("refactor auth flow");
+  });
+
+  it("renames the tab when resuming an already named session", () => {
+    const renameHerdrTab = vi.fn().mockResolvedValue(undefined);
+    const test = harness(vi.fn(), renameHerdrTab);
+    test.setManualName("existing session name");
+    renameHerdrTab.mockClear();
+
+    test.emit("session_start", { reason: "resume" });
+
+    expect(renameHerdrTab).toHaveBeenCalledWith("existing session name");
+  });
+
+  it("supports disabling Herdr tab renaming with a flag", async () => {
+    const renameHerdrTab = vi.fn().mockResolvedValue(undefined);
+    const test = harness(vi.fn().mockResolvedValue("refactor auth flow"), renameHerdrTab, true);
+    test.emit("session_start", { reason: "startup" });
+    test.emit("agent_settled");
+    await flush();
+
+    expect(test.pi.registerFlag).toHaveBeenCalledWith("no-herdr-tab-renaming", {
+      description: expect.any(String),
+      type: "boolean",
+      default: false,
+    });
+    expect(renameHerdrTab).not.toHaveBeenCalled();
   });
 
   it("does not overwrite an existing or manually touched name", async () => {

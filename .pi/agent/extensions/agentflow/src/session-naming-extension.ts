@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { appendFile } from "node:fs/promises";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { Model } from "@earendil-works/pi-ai";
 import {
@@ -16,6 +18,7 @@ const MAX_TRANSCRIPT_CHARS = 2_400;
 const MAX_TITLE_CHARS = 60;
 const TIMEOUT_MS = 25_000;
 const ATTEMPT_ENTRY = "automatic-session-name-attempt";
+export const HERDR_RENAME_LOG = "/tmp/pi-herdr-tab-renaming.log";
 
 type NamingContext = Pick<ExtensionContext, "cwd" | "model" | "modelRegistry" | "sessionManager">;
 
@@ -25,7 +28,43 @@ type NamingDependencies = {
     transcript: string,
     signal: AbortSignal,
   ) => Promise<string | null>;
+  renameHerdrTab?: (name: string) => Promise<void>;
 };
+
+function logHerdrRename(event: string, details: Record<string, unknown> = {}): void {
+  const line = `${new Date().toISOString()} pid=${process.pid} ${event} ${JSON.stringify(details)}\n`;
+  void appendFile(HERDR_RENAME_LOG, line).catch(() => undefined);
+}
+
+export function renameCurrentHerdrTab(name: string): Promise<void> {
+  const tabId = process.env.HERDR_TAB_ID;
+  if (process.env.HERDR_ENV !== "1" || !tabId) {
+    logHerdrRename("skipped: not running in a Herdr tab", {
+      HERDR_ENV: process.env.HERDR_ENV,
+      HERDR_TAB_ID: tabId,
+    });
+    return Promise.resolve();
+  }
+
+  logHerdrRename("starting tab rename", { tabId, name, PATH: process.env.PATH });
+  return new Promise((resolve) => {
+    execFile(
+      "herdr",
+      ["tab", "rename", tabId, name],
+      { timeout: 2_000 },
+      (error, stdout, stderr) => {
+        logHerdrRename(error ? "tab rename failed" : "tab rename succeeded", {
+          tabId,
+          name,
+          error: error?.message,
+          stdout,
+          stderr,
+        });
+        resolve();
+      },
+    );
+  });
+}
 
 const textContent = (content: unknown): string => {
   if (typeof content === "string") return content;
@@ -163,12 +202,39 @@ export async function generateSessionName(
 export function createAutomaticSessionNameExtension(
   dependencies: NamingDependencies = { generateName: generateSessionName },
 ): (pi: ExtensionAPI) => void {
+  const renameHerdrTab = dependencies.renameHerdrTab ?? renameCurrentHerdrTab;
   return (pi) => {
+    pi.registerFlag("no-herdr-tab-renaming", {
+      description: "Do not rename the current Herdr tab when naming a session",
+      type: "boolean",
+      default: false,
+    });
+    logHerdrRename("extension loaded", {
+      HERDR_ENV: process.env.HERDR_ENV,
+      HERDR_TAB_ID: process.env.HERDR_TAB_ID,
+      disabled: pi.getFlag("no-herdr-tab-renaming"),
+    });
+
     let epoch = 0;
     let attempted = false;
     let nameWasTouched = false;
     let settingAutomaticName = false;
     let active: { epoch: number; sessionId: string; controller: AbortController } | undefined;
+
+    const renameTab = (name: string, source: string) => {
+      if (pi.getFlag("no-herdr-tab-renaming")) {
+        logHerdrRename("skipped: disabled by --no-herdr-tab-renaming", { name, source });
+        return;
+      }
+      logHerdrRename("requesting tab rename", { name, source });
+      void renameHerdrTab(name).catch((error: unknown) => {
+        logHerdrRename("tab rename threw", {
+          name,
+          source,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    };
 
     const invalidate = () => {
       epoch += 1;
@@ -188,13 +254,22 @@ export function createAutomaticSessionNameExtension(
       );
       nameWasTouched =
         pi.getSessionName() !== undefined || entries.some((entry) => entry.type === "session_info");
+      const sessionName = pi.getSessionName();
+      logHerdrRename("session started", {
+        sessionId,
+        attempted,
+        nameWasTouched,
+        sessionName,
+      });
+      if (sessionName) renameTab(sessionName, "session_start");
     });
 
-    pi.on("session_info_changed", () => {
+    pi.on("session_info_changed", (event) => {
       if (settingAutomaticName) return;
       nameWasTouched = true;
       active?.controller.abort();
       active = undefined;
+      if (event.name) renameTab(event.name, "session_info_changed");
     });
 
     pi.on("agent_settled", (_event, ctx) => {
@@ -233,6 +308,8 @@ export function createAutomaticSessionNameExtension(
           settingAutomaticName = true;
           try {
             pi.setSessionName(name);
+            logHerdrRename("automatic session name applied", { name });
+            renameTab(name, "automatic_session_name");
           } finally {
             settingAutomaticName = false;
           }
