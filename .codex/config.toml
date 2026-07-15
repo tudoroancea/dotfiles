@@ -86,6 +86,9 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/Documents/Codex/2026-07-15/do-t"]
 trust_level = "trusted"
 
+[projects."/Users/tudoroancea/Documents/Codex/2026-07-15/in"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true

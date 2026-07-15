@@ -58,11 +58,7 @@ These guidelines apply to the main agent and all child agents. Follow only the s
 
 ### Web development, JavaScript, and TypeScript
 
-- Prefer `nub` for package management, script execution, and package execution unless the project explicitly establishes another workflow.
+- Always prefer using either `bun` or `nub` to manage a project (for package management, script execution, etc.), in particular for new projects we are creating. For existing projects, if they expect another tool (npm, pnpm, etc.), `nub` compatibility layer should be enough to let us use it.
+- Between `bun` and `nub`, choose `nub` when `node` compatibility is important.
 - Let `nub` manage Node installations when practical.
 - For new projects, default to Oxlint and Oxfmt.
-
-## Notes
-
-- `agent/extensions/worktrunk-statusline.ts` replaces Pi's footer with `wt list statusline --format=claude-code`, passes model/context via stdin JSON, and mirrors Pi activity into Worktrunk markers (`🤖` while running, `💬` while idle).
-- `agent/extensions/agentflow` is the standalone Agentflow package. Its background/workflow status uses Pi extension statuses so the Worktrunk footer can display it without being replaced.

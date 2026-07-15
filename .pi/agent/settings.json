@@ -39,7 +39,8 @@
         "-index.ts"
       ]
     },
-    "npm:@plannotator/pi-extension"
+    "npm:@plannotator/pi-extension",
+    "npm:@ff-labs/pi-fff"
   ],
   "claudeStyle": {
     "collapsedToolCalls": "excerpt"
