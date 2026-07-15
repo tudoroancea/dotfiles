@@ -99,6 +99,8 @@ describe("semantic snapshot renderer", () => {
     const lines = renderSemanticSnapshot(snapshot, { maxCollapsedCalls: 3 }, theme).render(28);
     expect(lines.some((line) => line.includes("9 earlier"))).toBe(true);
     expect(lines.some((line) => line.includes("call-0"))).toBe(false);
+    expect(lines.filter((line) => line.startsWith("◆ "))).toEqual(["◆ 12 tools · 42 tokens"]);
+    expect(lines.join("\n")).not.toContain("finder");
     expect(lines.every((line) => visibleWidth(line) <= 28)).toBe(true);
   });
 });

@@ -64,9 +64,6 @@ export function renderSemanticSnapshot(
   const omitted = calls.length - visibleCalls.length;
   const lines: string[] = [];
   const status = node?.status ?? snapshot.status;
-  lines.push(
-    `${colorStatus(theme, status, statusIcon(status))} ${theme.fg("accent", role)}  ${theme.fg("muted", node?.label ?? snapshot.name ?? "agent")}`,
-  );
   if (omitted > 0) lines.push(theme.fg("dim", `  … ${omitted} earlier tool calls`));
   for (const call of visibleCalls) {
     lines.push(
@@ -80,9 +77,7 @@ export function renderSemanticSnapshot(
   }
   const tokens = node?.usage.total ?? 0;
   const summary = semanticResultSummary(role, node?.resultPreview, node?.tools ?? 0, tokens);
-  lines.push(
-    `${colorStatus(theme, status, statusIcon(status))} ${theme.fg("accent", role)}  ${theme.fg("dim", summary)}`,
-  );
+  lines.push(`${colorStatus(theme, status, statusIcon(status))} ${theme.fg("dim", summary)}`);
   if (expanded && node?.error) lines.push(theme.fg("error", node.error));
   if (expanded && node?.sessionFile) lines.push(theme.fg("dim", `Session: ${node.sessionFile}`));
   if (expanded && snapshot.artifactDir)
