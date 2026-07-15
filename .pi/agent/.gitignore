@@ -2,7 +2,5 @@ sessions
 auth.json
 cache
 bin
-agentflow
 pi-acp
 workflows
-agentflow

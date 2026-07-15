@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDeniedChildTool } from "../src/runtime/subagent-runner.ts";
+import { isDeniedChildTool, resolveRequestedModel } from "../src/runtime/subagent-runner.ts";
 import { assertNoTrustedPolicySelection } from "../src/runtime/workflow-runtime.ts";
 import { ownershipOverlaps } from "../src/semantic/ownership.ts";
 import { semanticProfiles } from "../src/semantic/profiles.ts";
@@ -21,6 +21,19 @@ describe("semantic capability policy", () => {
       "cannot select trusted semantic policy",
     );
     expect(() => assertNoTrustedPolicySelection({ model: "custom" })).not.toThrow();
+  });
+
+  it("inherits the parent provider for fixed semantic model IDs", () => {
+    expect(resolveRequestedModel("gpt-5.6-luna", true, "pave")).toBe("pave/gpt-5.6-luna");
+    expect(resolveRequestedModel("gpt-5.6-sol", true, "openai-codex")).toBe(
+      "openai-codex/gpt-5.6-sol",
+    );
+    expect(resolveRequestedModel("anthropic/claude-opus", false, "pave")).toBe(
+      "anthropic/claude-opus",
+    );
+    expect(() => resolveRequestedModel("gpt-5.6-sol", true, undefined)).toThrow(
+      "without a parent model",
+    );
   });
 
   it("detects overlapping delegate ownership boundaries", () => {

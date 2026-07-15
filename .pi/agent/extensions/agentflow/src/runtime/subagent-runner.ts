@@ -23,6 +23,15 @@ const DEFAULT_SYSTEM_PROMPT =
 const USER_INTERACTION_TOOLS = new Set(["ask_user", "question", "questionnaire"]);
 export const isDeniedChildTool = (name: string): boolean =>
   name.startsWith("agentflow_") || USER_INTERACTION_TOOLS.has(name);
+export const resolveRequestedModel = (
+  configuredModel: string | undefined,
+  inheritProvider: boolean | undefined,
+  parentProvider: string | undefined,
+): string | undefined => {
+  if (!configuredModel || !inheritProvider) return configuredModel;
+  if (!parentProvider) throw new Error("Cannot inherit model provider without a parent model");
+  return `${parentProvider}/${configuredModel}`;
+};
 const MAX_OUTPUT = 100_000;
 const DEFAULT_TOOL_TIMEOUT_MS = 120_000;
 const SHUTDOWN_TIMEOUT_MS = 2_000;
@@ -163,14 +172,19 @@ export class SubagentRunner {
     ];
     let model = ctx.model;
     let thinking = (config.thinking ?? this.getInheritedThinking()) as ThinkingLevel | undefined;
-    if (config.model) {
+    const requestedModel = resolveRequestedModel(
+      config.model,
+      config.inheritModelProvider,
+      ctx.model?.provider,
+    );
+    if (requestedModel) {
       const resolved = resolveCliModel({
-        cliModel: config.model,
+        cliModel: requestedModel,
         cliThinking: thinking,
         modelRegistry: ctx.modelRegistry,
       });
       if (resolved.error || !resolved.model)
-        throw new Error(resolved.error ?? `Model not found: ${config.model}`);
+        throw new Error(resolved.error ?? `Model not found: ${requestedModel}`);
       model = resolved.model;
       thinking = resolved.thinkingLevel ?? thinking;
     }

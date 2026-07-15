@@ -35,6 +35,47 @@ describe("semantic profiles", () => {
     },
   );
 
+  it.each([
+    ["finder", { task: "find it" }, "gpt-5.6-luna", "low"],
+    ["oracle", { question: "why?" }, "gpt-5.6-sol", "xhigh"],
+    ["review", {}, "gpt-5.6-sol", "xhigh"],
+  ] as const)(
+    "uses the configured %s model and thinking level",
+    async (role, input, model, thinking) => {
+      const node = await service().createNode(role, input);
+      expect(node.config).toMatchObject({
+        model,
+        inheritModelProvider: true,
+        thinking,
+      });
+    },
+  );
+
+  it("uses the configured librarian model and thinking level", async () => {
+    const tools = ["web_search", "fetch_content", "get_search_content"].map((name) => ({
+      name,
+      sourceInfo: { path: "/extensions/research.ts", source: "research" },
+    }));
+    const node = await service(tools).createNode("librarian", { question: "research" });
+    expect(node.config).toMatchObject({
+      model: "gpt-5.6-sol",
+      inheritModelProvider: true,
+      thinking: "low",
+    });
+  });
+
+  it("keeps delegate on the inherited model", async () => {
+    const node = await service().createNode("delegate", {
+      task: "implement",
+      ownership: ["src/auth.ts"],
+      acceptanceCriteria: ["tests pass"],
+      verificationCommands: ["npm test"],
+    });
+    expect(node.config?.model).toBeUndefined();
+    expect(node.config?.inheritModelProvider).toBe(false);
+    expect(node.config?.thinking).toBe("medium");
+  });
+
   it("uses an exact existing delegate session when continuation is requested", async () => {
     const node = await service().createNode("delegate", {
       task: "implement",

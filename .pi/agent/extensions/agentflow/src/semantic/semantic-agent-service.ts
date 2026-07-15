@@ -117,6 +117,8 @@ export class SemanticAgentService {
       config: {
         appendSystemPrompt: await promptFor(profile.promptAsset),
         usePiSystemPrompt: true,
+        model: profile.modelId,
+        inheritModelProvider: profile.modelId !== undefined,
         thinking: profile.thinking,
         tools: [...profile.tools],
         skills: false,

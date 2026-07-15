@@ -145,6 +145,7 @@ export interface SemanticProfile {
   inputSchema: TSchema;
   outputSchema: TSchema;
   tools: readonly string[];
+  modelId?: string;
   thinking: ThinkingLevel;
   promptAsset: string;
   mutates: boolean;
@@ -157,6 +158,7 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     inputSchema: FinderInputSchema,
     outputSchema: FinderOutputSchema,
     tools: ["read", "grep", "find"],
+    modelId: "gpt-5.6-luna",
     thinking: "low",
     promptAsset: "finder.md",
     mutates: false,
@@ -167,7 +169,8 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     inputSchema: OracleInputSchema,
     outputSchema: OracleOutputSchema,
     tools: ["read", "grep", "find", "git_inspect"],
-    thinking: "high",
+    modelId: "gpt-5.6-sol",
+    thinking: "xhigh",
     promptAsset: "oracle.md",
     mutates: false,
     timeoutMs: 300_000,
@@ -177,7 +180,8 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     inputSchema: LibrarianInputSchema,
     outputSchema: LibrarianOutputSchema,
     tools: ["web_search", "fetch_content", "get_search_content"],
-    thinking: "medium",
+    modelId: "gpt-5.6-sol",
+    thinking: "low",
     promptAsset: "librarian.md",
     mutates: false,
     timeoutMs: 300_000,
@@ -197,7 +201,8 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     inputSchema: ReviewInputSchema,
     outputSchema: ReviewOutputSchema,
     tools: ["read", "grep", "find", "git_inspect"],
-    thinking: "high",
+    modelId: "gpt-5.6-sol",
+    thinking: "xhigh",
     promptAsset: "review.md",
     mutates: false,
     timeoutMs: 300_000,

@@ -19,6 +19,7 @@ export interface SubagentConfig {
   appendSystemPrompt?: string;
   usePiSystemPrompt?: boolean;
   model?: string;
+  inheritModelProvider?: boolean;
   thinking?: ThinkingLevel;
   tools?: string[] | false;
   skills?: string[] | false;
