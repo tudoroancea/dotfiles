@@ -12,7 +12,7 @@ import {
 } from "../semantic/profiles.ts";
 import type { SemanticRole } from "../types.ts";
 import { renderSemanticSnapshot } from "../ui/semantic-renderer.ts";
-import { truncateToolText } from "../utils.ts";
+import { runCostDetails, truncateToolText } from "../utils.ts";
 
 const definitions: Array<{
   role: SemanticRole;
@@ -112,7 +112,7 @@ export function registerSemanticTools(pi: ExtensionAPI, service: SemanticAgentSe
               text: truncateToolText(JSON.stringify(value, null, 2) ?? "null"),
             },
           ],
-          details: result,
+          details: { ...result, ...runCostDetails(result.snapshot) },
         };
       },
       renderCall(args: any, theme: any) {

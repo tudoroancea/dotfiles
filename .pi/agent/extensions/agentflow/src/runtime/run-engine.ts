@@ -56,7 +56,7 @@ export class RunEngine {
   constructor(
     private readonly emit: (name: string, payload: unknown) => void = () => {},
     getTools: () => string[] = () => [],
-    private readonly deliver?: (message: string) => void,
+    private readonly deliver?: (message: string, result: RunResult) => void,
     getThinking: () => import("@earendil-works/pi-agent-core").ThinkingLevel | undefined = () =>
       undefined,
     runner?: ChildRunner,
@@ -416,6 +416,7 @@ export class RunEngine {
       try {
         this.deliver(
           `[agentflow background run ${result.runId} ${result.status}]\n${result.error ?? (preview(result.result) || "(no output)")}\n${snapshot.artifactDir ? `Artifacts: ${snapshot.artifactDir}` : ""}`,
+          result,
         );
       } catch (error) {
         this.emit("agentflow:delivery.error", {

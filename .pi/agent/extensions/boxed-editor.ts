@@ -7,6 +7,7 @@ import {
   type Theme,
 } from "@earendil-works/pi-coding-agent";
 import { visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
+import { getSessionCost } from "./session-cost.ts";
 
 type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
 type ThinkingColor =
@@ -42,36 +43,6 @@ function shortenPath(cwd: string): string {
     return cwd;
   }
   return `~${sep}${fromHome}`;
-}
-
-function getSessionCost(ctx: ExtensionContext): number {
-  let cost = 0;
-
-  for (const entry of ctx.sessionManager.getBranch()) {
-    if (entry.type !== "message") continue;
-
-    if (entry.message.role === "assistant") {
-      const message = entry.message as {
-        usage?: { cost?: { total?: number } };
-      };
-      cost += message.usage?.cost?.total ?? 0;
-      continue;
-    }
-
-    if (entry.message.role === "toolResult") {
-      const details = (entry.message as { details?: unknown }).details;
-      if (
-        details &&
-        typeof details === "object" &&
-        "cost" in details &&
-        typeof (details as { cost?: unknown }).cost === "number"
-      ) {
-        cost += (details as { cost: number }).cost;
-      }
-    }
-  }
-
-  return cost;
 }
 
 function stripAnsi(text: string): string {
@@ -177,7 +148,7 @@ function updateIndicators(
   const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow;
   const contextPercent = usage?.percent == null ? (usage ? "?" : "0") : Math.round(usage.percent);
   const context = contextWindow ? `${contextPercent}% of ${formatTokens(contextWindow)}` : "";
-  const cost = `$${getSessionCost(ctx).toFixed(2)}`;
+  const cost = `$${getSessionCost(ctx.sessionManager.getBranch()).toFixed(2)}`;
   const model = ctx.model ? `(${ctx.model.provider}) ${ctx.model.id}` : "no model";
 
   editor.setIndicators({

@@ -3,6 +3,26 @@ import {
   DEFAULT_MAX_LINES,
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
+import type { RunSnapshot } from "./types.ts";
+
+export interface RunCostDetails {
+  costId: string;
+  cost: number;
+}
+
+export function runCostDetails(snapshot: RunSnapshot): RunCostDetails | undefined {
+  if (snapshot.status === "queued" || snapshot.status === "running") return undefined;
+  return {
+    costId: `agentflow:${snapshot.runId}`,
+    cost: snapshot.nodes.reduce((total, node) => total + node.usage.cost, 0),
+  };
+}
+
+export function runCostRecords(snapshots: readonly RunSnapshot[]): RunCostDetails[] {
+  return snapshots
+    .map(runCostDetails)
+    .filter((details): details is RunCostDetails => details !== undefined);
+}
 
 export function truncateToolText(text: string): string {
   const truncated = truncateHead(text, {

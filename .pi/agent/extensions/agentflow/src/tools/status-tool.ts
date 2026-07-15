@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
-import { truncateToolText } from "../utils.ts";
+import { runCostRecords, truncateToolText } from "../utils.ts";
 function compactStatus(snapshot: ReturnType<RunEngine["getSnapshot"]>): string {
   const runs = Array.isArray(snapshot) ? snapshot : [snapshot];
   if (runs.length === 0) return "No Agentflow runs yet.";
@@ -29,7 +29,10 @@ export function registerStatusTool(pi: ExtensionAPI, engine: RunEngine): void {
       const snapshot = engine.getSnapshot(p.runId);
       return {
         content: [{ type: "text", text: truncateToolText(JSON.stringify(snapshot, null, 2)) }],
-        details: { snapshot },
+        details: {
+          snapshot,
+          costs: runCostRecords(Array.isArray(snapshot) ? snapshot : [snapshot]),
+        },
       };
     },
   });
@@ -72,7 +75,7 @@ export function registerStatusTool(pi: ExtensionAPI, engine: RunEngine): void {
             ),
           },
         ],
-        details: { results },
+        details: { results, costs: runCostRecords(results.map((result) => result.snapshot)) },
       };
     },
   });
@@ -85,7 +88,7 @@ export function registerStatusTool(pi: ExtensionAPI, engine: RunEngine): void {
       const snapshots = await engine.cancel(p.runIds);
       return {
         content: [{ type: "text", text: `Cancellation requested for ${p.runIds.join(", ")}.` }],
-        details: { snapshots },
+        details: { snapshots, costs: runCostRecords(snapshots) },
       };
     },
   });

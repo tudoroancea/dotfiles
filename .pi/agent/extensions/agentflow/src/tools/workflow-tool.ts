@@ -5,7 +5,7 @@ import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
 import type { SemanticAgentService } from "../semantic/semantic-agent-service.ts";
 import { executeWorkflow } from "../runtime/workflow-runtime.ts";
-import { truncateToolText } from "../utils.ts";
+import { runCostDetails, truncateToolText } from "../utils.ts";
 const Mode = StringEnum(["foreground", "background"] as const);
 export function registerWorkflowTool(
   pi: ExtensionAPI,
@@ -72,7 +72,7 @@ export function registerWorkflowTool(
             text: truncateToolText(JSON.stringify((result as any).result, null, 2) ?? "null"),
           },
         ],
-        details: result,
+        details: { ...result, ...runCostDetails(result.snapshot) },
       };
     },
     renderCall(args, theme) {

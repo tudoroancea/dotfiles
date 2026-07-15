@@ -4,7 +4,7 @@ import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
 import type { AgentNodeSpec } from "../types.ts";
-import { truncateToolText } from "../utils.ts";
+import { runCostDetails, truncateToolText } from "../utils.ts";
 const Thinking = StringEnum(["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const);
 const SessionMode = StringEnum(["memory", "file", "existing"] as const);
 const Mode = StringEnum(["foreground", "background"] as const);
@@ -98,7 +98,7 @@ export function registerAgentTool(pi: ExtensionAPI, engine: RunEngine): void {
             ),
           },
         ],
-        details: result,
+        details: { ...result, ...runCostDetails(result.snapshot) },
       };
     },
     renderCall(args, theme) {

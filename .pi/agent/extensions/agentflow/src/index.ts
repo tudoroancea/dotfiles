@@ -7,7 +7,9 @@ import { registerStatusTool } from "./tools/status-tool.ts";
 import { registerSemanticTools } from "./tools/semantic-tools.ts";
 import { registerSteerTool } from "./tools/steer-tool.ts";
 import { registerWorkflowTool } from "./tools/workflow-tool.ts";
+import type { RunSnapshot } from "./types.ts";
 import { registerDashboard } from "./ui/dashboard.ts";
+import { runCostDetails } from "./utils.ts";
 
 export default function agentflowExtension(pi: ExtensionAPI): void {
   pi.registerFlag("agentflow-raw", {
@@ -40,12 +42,25 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   engine = new RunEngine(
     (name, payload) => {
       pi.events.emit(name, payload);
+      if (
+        name === "agentflow:run.completed" ||
+        name === "agentflow:run.failed" ||
+        name === "agentflow:run.aborted"
+      ) {
+        const cost = runCostDetails(payload as RunSnapshot);
+        if (cost) pi.appendEntry("agentflow-cost", cost);
+      }
       refreshUi();
     },
     () => pi.getActiveTools(),
-    (message) =>
+    (message, result) =>
       pi.sendMessage(
-        { customType: "agentflow-result", content: message, display: true, details: {} },
+        {
+          customType: "agentflow-result",
+          content: message,
+          display: true,
+          details: runCostDetails(result.snapshot),
+        },
         { triggerTurn: true, deliverAs: "followUp" },
       ),
     () => pi.getThinkingLevel(),
@@ -81,7 +96,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   });
   pi.on("session_shutdown", async () => {
     lastContext?.ui.setStatus("agentflow", undefined);
-    lastContext = undefined;
     await engine.shutdown();
+    lastContext = undefined;
   });
 }

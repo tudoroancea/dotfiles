@@ -3,13 +3,13 @@ import { RunEngine, type ChildRunner } from "../src/runtime/run-engine.ts";
 import type { AgentNodeSpec, ChildExecutionResult } from "../src/types.ts";
 
 const context = {} as never;
-const usage = { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, total: 10, cost: 0 };
+const usage = { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, total: 10, cost: 0.25 };
 const childResult = (text: string): ChildExecutionResult => ({ text, usage });
 const engineWith = (
   run: ChildRunner["run"],
   options: {
     globalConcurrency?: number;
-    deliver?: (message: string) => void;
+    deliver?: ConstructorParameters<typeof RunEngine>[2];
     idle?: () => boolean;
   } = {},
 ) =>
@@ -178,5 +178,10 @@ describe("RunEngine settlement", () => {
     engine.flushBackgroundDeliveries();
     engine.flushBackgroundDeliveries();
     expect(deliver).toHaveBeenCalledOnce();
+    expect(deliver.mock.calls[0]?.[1]).toMatchObject({
+      runId: second.runId,
+      status: "completed",
+      snapshot: { nodes: [{ usage: { cost: 0.25 } }] },
+    });
   });
 });
