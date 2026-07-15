@@ -46,7 +46,8 @@
   },
   "extensions": [
     "-extensions/claude-style.ts",
-    "-extensions/mac-system-theme.ts"
+    "-extensions/mac-system-theme.ts",
+    "-extensions/worktrunk-statusline.ts"
   ],
   "skills": [
     "-skills/frontend-design/SKILL.md",
