@@ -29,6 +29,16 @@ The central rule is:
 
 > Use agents to multiply independent work, not to simulate an organization chart.
 
+## Current status (audited 2026-07-16)
+
+The Phase 1–5 implementation is present, but this plan remains active until its verification and package-isolation requirements are complete:
+
+- `nub run typecheck` currently follows `test/session-cost.test.ts` into `../boxed-editor.ts`, so the standalone package typecheck fails instead of remaining independent of neighboring live dotfiles sources;
+- semantic workflow coverage does not yet exercise every helper and artifact/provenance boundary end to end;
+- live foreground update rendering, hard deadline/disposal behavior, and installed-configuration `/reload`/RPC behavior still need the explicit verification called for below.
+
+Do not remove this plan based only on the implemented source surface; remove it after these remaining checks are implemented and the full package verification suite passes.
+
 ## Current baseline
 
 The repository already implements the generic vertical runtime needed by the next phases:
