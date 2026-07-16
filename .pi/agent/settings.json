@@ -52,9 +52,6 @@
     "-extensions/double-escape.ts"
   ],
   "skills": [
-    "-skills/frontend-design/SKILL.md",
-    "-skills/plannotator-annotate/SKILL.md",
-    "-skills/plannotator-last/SKILL.md",
-    "-skills/plannotator-review/SKILL.md"
+    "+skills/frontend-design/SKILL.md"
   ]
 }
