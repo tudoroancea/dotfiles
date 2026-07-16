@@ -35,8 +35,11 @@ async function atomic(path: string, content: string): Promise<void> {
 }
 
 export class ArtifactStore {
-  readonly root = join(getAgentDir(), "agentflow");
+  readonly root: string;
   private timers = new Map<string, NodeJS.Timeout>();
+  constructor(root = join(getAgentDir(), "agentflow")) {
+    this.root = root;
+  }
   async recover(): Promise<void> {
     await mkdir(this.root, { recursive: true });
     for (const name of await readdir(this.root).catch(() => [] as string[])) {

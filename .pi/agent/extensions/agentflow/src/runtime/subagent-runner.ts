@@ -9,6 +9,7 @@ import {
   resolveCliModel,
   SessionManager,
   SettingsManager,
+  type AgentSession,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
@@ -62,6 +63,64 @@ export const filterEnabledExtensionPaths = (
 const MAX_OUTPUT = 100_000;
 const DEFAULT_TOOL_TIMEOUT_MS = 120_000;
 const SHUTDOWN_TIMEOUT_MS = 2_000;
+const ABORT_SETTLE_TIMEOUT_MS = 500;
+
+export async function awaitWithChildDeadline<T>(
+  operation: Promise<T>,
+  timeoutMs: number | undefined,
+  abort: () => Promise<unknown>,
+): Promise<T> {
+  if (!timeoutMs) return operation;
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          void abort().catch(() => undefined);
+          reject(new Error(`Child deadline exceeded after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+export async function settleChildAbort(
+  abortPromise: Promise<unknown> | undefined,
+  timeoutMs = ABORT_SETTLE_TIMEOUT_MS,
+): Promise<void> {
+  if (!abortPromise) return;
+  await Promise.race([
+    abortPromise.catch(() => undefined),
+    new Promise((resolveTimeout) => setTimeout(resolveTimeout, timeoutMs)),
+  ]);
+}
+
+export async function disposeChildSession(
+  session: Pick<AgentSession, "dispose">,
+  shutdownTimeoutMs = SHUTDOWN_TIMEOUT_MS,
+): Promise<void> {
+  try {
+    const runner = (
+      session as unknown as { _extensionRunner?: { emit(event: unknown): Promise<unknown> } }
+    )._extensionRunner;
+    if (runner)
+      await Promise.race([
+        runner.emit({ type: "session_shutdown", reason: "quit" }),
+        new Promise((resolveTimeout) => setTimeout(resolveTimeout, shutdownTimeoutMs)),
+      ]);
+  } catch {
+    // Extension shutdown is best effort and bounded.
+  }
+  try {
+    session.dispose();
+  } catch {
+    // Disposal is best effort after bounded extension shutdown.
+  }
+}
+
 const textOf = (messages: AgentMessage[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
@@ -266,17 +325,26 @@ export class SubagentRunner {
       excludeTools: deniedTools,
       customTools,
     });
+    let abortPromise: Promise<unknown> | undefined;
+    const abortSession = (): Promise<unknown> =>
+      (abortPromise ??= session.abort().catch(() => undefined));
     if (parentSignal.aborted) {
-      session.dispose();
+      await disposeChildSession(session);
       throw abortError();
     }
-    if (extensionsResult.extensions.length)
-      await session.bindExtensions({
-        mode: config.extensionMode ?? "print",
-        abortHandler: () => void session.abort(),
-      });
+    try {
+      if (extensionsResult.extensions.length)
+        await session.bindExtensions({
+          mode: config.extensionMode ?? "print",
+          abortHandler: () => void abortSession(),
+        });
+    } catch (error) {
+      await settleChildAbort(abortPromise);
+      await disposeChildSession(session);
+      throw error;
+    }
     if (!this.store.attachSession(runId, node.id, session)) {
-      session.dispose();
+      await disposeChildSession(session);
       throw abortError();
     }
     this.store.updateNode(runId, node.id, (n) => {
@@ -333,7 +401,7 @@ export class SubagentRunner {
               toolTimeoutError = new Error(
                 `Child tool ${event.toolName} timed out after ${toolTimeoutMs}ms`,
               );
-              void session.abort().catch(() => undefined);
+              void abortSession();
             }, toolTimeoutMs),
           );
         }
@@ -350,9 +418,8 @@ export class SubagentRunner {
         });
       }
     });
-    const onAbort = () => void session.abort().catch(() => undefined);
+    const onAbort = () => void abortSession();
     parentSignal.addEventListener("abort", onAbort, { once: true });
-    let deadlineTimer: NodeJS.Timeout | undefined;
     try {
       if (parentSignal.aborted) throw abortError();
       const prompt = session.prompt(
@@ -361,17 +428,7 @@ export class SubagentRunner {
           : `Task: ${node.prompt}`,
         { expandPromptTemplates: false, source: "extension" },
       );
-      await (config.timeoutMs
-        ? Promise.race([
-            prompt,
-            new Promise<never>((_, reject) => {
-              deadlineTimer = setTimeout(() => {
-                void session.abort().catch(() => undefined);
-                reject(new Error(`Child deadline exceeded after ${config.timeoutMs}ms`));
-              }, config.timeoutMs);
-            }),
-          ])
-        : prompt);
+      await awaitWithChildDeadline(prompt, config.timeoutMs, abortSession);
       if (toolTimeoutError) throw toolTimeoutError;
       if (parentSignal.aborted) throw abortError();
       const assistants = messages.filter((m) => m.role === "assistant");
@@ -391,28 +448,12 @@ export class SubagentRunner {
         usage: { ...usage },
       };
     } finally {
-      if (deadlineTimer) clearTimeout(deadlineTimer);
       for (const t of toolTimers.values()) clearTimeout(t);
       parentSignal.removeEventListener("abort", onAbort);
       unsubscribe();
       this.store.detachSession(runId, node.id);
-      try {
-        const runner = (
-          session as unknown as { _extensionRunner?: { emit(event: unknown): Promise<unknown> } }
-        )._extensionRunner;
-        if (runner)
-          await Promise.race([
-            runner.emit({ type: "session_shutdown", reason: "quit" }),
-            new Promise((resolveTimeout) => setTimeout(resolveTimeout, SHUTDOWN_TIMEOUT_MS)),
-          ]);
-      } catch {
-        /* extension shutdown is best effort and bounded */
-      }
-      try {
-        session.dispose();
-      } catch {
-        /* best effort */
-      }
+      await settleChildAbort(abortPromise);
+      await disposeChildSession(session);
     }
   }
 }

@@ -70,6 +70,32 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   );
   const semanticService = new SemanticAgentService(engine, () => pi.getAllTools());
   registerSemanticTools(pi, semanticService);
+  if (process.env.PI_AGENTFLOW_CONFIG_SMOKE === "1") {
+    pi.registerCommand("agentflow-config-smoke", {
+      description: "Report Agentflow registration for the installed-configuration smoke test",
+      handler: async (_args, ctx) => {
+        ctx.ui.notify(
+          `AGENTFLOW_CONFIG_SMOKE ${JSON.stringify({
+            all: pi
+              .getAllTools()
+              .map((tool) => tool.name)
+              .filter((name) => name.startsWith("agentflow_"))
+              .sort(),
+            active: pi
+              .getActiveTools()
+              .filter((name) => name.startsWith("agentflow_"))
+              .sort(),
+          })}`,
+        );
+      },
+    });
+    pi.registerCommand("agentflow-config-reload", {
+      description: "Reload Pi for the installed-configuration smoke test",
+      handler: async (_args, ctx) => {
+        await ctx.reload();
+      },
+    });
+  }
   let rawToolsRegistered = false;
   pi.on("session_start", () => {
     if (!rawToolsRegistered && pi.getFlag("agentflow-raw")) {

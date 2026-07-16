@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSessionCost } from "../../boxed-editor.ts";
+import { getSessionCost } from "../src/session-cost.ts";
 
 const message = (value: unknown) => ({ type: "message", message: value });
 

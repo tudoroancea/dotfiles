@@ -44,7 +44,6 @@ export interface ChildRunner {
 
 export class RunEngine {
   private readonly store = new RunStore();
-  private readonly artifacts = new ArtifactStore();
   private readonly runner: ChildRunner;
   private readonly runtime = new Map<string, Runtime>();
   private globalActive = 0;
@@ -62,6 +61,7 @@ export class RunEngine {
     runner?: ChildRunner,
     private readonly globalConcurrency = 4,
     private readonly isParentIdle: () => boolean = () => true,
+    private readonly artifacts = new ArtifactStore(),
   ) {
     if (!Number.isInteger(globalConcurrency) || globalConcurrency < 1)
       throw new Error("globalConcurrency must be a positive integer");

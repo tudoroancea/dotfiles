@@ -2,7 +2,7 @@
 
 A Pi extension for isolated child agents and permission-restricted dynamic workflows. It provides one scheduler, lifecycle, observation, cancellation, persistence, and artifact layer for raw and semantic agent profiles.
 
-The hybrid interface described in [`PLAN.md`](./PLAN.md) is implemented through Phase 5: direct semantic tools and raw workflow semantic helpers share one scheduler and child runtime, and the package is installed from the dotfiles checkout.
+The hybrid interface is complete through Phase 5: direct semantic tools and raw workflow semantic helpers share one scheduler and child runtime, and the package is installed from the dotfiles checkout.
 
 ## Installation
 
@@ -108,11 +108,17 @@ npm run dev:rpc
 npm run dev:rpc:raw
 ```
 
-RPC smoke tests make real model calls, are opt-in, and use the same auto-discovered installed extension rather than a separate `-e` path:
+The installed-configuration RPC smoke is model-free. It verifies auto-discovery from the dotfiles path in default and raw modes, invokes `/reload`, and verifies the extension again afterward:
+
+```sh
+npm run smoke:config
+```
+
+The remaining RPC smoke tests make real model calls, are opt-in, and use the same auto-discovered installed extension rather than a separate `-e` path:
 
 ```sh
 npm run smoke
 npm run smoke:workflow
 ```
 
-Set `PI_AGENTFLOW_SMOKE_MODEL` to override the model used by either smoke script.
+Set `PI_AGENTFLOW_SMOKE_MODEL` to override the model used by either real-model smoke script.

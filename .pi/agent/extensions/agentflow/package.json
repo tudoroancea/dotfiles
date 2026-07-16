@@ -23,6 +23,7 @@
     "dev:tui": "pi",
     "dev:tui:raw": "pi --agentflow-raw",
     "smoke": "node scripts/rpc-smoke.mjs",
+    "smoke:config": "node scripts/rpc-config-smoke.mjs",
     "smoke:workflow": "node scripts/rpc-workflow-smoke.mjs"
   },
   "dependencies": {
