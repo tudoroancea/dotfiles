@@ -1,6 +1,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
 import type { NodeSnapshot, RunSnapshot, SemanticRole, ToolCallSnapshot } from "../types.ts";
+import { formatTokens, formatUsd } from "../utils.ts";
 
 const statusIcon = (status: ToolCallSnapshot["status"] | NodeSnapshot["status"]): string => {
   if (status === "completed") return "✓";
@@ -23,25 +24,27 @@ export function semanticResultSummary(
   preview: string | undefined,
   tools: number,
   tokens: number,
+  cost: number,
 ): string {
+  const usage = `${tools} tools · ${formatTokens(tokens)} tokens · ${formatUsd(cost)}`;
   if (preview) {
     try {
       const value = JSON.parse(preview) as Record<string, unknown>;
       if ((role === "finder" || role === "review") && Array.isArray(value.findings))
-        return `${value.findings.length} findings · ${tools} tools · ${tokens} tokens`;
+        return `${value.findings.length} findings · ${usage}`;
       if (role === "librarian" && Array.isArray(value.sources))
-        return `${value.sources.length} sources · ${tools} tools · ${tokens} tokens`;
+        return `${value.sources.length} sources · ${usage}`;
       if (role === "look_at" && Array.isArray(value.observations))
-        return `${value.observations.length} observations · ${tools} tools · ${tokens} tokens`;
+        return `${value.observations.length} observations · ${usage}`;
       if (role === "delegate" && Array.isArray(value.filesChanged))
-        return `${value.filesChanged.length} files · ${tools} tools · ${tokens} tokens`;
+        return `${value.filesChanged.length} files · ${usage}`;
       if (role === "oracle" && typeof value.recommendation === "string")
-        return `recommendation · ${tools} tools · ${tokens} tokens`;
+        return `recommendation · ${usage}`;
     } catch {
       // Bounded streaming previews are often incomplete JSON.
     }
   }
-  return `${tools} tools · ${tokens} tokens`;
+  return usage;
 }
 
 export interface SemanticRenderOptions {
@@ -76,7 +79,8 @@ export function renderSemanticSnapshot(
       lines.push(`    ${theme.fg("muted", call.resultPreview.replaceAll("\n", " "))}`);
   }
   const tokens = node?.usage.total ?? 0;
-  const summary = semanticResultSummary(role, node?.resultPreview, node?.tools ?? 0, tokens);
+  const cost = node?.usage.cost ?? 0;
+  const summary = semanticResultSummary(role, node?.resultPreview, node?.tools ?? 0, tokens, cost);
   lines.push(`${colorStatus(theme, status, statusIcon(status))} ${theme.fg("dim", summary)}`);
   if (expanded && node?.error) lines.push(theme.fg("error", node.error));
   if (expanded && node?.sessionFile) lines.push(theme.fg("dim", `Session: ${node.sessionFile}`));

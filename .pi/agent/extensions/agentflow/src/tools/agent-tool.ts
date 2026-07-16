@@ -4,7 +4,7 @@ import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
 import type { AgentNodeSpec } from "../types.ts";
-import { runCostDetails, truncateToolText } from "../utils.ts";
+import { formatTokens, formatUsd, runCostDetails, truncateToolText } from "../utils.ts";
 const Thinking = StringEnum(["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const);
 const SessionMode = StringEnum(["memory", "file", "existing"] as const);
 const Mode = StringEnum(["foreground", "background"] as const);
@@ -120,7 +120,7 @@ export function registerAgentTool(pi: ExtensionAPI, engine: RunEngine): void {
             ? theme.fg("error", "✗")
             : theme.fg("dim", "◆");
       return new Text(
-        `${icon} ${theme.fg("accent", n?.label ?? s.name ?? "agent")} · ${theme.fg("dim", s.runId)} · ${n?.tools ?? 0} tools · ${n?.usage?.total ?? 0} tokens${options.expanded && n?.resultPreview ? `\n${n.resultPreview}` : ""}`,
+        `${icon} ${theme.fg("accent", n?.label ?? s.name ?? "agent")} · ${theme.fg("dim", s.runId)} · ${n?.tools ?? 0} tools · ${formatTokens(n?.usage?.total ?? 0)} tokens · ${formatUsd(n?.usage?.cost ?? 0)}${options.expanded && n?.resultPreview ? `\n${n.resultPreview}` : ""}`,
         0,
         0,
       );

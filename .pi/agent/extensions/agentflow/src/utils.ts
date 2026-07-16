@@ -10,6 +10,18 @@ export interface RunCostDetails {
   cost: number;
 }
 
+export function formatUsd(cost: number): string {
+  if (cost >= 1) return `$${cost.toFixed(2)}`;
+  if (cost >= 0.1) return `$${cost.toFixed(3)}`;
+  return `$${cost.toFixed(4)}`;
+}
+
+export function formatTokens(tokens: number): string {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`;
+  return String(tokens);
+}
+
 export function runCostDetails(snapshot: RunSnapshot): RunCostDetails | undefined {
   if (snapshot.status === "queued" || snapshot.status === "running") return undefined;
   return {

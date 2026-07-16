@@ -10,7 +10,7 @@ import {
 import type { NodeSnapshot, RunSnapshot } from "../src/types.ts";
 import { renderSemanticSnapshot, semanticResultSummary } from "../src/ui/semantic-renderer.ts";
 
-const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 42, cost: 0 };
+const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 42, cost: 0.0123 };
 const node = (): NodeSnapshot => ({
   id: "finder",
   label: "Locate authentication state transitions",
@@ -66,14 +66,20 @@ describe("tool call snapshots", () => {
 describe("semantic snapshot renderer", () => {
   it("uses role-specific result summaries", () => {
     expect(
-      semanticResultSummary("finder", JSON.stringify({ findings: [{}, {}, {}] }), 4, 1200),
-    ).toBe("3 findings · 4 tools · 1200 tokens");
-    expect(semanticResultSummary("librarian", JSON.stringify({ sources: [{}, {}] }), 2, 500)).toBe(
-      "2 sources · 2 tools · 500 tokens",
-    );
+      semanticResultSummary("finder", JSON.stringify({ findings: [{}, {}, {}] }), 4, 1200, 0.0123),
+    ).toBe("3 findings · 4 tools · 1.2k tokens · $0.0123");
     expect(
-      semanticResultSummary("look_at", JSON.stringify({ observations: [{}, {}, {}] }), 2, 600),
-    ).toBe("3 observations · 2 tools · 600 tokens");
+      semanticResultSummary("librarian", JSON.stringify({ sources: [{}, {}] }), 2, 500, 0.12),
+    ).toBe("2 sources · 2 tools · 500 tokens · $0.120");
+    expect(
+      semanticResultSummary(
+        "look_at",
+        JSON.stringify({ observations: [{}, {}, {}] }),
+        2,
+        1_250_000,
+        1.25,
+      ),
+    ).toBe("3 observations · 2 tools · 1.3M tokens · $1.25");
   });
 
   it("renders a compact tail and never exceeds narrow terminal width", () => {
@@ -96,11 +102,13 @@ describe("semantic snapshot renderer", () => {
       logs: [],
     };
 
-    const lines = renderSemanticSnapshot(snapshot, { maxCollapsedCalls: 3 }, theme).render(28);
+    const lines = renderSemanticSnapshot(snapshot, { maxCollapsedCalls: 3 }, theme).render(40);
     expect(lines.some((line) => line.includes("9 earlier"))).toBe(true);
     expect(lines.some((line) => line.includes("call-0"))).toBe(false);
-    expect(lines.filter((line) => line.startsWith("◆ "))).toEqual(["◆ 12 tools · 42 tokens"]);
+    expect(lines.filter((line) => line.startsWith("◆ "))).toEqual([
+      "◆ 12 tools · 42 tokens · $0.0123",
+    ]);
     expect(lines.join("\n")).not.toContain("finder");
-    expect(lines.every((line) => visibleWidth(line) <= 28)).toBe(true);
+    expect(lines.every((line) => visibleWidth(line) <= 40)).toBe(true);
   });
 });
