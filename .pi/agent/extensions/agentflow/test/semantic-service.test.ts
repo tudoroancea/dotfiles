@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import { SemanticAgentService } from "../src/semantic/semantic-agent-service.ts";
 import { validateSemanticInput } from "../src/semantic/profiles.ts";
 
+const FFF_EXTENSION = "/extensions/pi-fff/index.ts";
+const fffTools = ["ffgrep", "fffind"].map((name) => ({
+  name,
+  sourceInfo: { path: FFF_EXTENSION, source: "pi-fff" },
+}));
 const service = (
   tools: Array<{ name: string; sourceInfo?: { path?: string; source?: string } }> = [],
-) => new SemanticAgentService({} as never, () => tools);
+) => new SemanticAgentService({} as never, () => [...fffTools, ...tools]);
 
 describe("semantic profiles", () => {
   it("strictly validates model-facing input", () => {
@@ -38,10 +43,7 @@ describe("semantic profiles", () => {
       expect(node.config?.usePiSystemPrompt).toBe(true);
       expect(node.config?.appendSystemPrompt).toContain(`You are the ${role} specialist`);
       if (role === "look_at") expect(node.config?.extensions).toBe(false);
-      else
-        expect(node.config?.extensions).toEqual([
-          expect.stringMatching(/enable-search-tools\.ts$/),
-        ]);
+      else expect(node.config?.extensions).toEqual([FFF_EXTENSION]);
     },
   );
 
@@ -165,10 +167,7 @@ describe("semantic profiles", () => {
       acceptanceCriteria: ["tests pass"],
       verificationCommands: ["npm test"],
     });
-    expect(node.config?.extensions).toEqual([
-      expect.stringMatching(/enable-search-tools\.ts$/),
-      path,
-    ]);
+    expect(node.config?.extensions).toEqual([FFF_EXTENSION, path]);
     expect(node.config?.tools).toEqual(
       expect.arrayContaining(["background_bash", "background_wait"]),
     );
@@ -197,6 +196,13 @@ describe("semantic profiles", () => {
     );
   });
 
+  it("fails search roles early when FFF capabilities are unavailable", async () => {
+    const semantic = new SemanticAgentService({} as never, () => []);
+    await expect(semantic.createNode("finder", { task: "find it" })).rejects.toThrow(
+      "FFF search capabilities unavailable",
+    );
+  });
+
   it("rejects overlapping background delegates until the active run settles", async () => {
     let settle!: () => void;
     const completion = new Promise<void>((resolve) => {
@@ -206,7 +212,7 @@ describe("semantic profiles", () => {
       launchAgent: async () => ({ runId: "run-1", snapshot: {} }),
       observeCompletion: async () => completion,
     };
-    const semantic = new SemanticAgentService(engine as never, () => []);
+    const semantic = new SemanticAgentService(engine as never, () => fffTools);
     const input = {
       task: "implement",
       ownership: ["src/auth"],
@@ -239,7 +245,7 @@ describe("semantic profiles", () => {
           return { ok: true, output: "done", aborted: false, usage: { total: 0 } };
         },
       } as never,
-      () => [],
+      () => fffTools,
     );
     await semantic.runInWorkflow("run", "finder", { task: "inspect" }, "task");
     expect(node).toMatchObject({

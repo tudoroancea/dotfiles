@@ -13,15 +13,13 @@ cd ~/.pi/agent/extensions/agentflow
 npm install
 ```
 
-The sibling `~/.pi/agent/extensions/enable-search-tools.ts` symlink exposes the separate search-tools extension. It enables Pi's built-in `grep` and `find` tools while preserving the existing active tools and without enabling `ls`.
+Search-capable child agents use the globally installed `@ff-labs/pi-fff` package. Agentflow resolves the extension that provides `ffgrep` and `fffind`, loads it explicitly in those children, and fails early if the capabilities are unavailable.
 
-For a checkout where `~/.pi` is not itself linked to the dotfiles repository, link both installed entries:
+For a checkout where `~/.pi` is not itself linked to the dotfiles repository, link the installed entry:
 
 ```sh
 mkdir -p ~/.pi/agent/extensions
 ln -s "$DOTFILES/.pi/agent/extensions/agentflow" ~/.pi/agent/extensions/agentflow
-ln -s "$DOTFILES/.pi/agent/extensions/agentflow/src/enable-search-tools.ts" \
-  ~/.pi/agent/extensions/enable-search-tools.ts
 ```
 
 After installation or a source change, run `/reload` in an active Pi session. Starting a new Pi process also reloads the extension.
@@ -61,8 +59,8 @@ Raw workflows execute JavaScript in a Node permission-restricted child process. 
 
 - Shared all-agent behavior belongs in the global `AGENTS.md`; semantic routing remains in each tool's `promptGuidelines`.
 - Agentflow publishes background/workflow progress with `setStatus`, which the existing Worktrunk footer renders without replacing either extension's UI.
-- Child agents do not inherit global extensions. Explicit child extensions are intersected with Pi's effective enabled-extension set, so a globally or project-disabled extension cannot be re-enabled by Agentflow. Finder, oracle, review, and delegate receive the search-tool activator; librarian receives its resolved research extensions; delegate also receives background-process tools when that extension is active in the parent.
-- Agentflow does not override built-in tools. The separate search-tools extension only activates built-in `grep` and `find`.
+- Child agents do not inherit global extensions. Explicit child extensions are intersected with Pi's effective enabled-extension set, so a globally or project-disabled extension cannot be re-enabled by Agentflow. Finder, oracle, review, and delegate receive the resolved `pi-fff` extension; librarian receives its resolved research extensions; delegate also receives background-process tools when that extension is active in the parent.
+- Agentflow uses the explicit `ffgrep` and `fffind` tool names and leaves Pi's built-in `grep` and `find` inactive.
 - Runtime artifacts remain outside this package under `~/.pi/agent/agentflow/<runId>`.
 
 ## Architecture

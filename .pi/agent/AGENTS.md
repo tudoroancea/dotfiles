@@ -11,7 +11,7 @@ These guidelines apply to the main agent and all child agents. Follow only the s
 ## Tool usage
 
 - Prefer specialized tools over shell commands for file operations: use `read` rather than `cat`, `head`, or `tail`, and use `edit` rather than `sed` or `awk`. Reserve `bash` for actual system commands.
-- When searching from the shell, use `fd` rather than the `find` command, `rg` rather than `grep`, and `ast-grep` when searching code structurally.
+- Prefer `fffind` for file and path discovery and `ffgrep` for content search. Use shell `fd` and `rg` only when the specialized tools cannot express the query, and use `ast-grep` when searching code structurally.
 - Call independent read-only tools in parallel. Use sequential calls only when one depends on another's result.
 - Never use placeholders or guess missing tool parameters.
 

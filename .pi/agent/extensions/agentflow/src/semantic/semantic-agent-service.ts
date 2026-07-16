@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type {
   AgentTaskResult,
@@ -27,8 +26,8 @@ interface ToolInfo {
   sourceInfo?: { path?: string; source?: string };
 }
 
-const SEARCH_EXTENSION = fileURLToPath(new URL("../enable-search-tools.ts", import.meta.url));
 const SEARCH_ROLES = new Set<SemanticRole>(["finder", "oracle", "delegate", "review"]);
+const SEARCH_TOOLS = ["ffgrep", "fffind"] as const;
 const BACKGROUND_TOOLS = [
   "background_bash",
   "monitor",
@@ -103,6 +102,13 @@ export class SemanticAgentService {
     return paths.size === 1 ? [...paths][0] : undefined;
   }
 
+  private resolveSearchExtension(): string {
+    const path = this.resolveToolExtension(SEARCH_TOOLS);
+    if (!path)
+      throw new Error("FFF search capabilities unavailable or not backed by one extension");
+    return path;
+  }
+
   private resolveResearchExtensions(): string[] {
     const tools = this.getTools();
     const required = semanticProfiles.librarian.tools;
@@ -143,11 +149,12 @@ export class SemanticAgentService {
         };
     const backgroundExtension =
       role === "delegate" ? this.resolveToolExtension(BACKGROUND_TOOLS) : undefined;
+    const searchExtension = SEARCH_ROLES.has(role) ? this.resolveSearchExtension() : undefined;
     const extensions =
       role === "librarian"
         ? this.resolveResearchExtensions()
         : [
-            ...(SEARCH_ROLES.has(role) ? [SEARCH_EXTENSION] : []),
+            ...(searchExtension ? [searchExtension] : []),
             ...(backgroundExtension ? [backgroundExtension] : []),
           ];
     return {

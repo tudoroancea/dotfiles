@@ -438,7 +438,7 @@ Deliverables:
 - symlink it into `~/.pi/agent/extensions/agentflow`;
 - retain one package, lockfile, tests, scripts, and prompt assets without introducing a workspace or bundler;
 - update global `AGENTS.md` with the shared all-agent guidance and relevance preface, while keeping semantic routing in tool registration guidelines;
-- add a separate tiny global extension that enables Pi's built-in `grep` and `find` tools by default without enabling `ls` or reimplementing the built-ins;
+- use the installed `pi-fff` extension's explicit `ffgrep` and `fffind` tools in parent and search-capable child agents, leaving Pi's built-in `grep` and `find` inactive;
 - reconcile existing system-prompt, statusline, tool, and extension policies;
 - document install, reload, raw-mode, test, and smoke commands;
 - adapt tests and paths so they are independent of the live dotfiles resources.
