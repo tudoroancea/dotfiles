@@ -37,7 +37,11 @@ describe("semantic profiles", () => {
       expect(node.config?.systemPrompt).toBeUndefined();
       expect(node.config?.usePiSystemPrompt).toBe(true);
       expect(node.config?.appendSystemPrompt).toContain(`You are the ${role} specialist`);
-      expect(node.config?.extensions).toBe(false);
+      if (role === "look_at") expect(node.config?.extensions).toBe(false);
+      else
+        expect(node.config?.extensions).toEqual([
+          expect.stringMatching(/enable-search-tools\.ts$/),
+        ]);
     },
   );
 
@@ -118,9 +122,9 @@ describe("semantic profiles", () => {
     });
   });
 
-  it("keeps delegate on the inherited model", async () => {
+  it("keeps delegate on the inherited model and names its file session", async () => {
     const node = await service().createNode("delegate", {
-      task: "implement",
+      task: "implement the authentication flow",
       ownership: ["src/auth.ts"],
       acceptanceCriteria: ["tests pass"],
       verificationCommands: ["npm test"],
@@ -128,6 +132,10 @@ describe("semantic profiles", () => {
     expect(node.config?.model).toBeUndefined();
     expect(node.config?.inheritModelProvider).toBe(false);
     expect(node.config?.thinking).toBe("medium");
+    expect(node.config?.session).toMatchObject({
+      mode: "file",
+      name: "delegate: implement the authentication flow",
+    });
   });
 
   it("uses an exact existing delegate session when continuation is requested", async () => {
@@ -140,6 +148,47 @@ describe("semantic profiles", () => {
     });
     expect(node.config?.session).toMatchObject({ mode: "existing", file: "/tmp/exact.jsonl" });
     expect(node.config?.tools).toEqual(expect.arrayContaining(["edit", "write", "bash"]));
+  });
+
+  it("gives delegate the globally active background-process extension", async () => {
+    const path = "/extensions/background-processes/index.ts";
+    const tools = [
+      "background_bash",
+      "monitor",
+      "background_status",
+      "background_wait",
+      "background_stop",
+    ].map((name) => ({ name, sourceInfo: { path, source: "local" } }));
+    const node = await service(tools).createNode("delegate", {
+      task: "implement",
+      ownership: ["src/auth.ts"],
+      acceptanceCriteria: ["tests pass"],
+      verificationCommands: ["npm test"],
+    });
+    expect(node.config?.extensions).toEqual([
+      expect.stringMatching(/enable-search-tools\.ts$/),
+      path,
+    ]);
+    expect(node.config?.tools).toEqual(
+      expect.arrayContaining(["background_bash", "background_wait"]),
+    );
+    expect(node.config?.extensionMode).toBe("rpc");
+  });
+
+  it("omits background processes unless the complete extension is globally active", async () => {
+    const node = await service([
+      {
+        name: "background_bash",
+        sourceInfo: { path: "/extensions/background-processes/index.ts", source: "local" },
+      },
+    ]).createNode("delegate", {
+      task: "implement",
+      ownership: ["src/auth.ts"],
+      acceptanceCriteria: ["tests pass"],
+      verificationCommands: ["npm test"],
+    });
+    expect(node.config?.tools).not.toContain("background_bash");
+    expect(node.config?.extensionMode).toBe("print");
   });
 
   it("fails librarian early when research capabilities are unavailable", async () => {

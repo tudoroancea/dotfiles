@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type {
   AgentTaskResult,
@@ -25,6 +26,16 @@ interface ToolInfo {
   name: string;
   sourceInfo?: { path?: string; source?: string };
 }
+
+const SEARCH_EXTENSION = fileURLToPath(new URL("../enable-search-tools.ts", import.meta.url));
+const SEARCH_ROLES = new Set<SemanticRole>(["finder", "oracle", "delegate", "review"]);
+const BACKGROUND_TOOLS = [
+  "background_bash",
+  "monitor",
+  "background_status",
+  "background_wait",
+  "background_stop",
+] as const;
 
 const promptCache = new Map<string, Promise<string>>();
 const promptFor = (asset: string): Promise<string> => {
@@ -78,6 +89,20 @@ export class SemanticAgentService {
     this.activeDelegateOwnership.set(key, ownership);
   }
 
+  private resolveToolExtension(required: readonly string[]): string | undefined {
+    const tools = this.getTools();
+    const matches = required.map((name) => tools.find((tool) => tool.name === name));
+    if (matches.some((tool) => !tool)) return undefined;
+    const paths = new Set(
+      matches
+        .map((tool) => tool?.sourceInfo)
+        .filter((source) => source?.source !== "builtin" && source?.source !== "sdk")
+        .map((source) => source?.path)
+        .filter((path): path is string => !!path),
+    );
+    return paths.size === 1 ? [...paths][0] : undefined;
+  }
+
   private resolveResearchExtensions(): string[] {
     const tools = this.getTools();
     const required = semanticProfiles.librarian.tools;
@@ -102,17 +127,29 @@ export class SemanticAgentService {
   ): Promise<AgentNodeSpec> {
     const input = validateSemanticInput(role, rawInput);
     const profile = semanticProfiles[role];
-    const session =
-      role === "delegate" && (input as DelegateInput).continuationSessionFile
-        ? {
-            mode: "existing" as const,
-            file: (input as DelegateInput).continuationSessionFile,
-            inheritParentContext: true,
-          }
-        : {
-            mode: role === "delegate" ? ("file" as const) : ("memory" as const),
-            inheritParentContext: true,
-          };
+    const delegateInput = role === "delegate" ? (input as DelegateInput) : undefined;
+    const session = delegateInput?.continuationSessionFile
+      ? {
+          mode: "existing" as const,
+          file: delegateInput.continuationSessionFile,
+          inheritParentContext: true,
+        }
+      : {
+          mode: role === "delegate" ? ("file" as const) : ("memory" as const),
+          name: delegateInput
+            ? `delegate: ${delegateInput.task.replace(/\s+/g, " ").trim().slice(0, 80)}`
+            : undefined,
+          inheritParentContext: true,
+        };
+    const backgroundExtension =
+      role === "delegate" ? this.resolveToolExtension(BACKGROUND_TOOLS) : undefined;
+    const extensions =
+      role === "librarian"
+        ? this.resolveResearchExtensions()
+        : [
+            ...(SEARCH_ROLES.has(role) ? [SEARCH_EXTENSION] : []),
+            ...(backgroundExtension ? [backgroundExtension] : []),
+          ];
     return {
       id: id ?? `${role}_${++this.sequence}`,
       label: role,
@@ -125,9 +162,10 @@ export class SemanticAgentService {
         model: profile.modelId,
         inheritModelProvider: profile.modelId !== undefined,
         thinking: profile.thinking,
-        tools: [...profile.tools],
+        tools: [...profile.tools, ...(backgroundExtension ? BACKGROUND_TOOLS : [])],
         skills: false,
-        extensions: role === "librarian" ? this.resolveResearchExtensions() : false,
+        extensions: extensions.length ? extensions : false,
+        extensionMode: backgroundExtension ? "rpc" : "print",
         session,
         outputSchema: profile.outputSchema,
         timeoutMs: profile.timeoutMs,

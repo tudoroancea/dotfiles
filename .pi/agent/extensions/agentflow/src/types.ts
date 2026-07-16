@@ -24,6 +24,7 @@ export interface SubagentConfig {
   tools?: string[] | false;
   skills?: string[] | false;
   extensions?: string[] | false;
+  extensionMode?: "print" | "rpc";
   cwd?: string;
   session?: ChildSessionConfig;
   outputSchema?: JsonSchemaObject;

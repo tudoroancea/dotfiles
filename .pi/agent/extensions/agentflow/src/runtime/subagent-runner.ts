@@ -2,6 +2,7 @@ import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core"
 import { StringEnum } from "@earendil-works/pi-ai";
 import {
   createAgentSession,
+  DefaultPackageManager,
   DefaultResourceLoader,
   defineTool,
   getAgentDir,
@@ -11,6 +12,7 @@ import {
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { Type, type TSchema } from "typebox";
@@ -31,6 +33,31 @@ export const resolveRequestedModel = (
   if (!configuredModel || !inheritProvider) return configuredModel;
   if (!parentProvider) throw new Error("Cannot inherit model provider without a parent model");
   return `${parentProvider}/${configuredModel}`;
+};
+const canonicalExtensionPath = (path: string): string => {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return resolve(path);
+  }
+};
+export const filterEnabledExtensionPaths = (
+  requested: Array<{ path: string; enabled: boolean }>,
+  ...allowlists: Array<Array<{ path: string; enabled: boolean }>>
+): string[] => {
+  const enabled = allowlists.map(
+    (entries) =>
+      new Set(
+        entries.filter((entry) => entry.enabled).map((entry) => canonicalExtensionPath(entry.path)),
+      ),
+  );
+  return requested
+    .filter(
+      (entry) =>
+        entry.enabled &&
+        enabled.every((allowlist) => allowlist.has(canonicalExtensionPath(entry.path))),
+    )
+    .map((entry) => entry.path);
 };
 const MAX_OUTPUT = 100_000;
 const DEFAULT_TOOL_TIMEOUT_MS = 120_000;
@@ -112,13 +139,36 @@ export class SubagentRunner {
     const cwd = config.cwd ?? ctx.cwd;
     const sameCwd = resolve(cwd) === resolve(ctx.cwd);
     const projectTrusted = sameCwd ? ctx.isProjectTrusted() : config.trustProject === true;
-    const settingsManager = SettingsManager.create(cwd, getAgentDir(), { projectTrusted });
+    const agentDir = getAgentDir();
+    const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted });
+    let extensionPaths: string[] | undefined;
+    if (Array.isArray(config.extensions) && config.extensions.length > 0) {
+      const packageManager = new DefaultPackageManager({ cwd, agentDir, settingsManager });
+      const globalSettingsManager = SettingsManager.create(cwd, agentDir, {
+        projectTrusted: false,
+      });
+      const globalPackageManager = new DefaultPackageManager({
+        cwd,
+        agentDir,
+        settingsManager: globalSettingsManager,
+      });
+      const [configured, globallyConfigured, requested] = await Promise.all([
+        packageManager.resolve(),
+        globalPackageManager.resolve(),
+        packageManager.resolveExtensionSources(config.extensions, { temporary: true }),
+      ]);
+      extensionPaths = filterEnabledExtensionPaths(
+        requested.extensions,
+        configured.extensions,
+        globallyConfigured.extensions,
+      );
+    }
     const loader = new DefaultResourceLoader({
       cwd,
-      agentDir: getAgentDir(),
+      agentDir,
       settingsManager,
-      noExtensions: config.extensions !== undefined,
-      additionalExtensionPaths: Array.isArray(config.extensions) ? config.extensions : undefined,
+      noExtensions: true,
+      additionalExtensionPaths: extensionPaths,
       noSkills: config.skills !== undefined,
       additionalSkillPaths: Array.isArray(config.skills) ? config.skills : undefined,
       noPromptTemplates: true,
@@ -221,7 +271,10 @@ export class SubagentRunner {
       throw abortError();
     }
     if (extensionsResult.extensions.length)
-      await session.bindExtensions({ mode: "print", abortHandler: () => void session.abort() });
+      await session.bindExtensions({
+        mode: config.extensionMode ?? "print",
+        abortHandler: () => void session.abort(),
+      });
     if (!this.store.attachSession(runId, node.id, session)) {
       session.dispose();
       throw abortError();

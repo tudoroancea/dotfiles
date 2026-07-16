@@ -61,7 +61,7 @@ Raw workflows execute JavaScript in a Node permission-restricted child process. 
 
 - Shared all-agent behavior belongs in the global `AGENTS.md`; semantic routing remains in each tool's `promptGuidelines`.
 - Agentflow publishes background/workflow progress with `setStatus`, which the existing Worktrunk footer renders without replacing either extension's UI.
-- Semantic children use explicit tool and extension policies. They do not inherit unrelated global extensions; only the librarian receives the resolved research extension paths.
+- Child agents do not inherit global extensions. Explicit child extensions are intersected with Pi's effective enabled-extension set, so a globally or project-disabled extension cannot be re-enabled by Agentflow. Finder, oracle, review, and delegate receive the search-tool activator; librarian receives its resolved research extensions; delegate also receives background-process tools when that extension is active in the parent.
 - Agentflow does not override built-in tools. The separate search-tools extension only activates built-in `grep` and `find`.
 - Runtime artifacts remain outside this package under `~/.pi/agent/agentflow/<runId>`.
 

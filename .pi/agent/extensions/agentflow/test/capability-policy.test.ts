@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isDeniedChildTool, resolveRequestedModel } from "../src/runtime/subagent-runner.ts";
+import {
+  filterEnabledExtensionPaths,
+  isDeniedChildTool,
+  resolveRequestedModel,
+} from "../src/runtime/subagent-runner.ts";
 import { assertNoTrustedPolicySelection } from "../src/runtime/workflow-runtime.ts";
 import { ownershipOverlaps } from "../src/semantic/ownership.ts";
 import { semanticProfiles } from "../src/semantic/profiles.ts";
@@ -51,5 +55,27 @@ describe("semantic capability policy", () => {
     expect(isDeniedChildTool("agentflow_future_privileged_tool")).toBe(true);
     expect(isDeniedChildTool("questionnaire")).toBe(true);
     expect(isDeniedChildTool("read")).toBe(false);
+  });
+
+  it("never lets explicit child extensions override the effective global allowlist", () => {
+    const enabled = "/extensions/enabled.ts";
+    const disabled = "/extensions/disabled.ts";
+    expect(
+      filterEnabledExtensionPaths(
+        [
+          { path: enabled, enabled: true },
+          { path: disabled, enabled: true },
+          { path: "/extensions/temporary-only.ts", enabled: true },
+        ],
+        [
+          { path: enabled, enabled: true },
+          { path: disabled, enabled: true },
+        ],
+        [
+          { path: enabled, enabled: true },
+          { path: disabled, enabled: false },
+        ],
+      ),
+    ).toEqual([enabled]);
   });
 });
