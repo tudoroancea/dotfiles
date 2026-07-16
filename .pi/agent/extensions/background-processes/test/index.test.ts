@@ -113,7 +113,15 @@ function context(mode = "rpc") {
     hasUI: mode === "rpc" || mode === "tui",
     isIdle: () => true,
     sessionManager: { getSessionId: () => "session-id" },
-    ui: { setStatus: vi.fn(), notify: vi.fn() },
+    ui: {
+      setWidget: vi.fn(),
+      notify: vi.fn(),
+      custom: vi.fn(async () => undefined),
+      editor: vi.fn(async () => undefined),
+      input: vi.fn(async () => undefined),
+      confirm: vi.fn(async () => false),
+      setEditorText: vi.fn(),
+    },
   };
 }
 
@@ -165,6 +173,20 @@ describe("background processes extension", () => {
         .execute("call", { command: "true", timeout: -1 }, undefined, undefined, ctx),
     ).rejects.toThrow("timeout");
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
+  });
+
+  it("clears a provisional widget when launch setup fails", async () => {
+    const { handlers, tools } = harness();
+    const ctx = context("tui");
+    await handlers.get("session_start")?.({} as never, ctx as never);
+    mocks.runtime.launch.mockRejectedValueOnce(new Error("checkpoint failed"));
+    mocks.runtime.list.mockReturnValue([]);
+
+    await expect(
+      tools.get("background_bash")!.execute("call", { command: "true" }, undefined, undefined, ctx),
+    ).rejects.toThrow("checkpoint failed");
+
+    expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", undefined);
   });
 
   it("validates monitor mode and timeout before allocation and applies timeout semantics", async () => {
@@ -288,9 +310,9 @@ describe("background processes extension", () => {
     expect(result.content[0]!.text).toContain("/artifacts/bg_1/output.log");
   });
 
-  it("sanitizes and truncates footer descriptions", async () => {
+  it("renders a sanitized, bounded active-job widget above the editor", async () => {
     const { handlers } = harness();
-    const ctx = context();
+    const ctx = context("tui");
     mocks.runtime.list.mockReturnValue([
       {
         ...mocks.job,
@@ -300,15 +322,36 @@ describe("background processes extension", () => {
     await handlers.get("session_start")?.({} as never, ctx as never);
     const options = mocks.constructorCalls.at(-1)?.options as { onChange: () => void };
     options.onChange();
-    const footer = ctx.ui.setStatus.mock.calls.at(-1)?.[1] as string;
-    expect(
-      [...footer].every((character) => {
-        const code = character.charCodeAt(0);
-        return code >= 32 && code !== 127;
-      }),
-    ).toBe(true);
-    expect(footer).not.toContain("[31m");
-    expect(footer.length).toBeLessThan(70);
+    expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", expect.any(Function));
+    const factory = ctx.ui.setWidget.mock.calls.at(-1)?.[1] as (
+      tui: unknown,
+      theme: unknown,
+    ) => { render: (width: number) => string[]; dispose: () => void };
+    const component = factory(
+      { requestRender: vi.fn() },
+      {
+        bold: (value: string) => value,
+        fg: (_color: string, value: string) => value,
+      },
+    );
+    const lines = component.render(70);
+    expect(lines[0]).toContain("BACKGROUND TASKS");
+    expect(lines.join("\n")).toContain("bg_1");
+    expect(lines.join("\n")).not.toContain("[31m");
+    expect(lines.every((line) => line.length <= 70)).toBe(true);
+    component.dispose();
+  });
+
+  it("opens an interactive task dashboard in TUI mode instead of notifying raw JSON", async () => {
+    const { handlers, commands } = harness();
+    const ctx = context("tui");
+    mocks.runtime.list.mockReturnValue([mocks.job]);
+    await handlers.get("session_start")?.({} as never, ctx as never);
+
+    await commands.get("background-tasks")!.handler("", ctx);
+
+    expect(ctx.ui.custom).toHaveBeenCalledOnce();
+    expect(ctx.ui.notify).not.toHaveBeenCalled();
   });
 
   it("sanitizes ESC, CSI, OSC, C1, and control characters before rendering model values", () => {
@@ -488,7 +531,7 @@ describe("background processes extension", () => {
       const ctx = context("tui");
       await handlers.get("session_start")?.({} as never, ctx as never);
       await handlers.get("session_shutdown")?.({ reason } as never, ctx as never);
-      expect(ctx.ui.setStatus).toHaveBeenLastCalledWith("background-processes", undefined);
+      expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", undefined);
       expect(mocks.runtime.shutdown).toHaveBeenCalledOnce();
 
       await handlers.get("agent_settled")?.({} as never, ctx as never);

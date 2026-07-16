@@ -20,7 +20,6 @@ describe("registered extension SDK smoke", () => {
     const handlers = new Map<string, (...args: unknown[]) => unknown>();
     const tools = new Map<string, { execute: (...args: never[]) => Promise<unknown> }>();
     const renderers = new Map<string, (...args: never[]) => unknown>();
-    const statuses: Array<string | undefined> = [];
     const messages: Array<{ message: Record<string, unknown>; options: unknown }> = [];
     const pi = {
       on: (name: string, handler: (...args: unknown[]) => unknown) => handlers.set(name, handler),
@@ -40,7 +39,7 @@ describe("registered extension SDK smoke", () => {
       isIdle: () => true,
       sessionManager: { getSessionId: () => "sdk-smoke" },
       ui: {
-        setStatus: (_key: string, value: string | undefined) => statuses.push(value),
+        setWidget: vi.fn(),
         notify: vi.fn(),
       },
     };
@@ -126,9 +125,6 @@ describe("registered extension SDK smoke", () => {
       expect(Buffer.byteLength(monitorMessage.message.content as string)).toBeLessThanOrEqual(
         50 * 1024,
       );
-      expect(
-        statuses.some((status) => status === `mon ◆ SDK monitor smoke ${monitorJob.jobId} #1`),
-      ).toBe(true);
       const monitorWait = (await execute("background_wait", {
         jobIds: [monitorJob.jobId],
         timeout: 5,
@@ -177,7 +173,6 @@ describe("registered extension SDK smoke", () => {
         status: "cancelled",
         deliveryState: "consumed",
       });
-      expect(statuses.some((status) => status?.includes("SDK stop smoke"))).toBe(true);
 
       const theme = { fg: (_color: string, text: string) => text };
       const monitorRendered = renderers.get("background-monitor-event")!(
@@ -197,9 +192,8 @@ describe("registered extension SDK smoke", () => {
 
       await handlers.get("session_shutdown")!({ reason: "quit" }, context);
       started = false;
-      expect(statuses.at(-1)).toBeUndefined();
       console.log(
-        "SDK harness boundary: Pi RPC has no direct tool-execute request; real registered execute handlers covered background_bash/status/wait/stop/monitor plus pseudo-TUI status/renderers.",
+        "SDK harness boundary: Pi RPC has no direct tool-execute request; real registered execute handlers covered background_bash/status/wait/stop/monitor plus message renderers.",
       );
     } finally {
       if (started) await handlers.get("session_shutdown")?.({ reason: "quit" }, context);

@@ -12,11 +12,10 @@ let stderr = "";
 let finished = false;
 let commandsVerified = false;
 let stateVerified = false;
-let statusVerified = false;
 let lifecycleVerified = false;
 
 const maybeFinish = () => {
-  if (commandsVerified && stateVerified && statusVerified && lifecycleVerified) finish();
+  if (commandsVerified && stateVerified && lifecycleVerified) finish();
 };
 
 const finish = (error) => {
@@ -31,7 +30,7 @@ const finish = (error) => {
     return;
   }
   console.log(
-    "RPC smoke passed: extension commands, status UI events, state, and new-session lifecycle were observable without an LLM/tool-execute request.",
+    "RPC smoke passed: extension commands, state, and new-session lifecycle were observable without an LLM/tool-execute request.",
   );
 };
 
@@ -57,16 +56,6 @@ child.stdout.on("data", (chunk) => {
     }
     if (event.type === "extension_error") {
       finish(new Error(`Extension error: ${event.error}`));
-      return;
-    }
-    if (
-      event.type === "extension_ui_request" &&
-      event.method === "setStatus" &&
-      event.statusKey === "background-processes" &&
-      !("statusText" in event)
-    ) {
-      statusVerified = true;
-      maybeFinish();
       return;
     }
     if (event.type === "response" && event.id === "commands") {

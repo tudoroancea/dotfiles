@@ -195,11 +195,12 @@ Expose the same runtime operations to the user:
 
 ### TUI behavior
 
-- Show a compact footer status while jobs are active, for example `bg ◆ benchmark bg_… · monitor CI mon_…`.
-- Limit the footer to two summaries plus an overflow count.
-- Clear status on shutdown.
+- Show a compact persistent widget above the editor while jobs are active, with elapsed runtime and monitor delivery health.
+- Limit the widget to two summaries plus an overflow count and refresh elapsed time while it is visible.
+- Clear the widget on shutdown.
+- Open an interactive recent-task dashboard from `/background-tasks`, with readable details, command, output tail, artifacts, refresh, and stop actions.
 - Register a custom renderer for monitor and completion messages so collapsed output stays compact and expanded output exposes the bounded payload and artifact path.
-- UI is optional: all runtime behavior must work in RPC mode without a TUI.
+- UI is optional: all runtime behavior must work in RPC mode without a TUI; commands use concise notification fallbacks there.
 
 ## Runtime design
 
@@ -211,13 +212,7 @@ Minimal job record:
 
 ```ts
 type JobKind = "background_bash" | "monitor";
-type JobStatus =
-  | "running"
-  | "completed"
-  | "failed"
-  | "timed_out"
-  | "cancelled"
-  | "cleanup_failed";
+type JobStatus = "running" | "completed" | "failed" | "timed_out" | "cancelled" | "cleanup_failed";
 
 interface JobRecord {
   id: string;
@@ -408,6 +403,18 @@ Parallelism: line decoder/batcher tests are independent of Pi message-delivery t
 Dependencies: Phases 1–4.
 
 Parallelism: test categories can run in parallel, but lifecycle fixes should be integrated and rerun as one final suite.
+
+### Phase 6 — Persistent task widget and interactive dashboard
+
+- [x] Replace the active-job footer summary with a compact, themed widget above the editor showing running jobs, elapsed time, monitor delivery state, and overflow.
+- [x] Replace `/background-tasks` raw JSON notifications in TUI mode with a keyboard-driven recent-task list and per-job detail view.
+- [x] Expose readable overview, full command, bounded output tail, artifact paths, refresh, and safe stop actions from the detail view.
+- [x] Preserve a concise non-interactive notification fallback for RPC mode and clear the widget on every shutdown path.
+- [x] Add extension/UI tests and run format, lint, typecheck, test, and smoke verification.
+
+Dependencies: the existing runtime list, tail, and stop operations from Phases 2–3.
+
+Parallelism: the pure UI formatting tests can be written alongside the dashboard component, but `src/index.ts` integration and extension lifecycle tests are sequential.
 
 ## Acceptance criteria
 

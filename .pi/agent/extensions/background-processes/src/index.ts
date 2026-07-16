@@ -1,12 +1,13 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import { formatMonitorEvent, type MonitorEvent } from "./runtime/monitor.ts";
 import { ProcessRuntime } from "./runtime/process-runtime.ts";
 import { serializeJobs, type SerializedJobs } from "./runtime/results.ts";
 import type { JobRecord } from "./runtime/types.ts";
+import { formatDuration, showBackgroundTasks } from "./ui/dashboard.ts";
 
-const STATUS_KEY = "background-processes";
+const WIDGET_KEY = "background-processes";
 const COMPLETION_TYPE = "background-process-completion";
 const MONITOR_EVENT_TYPE = "background-monitor-event";
 const MAX_IDS = 50;
@@ -136,18 +137,9 @@ function jobLabel(job: JobRecord): string {
   return sanitizeLabel(job.description || job.command) || sanitizeLabel(job.id);
 }
 
-function statusText(runtime: ProcessRuntime): string | undefined {
-  const active = runtime.list().filter((job) => job.status === "running");
-  if (active.length === 0) return undefined;
-  const visible = active.slice(0, 2).map((job) => {
-    const monitor = job.monitor;
-    const monitorState = monitor
-      ? ` #${monitor.deliveries}${monitor.captureOnly ? " capture-only" : ""}${monitor.droppedLines ? ` drop:${monitor.droppedLines}` : ""}${monitor.deliveryError ? " send-error" : ""}${job.monitorDeliveryPersistenceError ? " checkpoint-error" : ""}`
-      : "";
-    return `${job.kind === "monitor" ? "mon" : "bg"} ◆ ${jobLabel(job)} ${job.id}${monitorState}`;
-  });
-  if (active.length > 2) visible.push(`+${active.length - 2}`);
-  return visible.join(" · ");
+function runningDuration(job: JobRecord): string {
+  const createdAt = Date.parse(job.createdAt);
+  return formatDuration(Number.isFinite(createdAt) ? Date.now() - createdAt : 0);
 }
 
 function renderToolResult(
@@ -187,9 +179,51 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   let sessionContext: ExtensionContext | undefined;
   let terminalTimer: NodeJS.Timeout | undefined;
 
-  const updateStatus = () => {
-    if (!sessionContext?.hasUI) return;
-    sessionContext.ui.setStatus(STATUS_KEY, runtime ? statusText(runtime) : undefined);
+  const updateWidget = () => {
+    if (sessionContext?.mode !== "tui") return;
+    const current = runtime;
+    const active = current?.list().filter((job) => job.status === "running") ?? [];
+    if (!current || active.length === 0) {
+      sessionContext.ui.setWidget(WIDGET_KEY, undefined);
+      return;
+    }
+    sessionContext.ui.setWidget(WIDGET_KEY, (tui, theme) => {
+      const timer = setInterval(() => tui.requestRender(), 1_000);
+      timer.unref();
+      return {
+        render(width: number) {
+          const jobs = current.list().filter((job) => job.status === "running");
+          if (jobs.length === 0) return [];
+          const header =
+            theme.fg("accent", theme.bold("◆ BACKGROUND TASKS")) +
+            theme.fg("muted", `  ${jobs.length} running · /background-tasks`);
+          const lines = jobs.slice(0, 2).map((job) => {
+            const monitor = job.monitor;
+            const monitorError = monitor?.deliveryError
+              ? " · send-error"
+              : job.monitorDeliveryPersistenceError
+                ? " · checkpoint-error"
+                : "";
+            const activity = monitor
+              ? ` · #${monitor.deliveries}${monitor.captureOnly ? " capture-only" : ""}${monitor.droppedLines ? ` · ${monitor.droppedLines} dropped` : ""}${monitorError}`
+              : "";
+            return `${theme.fg("accent", "│")} ${theme.fg("text", jobLabel(job))} ${theme.fg("dim", `· ${job.id} · ${runningDuration(job)}${activity}`)}`;
+          });
+          if (jobs.length > 2)
+            lines.push(
+              theme.fg(
+                "dim",
+                `└ ${jobs.length - 2} more running task${jobs.length === 3 ? "" : "s"}`,
+              ),
+            );
+          return [header, ...lines].map((line) => truncateToWidth(line, width));
+        },
+        invalidate() {},
+        dispose() {
+          clearInterval(timer);
+        },
+      };
+    });
   };
 
   const sendCompletions = async (ctx: ExtensionContext) => {
@@ -261,13 +295,19 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       }
       requireNotAborted(signal);
       const current = requireRuntime(runtime);
-      const job = await current.launch({
-        kind: "background_bash",
-        command: params.command,
-        description: params.description,
-        timeout: params.timeout,
-        cwd: ctx.cwd,
-      });
+      let job: JobRecord;
+      try {
+        job = await current.launch({
+          kind: "background_bash",
+          command: params.command,
+          description: params.description,
+          timeout: params.timeout,
+          cwd: ctx.cwd,
+        });
+      } catch (error) {
+        updateWidget();
+        throw error;
+      }
       current.markLaunchTransferred(job.id);
       const payload = serializeJobs([current.get(job.id) ?? job]);
       return toolResult(payload);
@@ -307,15 +347,21 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       }
       requireNotAborted(signal);
       const current = requireRuntime(runtime);
-      const job = await current.launch({
-        kind: "monitor",
-        command: params.command,
-        description: params.description,
-        timeout: params.persistent
-          ? undefined
-          : (params.timeout ?? MONITOR_DEFAULT_TIMEOUT_SECONDS),
-        cwd: ctx.cwd,
-      });
+      let job: JobRecord;
+      try {
+        job = await current.launch({
+          kind: "monitor",
+          command: params.command,
+          description: params.description,
+          timeout: params.persistent
+            ? undefined
+            : (params.timeout ?? MONITOR_DEFAULT_TIMEOUT_SECONDS),
+          cwd: ctx.cwd,
+        });
+      } catch (error) {
+        updateWidget();
+        throw error;
+      }
       current.markLaunchTransferred(job.id);
       sendMonitorEvents(ctx);
       return toolResult(serializeJobs([current.get(job.id) ?? job]));
@@ -483,10 +529,9 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   });
 
   pi.registerCommand("background-tasks", {
-    description: "Show recent background jobs",
-    handler: async (_args, ctx) => {
-      const payload = serializeJobs(requireRuntime(runtime).list());
-      ctx.ui.notify(sanitizeRenderedValue(payload.text), "info");
+    description: "Open the background task dashboard: /background-tasks [jobId]",
+    handler: async (args, ctx) => {
+      await showBackgroundTasks(ctx, requireRuntime(runtime), args.trim() || undefined);
     },
   });
 
@@ -526,7 +571,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     if (runtime) await runtime.shutdown();
     sessionContext = context;
     const next = new ProcessRuntime(context.sessionManager.getSessionId(), {
-      onChange: updateStatus,
+      onChange: updateWidget,
       onTerminal: scheduleTerminalDelivery,
       onMonitorEvent: () => {
         if (sessionContext === context) sendMonitorEvents(context);
@@ -535,9 +580,10 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     runtime = next;
     try {
       await next.initialize();
-      updateStatus();
+      updateWidget();
     } catch (error) {
       if (runtime === next) runtime = undefined;
+      updateWidget();
       throw error;
     }
   });
@@ -551,7 +597,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   pi.on("session_shutdown", async (_event, context) => {
     if (terminalTimer) clearTimeout(terminalTimer);
     terminalTimer = undefined;
-    if (context.hasUI) context.ui.setStatus(STATUS_KEY, undefined);
+    if (context.mode === "tui") context.ui.setWidget(WIDGET_KEY, undefined);
     const current = runtime;
     if (!current) return;
     await current.shutdown();
