@@ -123,8 +123,8 @@ describe("ProcessRuntime", () => {
     };
     const { runtime, artifacts } = runtimeWith(operations);
     await runtime.initialize();
-    const completed = await runtime.launch({ kind: "background_bash", command: "ok", cwd: "/tmp" });
-    const failed = await runtime.launch({ kind: "background_bash", command: "bad", cwd: "/tmp" });
+    const completed = await runtime.launch({ kind: "background_run", command: "ok", cwd: "/tmp" });
+    const failed = await runtime.launch({ kind: "background_run", command: "bad", cwd: "/tmp" });
     await Promise.all([
       waitForTerminal(runtime, completed.id),
       waitForTerminal(runtime, failed.id),
@@ -142,7 +142,7 @@ describe("ProcessRuntime", () => {
     const operations = abortableOperation(aborted);
     const { runtime } = runtimeWith(operations);
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "sleep",
       cwd: "/tmp",
       timeout: 0.01,
@@ -168,7 +168,7 @@ describe("ProcessRuntime", () => {
       ),
     };
     const { runtime } = runtimeWith(operations);
-    const job = await runtime.launch({ kind: "background_bash", command: "race", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "race", cwd: "/tmp" });
     const stopping = runtime.stop(job.id);
     release({ exitCode: 0 });
     await stopping;
@@ -199,7 +199,7 @@ describe("ProcessRuntime", () => {
     };
     const { runtime } = runtimeWith(operations);
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "timeout-stop-race",
       cwd: "/tmp",
       timeout: 0.005,
@@ -230,7 +230,7 @@ describe("ProcessRuntime", () => {
     const { runtime, artifacts } = runtimeWith(operations, new MemoryArtifacts(), {
       outputMaxBytes: 5,
     });
-    const job = await runtime.launch({ kind: "background_bash", command: "loud", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "loud", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
 
     expect(Buffer.concat(artifacts.output).toString()).toBe("12345");
@@ -253,7 +253,7 @@ describe("ProcessRuntime", () => {
     };
     const { runtime } = runtimeWith(operations, artifacts);
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "write-exit-race",
       cwd: "/tmp",
     });
@@ -280,7 +280,7 @@ describe("ProcessRuntime", () => {
       }),
     };
     const { runtime } = runtimeWith(operations, artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "write", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "write", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
 
     expect(runtime.get(job.id)).toMatchObject({
@@ -315,7 +315,7 @@ describe("ProcessRuntime", () => {
         : abortableOperation();
     const { runtime } = runtimeWith(operations, artifacts);
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: action,
       cwd: "/tmp",
       ...(action === "timeout" ? { timeout: 0.01 } : {}),
@@ -335,7 +335,7 @@ describe("ProcessRuntime", () => {
     artifacts.terminalCheckpointFailureCounts.set("completed", 1);
     artifacts.terminalCheckpointFailureCounts.set("cleanup_failed", 1);
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
 
     expect(runtime.get(job.id)).toMatchObject({
@@ -353,7 +353,7 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith(operations, artifacts);
 
     await expect(
-      runtime.launch({ kind: "background_bash", command: "never-started", cwd: "/tmp" }),
+      runtime.launch({ kind: "background_run", command: "never-started", cwd: "/tmp" }),
     ).rejects.toThrow("cannot persist running");
 
     expect(operations.exec).not.toHaveBeenCalled();
@@ -374,7 +374,7 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
 
     await expect(
-      runtime.launch({ kind: "background_bash", command: "never-started", cwd: "/tmp" }),
+      runtime.launch({ kind: "background_run", command: "never-started", cwd: "/tmp" }),
     ).rejects.toThrow("cannot persist running");
 
     expect(runtime.get("bg_1")).toBeUndefined();
@@ -406,7 +406,7 @@ describe("ProcessRuntime", () => {
     });
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "fast",
       cwd: "/tmp",
       timeout: 0.01,
@@ -445,7 +445,7 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts, {
       shutdownVerificationMs: 100,
     });
-    const job = await runtime.launch({ kind: "background_bash", command: "fast", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "fast", cwd: "/tmp" });
     await closing;
     const shutdown = runtime.shutdown();
     expect(runtime.get(job.id)).not.toHaveProperty("requestedTerminalCause");
@@ -473,7 +473,7 @@ describe("ProcessRuntime", () => {
       }),
     };
     const { runtime, artifacts } = runtimeWith(operations);
-    const job = await runtime.launch({ kind: "background_bash", command: "buffer", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "buffer", cwd: "/tmp" });
     await runtime.stop(job.id);
 
     expect(Buffer.concat(artifacts.output).toString()).toBe("buffered-after-abort\n");
@@ -498,7 +498,7 @@ describe("ProcessRuntime", () => {
     });
     const operations: BashOperations = { exec: vi.fn(async () => ({ exitCode: 0 })) };
     const { runtime } = runtimeWith(operations, artifacts, { shutdownVerificationMs: 100 });
-    const launching = runtime.launch({ kind: "background_bash", command: "late", cwd: "/tmp" });
+    const launching = runtime.launch({ kind: "background_run", command: "late", cwd: "/tmp" });
     const shutdown = runtime.shutdown();
     release();
 
@@ -529,7 +529,7 @@ describe("ProcessRuntime", () => {
     });
     const operations: BashOperations = { exec: vi.fn(async () => ({ exitCode: 0 })) };
     const { runtime } = runtimeWith(operations, artifacts, { shutdownVerificationMs: 10 });
-    const launching = runtime.launch({ kind: "background_bash", command: "late", cwd: "/tmp" });
+    const launching = runtime.launch({ kind: "background_run", command: "late", cwd: "/tmp" });
 
     await expect(runtime.shutdown()).rejects.toThrow("could not be verified");
     release();
@@ -554,7 +554,7 @@ describe("ProcessRuntime", () => {
     const artifacts = new MemoryArtifacts();
     artifacts.markClosed.mockRejectedValueOnce(new Error("owner disk failure"));
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
 
     await expect(runtime.shutdown()).rejects.toThrow("could not be verified");
@@ -568,7 +568,7 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts, {
       shutdownVerificationMs: 15,
     });
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
     const started = Date.now();
 
@@ -583,7 +583,7 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts, {
       shutdownVerificationMs: 20,
     });
-    void runtime.launch({ kind: "background_bash", command: "never-created", cwd: "/tmp" });
+    void runtime.launch({ kind: "background_run", command: "never-created", cwd: "/tmp" });
     const started = Date.now();
     await expect(runtime.shutdown()).rejects.toThrow("could not be verified");
     expect(Date.now() - started).toBeLessThan(150);
@@ -596,7 +596,7 @@ describe("ProcessRuntime", () => {
       shutdownVerificationMs: 20,
     });
     const job = await stuckRuntime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "stuck",
       cwd: "/tmp",
     });
@@ -612,7 +612,7 @@ describe("ProcessRuntime", () => {
     const artifacts = new MemoryArtifacts();
     artifacts.failClose = true;
     const { runtime } = runtimeWith(abortableOperation(), artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "active", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "active", cwd: "/tmp" });
 
     await expect(runtime.shutdown()).rejects.toThrow("could not be verified");
 
@@ -632,7 +632,7 @@ describe("ProcessRuntime", () => {
     const { runtime, artifacts } = runtimeWith(operations, new MemoryArtifacts(), {
       shutdownVerificationMs: 10,
     });
-    const job = await runtime.launch({ kind: "background_bash", command: "stuck", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "stuck", cwd: "/tmp" });
     const first = runtime.shutdown();
     const second = runtime.shutdown();
     expect(first).toBe(second);
@@ -652,7 +652,7 @@ describe("ProcessRuntime", () => {
     for (let index = 0; index < 55; index += 1) {
       await expect(
         runtime.launch({
-          kind: "background_bash",
+          kind: "background_run",
           command: `failure ${index}`,
           cwd: "/tmp",
         }),
@@ -671,7 +671,7 @@ describe("ProcessRuntime", () => {
       artifacts.failInitialCheckpoint = true;
       await expect(
         runtime.launch({
-          kind: "background_bash",
+          kind: "background_run",
           command: `failure ${index}`,
           cwd: "/tmp",
         }),
@@ -681,7 +681,7 @@ describe("ProcessRuntime", () => {
     expect(operations.exec).not.toHaveBeenCalled();
     expect(runtime.list()).toEqual([]);
     const recovered = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "recovered",
       cwd: "/tmp",
     });
@@ -693,7 +693,7 @@ describe("ProcessRuntime", () => {
   it("wait timeout and caller abort detach without stopping or consuming jobs", async () => {
     const aborted = vi.fn();
     const { runtime } = runtimeWith(abortableOperation(aborted));
-    const job = await runtime.launch({ kind: "background_bash", command: "sleep", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "sleep", cwd: "/tmp" });
 
     const timedOut = await runtime.wait([job.id], { timeout: 0.005 });
     expect(timedOut[0]).toMatchObject({ status: "running", deliveryState: "pending" });
@@ -720,7 +720,7 @@ describe("ProcessRuntime", () => {
         return { exitCode: 0 };
       }),
     });
-    const job = await runtime.launch({ kind: "background_bash", command: "later", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "later", cwd: "/tmp" });
     runtime.markLaunchTransferred(job.id);
 
     const timedOut = await runtime.waitResult([job.id], { timeout: 0.005 });
@@ -738,7 +738,7 @@ describe("ProcessRuntime", () => {
 
   it("terminal wait returns immediately and consumes only terminal deliveries", async () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) });
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
     const before = Date.now();
     const payload = await runtime.waitResult([job.id]);
@@ -766,9 +766,9 @@ describe("ProcessRuntime", () => {
       }),
     };
     const { runtime } = runtimeWith(operations);
-    const first = await runtime.launch({ kind: "background_bash", command: "first", cwd: "/tmp" });
+    const first = await runtime.launch({ kind: "background_run", command: "first", cwd: "/tmp" });
     const second = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "second",
       cwd: "/tmp",
     });
@@ -791,8 +791,8 @@ describe("ProcessRuntime", () => {
   it("coalesces claimed completion delivery and records an at-most-once failed send", async () => {
     const artifacts = new MemoryArtifacts();
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-    const first = await runtime.launch({ kind: "background_bash", command: "one", cwd: "/tmp" });
-    const second = await runtime.launch({ kind: "background_bash", command: "two", cwd: "/tmp" });
+    const first = await runtime.launch({ kind: "background_run", command: "one", cwd: "/tmp" });
+    const second = await runtime.launch({ kind: "background_run", command: "two", cwd: "/tmp" });
     runtime.markLaunchTransferred(first.id);
     runtime.markLaunchTransferred(second.id);
     await Promise.all([waitForTerminal(runtime, first.id), waitForTerminal(runtime, second.id)]);
@@ -828,7 +828,7 @@ describe("ProcessRuntime", () => {
       releaseSend = resolve;
     });
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) });
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     runtime.markLaunchTransferred(job.id);
     await waitForTerminal(runtime, job.id);
 
@@ -862,7 +862,7 @@ describe("ProcessRuntime", () => {
       new MemoryArtifacts(),
       { serializer },
     );
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     runtime.markLaunchTransferred(job.id);
     await waitForTerminal(runtime, job.id);
 
@@ -883,7 +883,7 @@ describe("ProcessRuntime", () => {
       const artifacts = new MemoryArtifacts();
       artifacts.deliveryCheckpointFailureCounts.set(state, 1);
       const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-      const job = await runtime.launch({ kind: "background_bash", command: state, cwd: "/tmp" });
+      const job = await runtime.launch({ kind: "background_run", command: state, cwd: "/tmp" });
       runtime.markLaunchTransferred(job.id);
       await waitForTerminal(runtime, job.id);
       if (state === "consumed") await runtime.waitResult([job.id]);
@@ -904,7 +904,7 @@ describe("ProcessRuntime", () => {
       const artifacts = new MemoryArtifacts();
       artifacts.deliveryCheckpointFailureCounts.set(state, 2);
       const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-      const job = await runtime.launch({ kind: "background_bash", command: state, cwd: "/tmp" });
+      const job = await runtime.launch({ kind: "background_run", command: state, cwd: "/tmp" });
       runtime.markLaunchTransferred(job.id);
       await waitForTerminal(runtime, job.id);
       if (state === "consumed") await runtime.waitResult([job.id]);
@@ -942,7 +942,7 @@ describe("ProcessRuntime", () => {
       }
     });
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     runtime.markLaunchTransferred(job.id);
     await waitForTerminal(runtime, job.id);
 
@@ -978,9 +978,9 @@ describe("ProcessRuntime", () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts, {
       completedRecordLimit: 2,
     });
-    const first = await runtime.launch({ kind: "background_bash", command: "first", cwd: "/tmp" });
+    const first = await runtime.launch({ kind: "background_run", command: "first", cwd: "/tmp" });
     const second = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "second",
       cwd: "/tmp",
     });
@@ -991,7 +991,7 @@ describe("ProcessRuntime", () => {
     const flushing = runtime.flushCompletionDeliveries(() => undefined);
     await started;
     await expect(
-      runtime.launch({ kind: "background_bash", command: "blocked", cwd: "/tmp" }),
+      runtime.launch({ kind: "background_run", command: "blocked", cwd: "/tmp" }),
     ).rejects.toThrow("capacity");
     expect(runtime.get(first.id)?.deliveryState).toBe("sent");
     expect(runtime.get(second.id)?.deliveryState).toBe("sent");
@@ -999,7 +999,7 @@ describe("ProcessRuntime", () => {
     releaseCheckpoint();
     await expect(flushing).resolves.toBe(true);
     const replacement = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "replacement",
       cwd: "/tmp",
     });
@@ -1032,7 +1032,7 @@ describe("ProcessRuntime", () => {
       return job;
     });
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) }, artifacts);
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await started;
 
     const waiting = runtime.waitResult([job.id], { timeout: 0.001 });
@@ -1052,7 +1052,7 @@ describe("ProcessRuntime", () => {
 
   it("pairs concurrent management references on invalid and pre-aborted waits", async () => {
     const { runtime } = runtimeWith(abortableOperation());
-    const job = await runtime.launch({ kind: "background_bash", command: "sleep", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "sleep", cwd: "/tmp" });
     const controller = new AbortController();
     const waiting = runtime.wait([job.id], { signal: controller.signal });
     const references = (runtime as unknown as { managementReferences: Map<string, Set<symbol>> })
@@ -1078,7 +1078,7 @@ describe("ProcessRuntime", () => {
 
   it("does not deliver a fast exit until launch ownership has transferred", async () => {
     const { runtime } = runtimeWith({ exec: vi.fn(async () => ({ exitCode: 0 })) });
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     await waitForTerminal(runtime, job.id);
     const send = vi.fn();
     expect(await runtime.flushCompletionDeliveries(send)).toBe(false);
@@ -1096,7 +1096,7 @@ describe("ProcessRuntime", () => {
     });
     for (let index = 0; index < 3; index += 1) {
       const job = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: `pending ${index}`,
         cwd: "/tmp",
       });
@@ -1104,7 +1104,7 @@ describe("ProcessRuntime", () => {
     }
 
     await expect(
-      runtime.launch({ kind: "background_bash", command: "rejected", cwd: "/tmp" }),
+      runtime.launch({ kind: "background_run", command: "rejected", cwd: "/tmp" }),
     ).rejects.toThrow(/capacity.*Wait.*inspect.*consume/i);
     expect(createJob).toHaveBeenCalledTimes(3);
     expect(runtime.list()).toHaveLength(3);
@@ -1120,12 +1120,12 @@ describe("ProcessRuntime", () => {
         { completedRecordLimit: 2 },
       );
       const first = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: "first",
         cwd: "/tmp",
       });
       const second = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: "second",
         cwd: "/tmp",
       });
@@ -1140,7 +1140,7 @@ describe("ProcessRuntime", () => {
       expect(transfers.has(first.id)).toBe(false);
       if (release === "sent") expect(transfers.has(second.id)).toBe(false);
       const replacement = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: "replacement",
         cwd: "/tmp",
       });
@@ -1162,7 +1162,7 @@ describe("ProcessRuntime", () => {
 
     for (let index = 0; index < 6; index += 1) {
       const job = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: `failed delivery ${index}`,
         cwd: "/tmp",
       });
@@ -1176,7 +1176,7 @@ describe("ProcessRuntime", () => {
     }
 
     const later = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "later launch",
       cwd: "/tmp",
     });
@@ -1193,7 +1193,7 @@ describe("ProcessRuntime", () => {
       completedRecordLimit: 1,
     });
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "failed persistence",
       cwd: "/tmp",
     });
@@ -1210,7 +1210,7 @@ describe("ProcessRuntime", () => {
       deliveryPersistenceError: expect.stringContaining("after retry"),
     });
     await expect(
-      runtime.launch({ kind: "background_bash", command: "blocked", cwd: "/tmp" }),
+      runtime.launch({ kind: "background_run", command: "blocked", cwd: "/tmp" }),
     ).rejects.toThrow("capacity");
     await expect(runtime.shutdown()).rejects.toThrow("could not be verified");
     expect(runtime.get(job.id)).toMatchObject({
@@ -1219,7 +1219,7 @@ describe("ProcessRuntime", () => {
     });
   });
 
-  it.each(["monitor", "background_bash"] as const)(
+  it.each(["background_event_stream", "background_run"] as const)(
     "fits 50 maximum-path %s completions in one send and releases capacity",
     async (kind) => {
       const artifacts = new MemoryArtifacts();
@@ -1277,7 +1277,9 @@ describe("ProcessRuntime", () => {
         ),
       ).toBe(true);
       expect(payload.jobs.every((job) => job.kind === kind)).toBe(true);
-      expect(payload.jobs.every((job) => Boolean(job.monitor) === (kind === "monitor"))).toBe(true);
+      expect(
+        payload.jobs.every((job) => Boolean(job.monitor) === (kind === "background_event_stream")),
+      ).toBe(true);
       expect(Buffer.byteLength(payload.text)).toBeLessThanOrEqual(50 * 1024);
       expect(payload.text.split("\n")).toHaveLength(1);
       const isSafeLine = (value: string | undefined) =>
@@ -1292,7 +1294,7 @@ describe("ProcessRuntime", () => {
       ).toBe(0);
 
       const recovered = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: "recovered",
         cwd: "/tmp",
       });
@@ -1316,7 +1318,7 @@ describe("ProcessRuntime", () => {
       new MemoryArtifacts(),
       { serializer },
     );
-    const job = await runtime.launch({ kind: "background_bash", command: "true", cwd: "/tmp" });
+    const job = await runtime.launch({ kind: "background_run", command: "true", cwd: "/tmp" });
     runtime.markLaunchTransferred(job.id);
     await waitForTerminal(runtime, job.id);
     await expect(runtime.flushCompletionDeliveries(() => undefined)).rejects.toThrow(

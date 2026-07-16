@@ -274,7 +274,7 @@ describe("monitor runtime delivery", () => {
       artifacts: artifacts as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "emit",
       description: "events",
       cwd: "/tmp",
@@ -306,7 +306,7 @@ describe("monitor runtime delivery", () => {
       artifacts: new MemoryArtifacts() as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -349,7 +349,7 @@ describe("monitor runtime delivery", () => {
       artifacts: new MemoryArtifacts() as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -432,7 +432,7 @@ describe("monitor runtime delivery", () => {
       artifacts: artifacts as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -482,7 +482,7 @@ describe("monitor runtime delivery", () => {
       artifacts: new MemoryArtifacts() as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -523,7 +523,7 @@ describe("monitor runtime delivery", () => {
       onMonitorEvent: () => runtime.flushMonitorDeliveries(send),
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -563,7 +563,7 @@ describe("monitor runtime delivery", () => {
       artifacts: artifacts as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",
@@ -649,7 +649,7 @@ describe("monitor runtime delivery", () => {
       artifacts: artifacts as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "noisy",
       description: "events",
       cwd: "/tmp",
@@ -724,7 +724,7 @@ describe("monitor runtime delivery", () => {
       artifacts: artifacts as unknown as ArtifactStore,
     });
     const job = await runtime.launch({
-      kind: "monitor",
+      kind: "background_event_stream",
       command: "stream",
       description: "events",
       cwd: "/tmp",

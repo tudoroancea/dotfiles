@@ -59,26 +59,28 @@ describe("registered extension SDK smoke", () => {
       await handlers.get("session_start")!({}, context);
       started = true;
       expect([...tools.keys()]).toEqual([
-        "background_bash",
-        "monitor",
+        "background_run",
+        "background_event_stream",
         "background_status",
         "background_wait",
         "background_stop",
       ]);
+      expect(tools.has("background_bash")).toBe(false);
+      expect(tools.has("monitor")).toBe(false);
       expect(renderers.size).toBe(2);
 
-      await expect(execute("background_bash", { command: "true" }, "print")).rejects.toThrow(
+      await expect(execute("background_run", { command: "true" }, "print")).rejects.toThrow(
         "unsupported",
       );
       await expect(
-        execute("monitor", { command: "true", description: "json" }, "json"),
+        execute("background_event_stream", { command: "true", description: "json" }, "json"),
       ).rejects.toThrow("unsupported");
       const emptyStatus = (await execute("background_status", {})) as {
         details: { jobs: unknown[] };
       };
       expect(emptyStatus.details.jobs).toEqual([]);
 
-      const launched = (await execute("background_bash", {
+      const launched = (await execute("background_run", {
         command: "printf 'sdk-background-output\\n'",
         description: "SDK background smoke",
       })) as { details: { jobs: Array<{ jobId: string; outputPath: string }> } };
@@ -97,9 +99,9 @@ describe("registered extension SDK smoke", () => {
       });
       expect(await readFile(background.outputPath, "utf8")).toBe("sdk-background-output\n");
 
-      const monitorLaunch = (await execute("monitor", {
+      const monitorLaunch = (await execute("background_event_stream", {
         command: "printf 'event-one\\nevent-two\\n'; sleep 1",
-        description: "SDK monitor smoke",
+        description: "SDK event stream smoke",
       })) as { details: { jobs: Array<{ jobId: string; outputPath: string }> } };
       const monitorJob = monitorLaunch.details.jobs[0]!;
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -131,7 +133,7 @@ describe("registered extension SDK smoke", () => {
       })) as { details: { jobs: Array<{ status: string }> } };
       expect(monitorWait.details.jobs[0]!.status).toBe("completed");
 
-      const completionLaunch = (await execute("background_bash", {
+      const completionLaunch = (await execute("background_run", {
         command: "printf 'completion-smoke\\n'",
         description: "SDK completion smoke",
       })) as { details: { jobs: Array<{ jobId: string; outputPath: string }> } };
@@ -162,7 +164,7 @@ describe("registered extension SDK smoke", () => {
       });
       expect(completionMessage.options).toEqual({ deliverAs: "followUp", triggerTurn: true });
 
-      const stoppableLaunch = (await execute("background_bash", {
+      const stoppableLaunch = (await execute("background_run", {
         command: "sleep 300",
         description: "SDK stop smoke",
       })) as { details: { jobs: Array<{ jobId: string }> } };
@@ -193,7 +195,7 @@ describe("registered extension SDK smoke", () => {
       await handlers.get("session_shutdown")!({ reason: "quit" }, context);
       started = false;
       console.log(
-        "SDK harness boundary: Pi RPC has no direct tool-execute request; real registered execute handlers covered background_bash/status/wait/stop/monitor plus message renderers.",
+        "SDK harness boundary: Pi RPC has no direct tool-execute request; real registered execute handlers covered background_run/background_event_stream/status/wait/stop plus message renderers.",
       );
     } finally {
       if (started) await handlers.get("session_shutdown")?.({ reason: "quit" }, context);

@@ -15,7 +15,7 @@ const MONITOR_DEFAULT_TIMEOUT_SECONDS = 300;
 const MONITOR_MAX_TIMEOUT_SECONDS = 3_600;
 const MAX_TIMEOUT_SECONDS = 2_147_483.647;
 
-export const backgroundBashSchema = Type.Object(
+export const backgroundRunSchema = Type.Object(
   {
     command: Type.String({ minLength: 1, maxLength: 16_384 }),
     description: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
@@ -24,7 +24,7 @@ export const backgroundBashSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const monitorSchema = Type.Object(
+export const backgroundEventStreamSchema = Type.Object(
   {
     command: Type.String({ minLength: 1, maxLength: 16_384 }),
     description: Type.String({ minLength: 1, maxLength: 500 }),
@@ -63,8 +63,8 @@ export const backgroundStopSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export type BackgroundBashInput = Static<typeof backgroundBashSchema>;
-export type MonitorInput = Static<typeof monitorSchema>;
+export type BackgroundRunInput = Static<typeof backgroundRunSchema>;
+export type BackgroundEventStreamInput = Static<typeof backgroundEventStreamSchema>;
 export type BackgroundStatusInput = Static<typeof backgroundStatusSchema>;
 export type BackgroundWaitInput = Static<typeof backgroundWaitSchema>;
 export type BackgroundStopInput = Static<typeof backgroundStopSchema>;
@@ -271,16 +271,17 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   };
 
   pi.registerTool({
-    name: "background_bash",
-    label: "Background Bash",
+    name: "background_run",
+    label: "Background Run",
     description:
-      "Launch a finite shell command in the background. Returns immediately with its job ID and artifact paths; completion is delivered later. Unsupported in print/json mode.",
-    promptSnippet: "Launch a finite shell command without blocking the agent loop",
+      "Launch a command in the background and return immediately with its job ID and artifact paths; one completion notification is delivered later. Inspired by Claude Code Background Bash/Monitor. Unsupported in print/json mode.",
+    promptSnippet: "Launch a background command with one completion notification",
     promptGuidelines: [
-      "Use background_bash for long finite commands that can run while other work continues; do not immediately call background_wait unless later work truly depends on completion.",
-      "Use background_status for nonblocking inspection and background_stop when the user asks to stop a job or continued execution would waste resources.",
+      "Following the Claude Code Background Bash/Monitor model, choose background_run when one completion notification is enough; choose background_event_stream when actionable intermediate event notifications are needed.",
+      "background_run launches the command itself and may mutate state; choose it by its completion-oriented notification model, not by mutability or duration.",
+      "After launching with background_run, do not immediately call background_wait unless later work truly depends on completion; use background_status for nonblocking inspection and background_stop when the user asks to stop a job or continued execution would waste resources.",
     ],
-    parameters: backgroundBashSchema,
+    parameters: backgroundRunSchema,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       requireSupportedMode(ctx);
       if (
@@ -298,7 +299,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       let job: JobRecord;
       try {
         job = await current.launch({
-          kind: "background_bash",
+          kind: "background_run",
           command: params.command,
           description: params.description,
           timeout: params.timeout,
@@ -314,7 +315,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     },
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_bash"))} ${theme.fg("muted", sanitizeRenderedValue(args.description ?? args.command))}`,
+        `${theme.fg("toolTitle", theme.bold("background_run"))} ${theme.fg("muted", sanitizeRenderedValue(args.description ?? args.command))}`,
         0,
         0,
       );
@@ -323,16 +324,18 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "monitor",
-    label: "Monitor",
+    name: "background_event_stream",
+    label: "Background Event Stream",
     description:
-      "Launch a meaningful line-buffered event stream in the background. Complete lines are delivered live in bounded batches; raw output remains in output.log. Timeout defaults to 300 seconds (maximum 3600); persistent monitors have no timeout. Unsupported in print/json mode.",
-    promptSnippet: "Monitor meaningful filtered or reasonably polled line-buffered events",
+      "Launch a command in the background and deliver meaningful complete stdout lines live in bounded event batches; raw output remains in output.log. Inspired by Claude Code Background Bash/Monitor. Timeout defaults to 300 seconds (maximum 3600); persistent event streams have no timeout. Unsupported in print/json mode.",
+    promptSnippet: "Launch a background command with actionable intermediate event notifications",
     promptGuidelines: [
-      "Use monitor only for meaningful event lines. Filter noisy commands with tools such as grep --line-buffered, and poll at a reasonable interval so each complete line is actionable.",
-      "Use persistent only for a session-long source, and stop a monitor when it is no longer needed.",
+      "Following the Claude Code Background Bash/Monitor model, choose background_event_stream when actionable intermediate event notifications are needed; choose background_run when one completion notification is enough.",
+      "background_event_stream launches the command itself and may mutate state; it is not a read-only observer, and its event-oriented notification model—not mutability or duration—distinguishes it from background_run.",
+      "Use background_event_stream only for meaningful event lines: filter noisy commands with tools such as grep --line-buffered, and poll at a reasonable interval so each complete line is actionable.",
+      "Set persistent on background_event_stream only for a session-long source, and stop the stream when it is no longer needed.",
     ],
-    parameters: monitorSchema,
+    parameters: backgroundEventStreamSchema,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       requireSupportedMode(ctx);
       if (
@@ -342,7 +345,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
           params.timeout > MONITOR_MAX_TIMEOUT_SECONDS)
       ) {
         throw new RangeError(
-          `monitor timeout must be positive and no greater than ${MONITOR_MAX_TIMEOUT_SECONDS} seconds`,
+          `event stream timeout must be positive and no greater than ${MONITOR_MAX_TIMEOUT_SECONDS} seconds`,
         );
       }
       requireNotAborted(signal);
@@ -350,7 +353,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       let job: JobRecord;
       try {
         job = await current.launch({
-          kind: "monitor",
+          kind: "background_event_stream",
           command: params.command,
           description: params.description,
           timeout: params.persistent
@@ -368,7 +371,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     },
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("monitor"))} ${theme.fg("muted", sanitizeRenderedValue(args.description))}`,
+        `${theme.fg("toolTitle", theme.bold("background_event_stream"))} ${theme.fg("muted", sanitizeRenderedValue(args.description))}`,
         0,
         0,
       );
@@ -493,7 +496,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     return new Text(
       theme.fg(
         details?.captureOnly ? "warning" : "success",
-        `◆ ${sanitizeRenderedValue(details?.jobId ?? "monitor")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}`,
+        `◆ ${sanitizeRenderedValue(details?.jobId ?? "event stream")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}`,
       ),
       0,
       0,

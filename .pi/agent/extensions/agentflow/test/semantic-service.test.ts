@@ -155,8 +155,8 @@ describe("semantic profiles", () => {
   it("gives delegate the globally active background-process extension", async () => {
     const path = "/extensions/background-processes/index.ts";
     const tools = [
-      "background_bash",
-      "monitor",
+      "background_run",
+      "background_event_stream",
       "background_status",
       "background_wait",
       "background_stop",
@@ -169,7 +169,7 @@ describe("semantic profiles", () => {
     });
     expect(node.config?.extensions).toEqual([FFF_EXTENSION, path]);
     expect(node.config?.tools).toEqual(
-      expect.arrayContaining(["background_bash", "background_wait"]),
+      expect.arrayContaining(["background_run", "background_event_stream", "background_wait"]),
     );
     expect(node.config?.extensionMode).toBe("rpc");
   });
@@ -177,7 +177,7 @@ describe("semantic profiles", () => {
   it("omits background processes unless the complete extension is globally active", async () => {
     const node = await service([
       {
-        name: "background_bash",
+        name: "background_run",
         sourceInfo: { path: "/extensions/background-processes/index.ts", source: "local" },
       },
     ]).createNode("delegate", {
@@ -186,7 +186,7 @@ describe("semantic profiles", () => {
       acceptanceCriteria: ["tests pass"],
       verificationCommands: ["npm test"],
     });
-    expect(node.config?.tools).not.toContain("background_bash");
+    expect(node.config?.tools).not.toContain("background_run");
     expect(node.config?.extensionMode).toBe("print");
   });
 

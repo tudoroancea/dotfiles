@@ -12,7 +12,7 @@ function job(overrides: Partial<JobRecord> = {}): JobRecord {
   return {
     id: "bg_1",
     generation: 1,
-    kind: "background_bash",
+    kind: "background_run",
     command: "sleep 10",
     cwd: "/tmp",
     createdAt: "2026-01-01T00:00:00.000Z",

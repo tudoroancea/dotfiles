@@ -29,8 +29,8 @@ interface ToolInfo {
 const SEARCH_ROLES = new Set<SemanticRole>(["finder", "oracle", "delegate", "review"]);
 const SEARCH_TOOLS = ["ffgrep", "fffind"] as const;
 const BACKGROUND_TOOLS = [
-  "background_bash",
-  "monitor",
+  "background_run",
+  "background_event_stream",
   "background_status",
   "background_wait",
   "background_stop",

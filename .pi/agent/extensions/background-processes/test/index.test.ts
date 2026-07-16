@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => {
   const job = {
     id: "bg_1",
     generation: 1,
-    kind: "background_bash" as const,
+    kind: "background_run" as const,
     command: "sleep 1",
     description: undefined as string | undefined,
     cwd: "/tmp",
@@ -67,6 +67,10 @@ function harness() {
   const tools = new Map<
     string,
     {
+      label: string;
+      description: string;
+      promptSnippet: string;
+      promptGuidelines?: string[];
       parameters: Record<string, unknown>;
       execute: (...args: unknown[]) => unknown;
       renderCall?: (...args: never[]) => unknown;
@@ -85,6 +89,10 @@ function harness() {
     registerTool: vi.fn(
       (tool: {
         name: string;
+        label: string;
+        description: string;
+        promptSnippet: string;
+        promptGuidelines?: string[];
         parameters: Record<string, unknown>;
         execute: (...args: unknown[]) => unknown;
         renderCall?: (...args: never[]) => unknown;
@@ -131,12 +139,32 @@ describe("background processes extension", () => {
   it("registers five strict tools, three commands, and both renderers", () => {
     const { pi, tools, commands } = harness();
     expect([...tools.keys()]).toEqual([
-      "background_bash",
-      "monitor",
+      "background_run",
+      "background_event_stream",
       "background_status",
       "background_wait",
       "background_stop",
     ]);
+    expect(tools.has("background_bash")).toBe(false);
+    expect(tools.has("monitor")).toBe(false);
+    expect(tools.get("background_run")).toMatchObject({
+      label: "Background Run",
+      promptSnippet: expect.stringContaining("one completion notification"),
+    });
+    expect(tools.get("background_event_stream")).toMatchObject({
+      label: "Background Event Stream",
+      promptSnippet: expect.stringContaining("intermediate event notifications"),
+    });
+    const runGuidance = tools.get("background_run")!.promptGuidelines!.join(" ");
+    expect(runGuidance).toContain("Claude Code Background Bash/Monitor");
+    expect(runGuidance).toContain("background_run launches the command itself");
+    expect(runGuidance).toContain("may mutate state");
+    expect(runGuidance).toContain("not by mutability or duration");
+    const streamGuidance = tools.get("background_event_stream")!.promptGuidelines!.join(" ");
+    expect(streamGuidance).toContain("Claude Code Background Bash/Monitor");
+    expect(streamGuidance).toContain("background_event_stream launches the command itself");
+    expect(streamGuidance).toContain("not a read-only observer");
+    expect(streamGuidance).toContain("not mutability or duration");
     expect([...commands.keys()]).toEqual([
       "background-tasks",
       "background-stop",
@@ -157,7 +185,7 @@ describe("background processes extension", () => {
     await handlers.get("session_start")?.({} as never, context() as never);
     await expect(
       tools
-        .get("background_bash")!
+        .get("background_run")!
         .execute("call", { command: "true" }, undefined, undefined, context(mode)),
     ).rejects.toThrow("unsupported");
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
@@ -169,7 +197,7 @@ describe("background processes extension", () => {
     await handlers.get("session_start")?.({} as never, ctx as never);
     await expect(
       tools
-        .get("background_bash")!
+        .get("background_run")!
         .execute("call", { command: "true", timeout: -1 }, undefined, undefined, ctx),
     ).rejects.toThrow("timeout");
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
@@ -183,19 +211,19 @@ describe("background processes extension", () => {
     mocks.runtime.list.mockReturnValue([]);
 
     await expect(
-      tools.get("background_bash")!.execute("call", { command: "true" }, undefined, undefined, ctx),
+      tools.get("background_run")!.execute("call", { command: "true" }, undefined, undefined, ctx),
     ).rejects.toThrow("checkpoint failed");
 
     expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", undefined);
   });
 
-  it("validates monitor mode and timeout before allocation and applies timeout semantics", async () => {
+  it("validates event stream mode and timeout before allocation and applies timeout semantics", async () => {
     const { handlers, tools } = harness();
     const ctx = context();
     await handlers.get("session_start")?.({} as never, ctx as never);
     await expect(
       tools
-        .get("monitor")!
+        .get("background_event_stream")!
         .execute(
           "call",
           { command: "watch", description: "events", timeout: 3601 },
@@ -206,7 +234,7 @@ describe("background processes extension", () => {
     ).rejects.toThrow("3600");
     await expect(
       tools
-        .get("monitor")!
+        .get("background_event_stream")!
         .execute(
           "call",
           { command: "watch", description: "events" },
@@ -218,13 +246,13 @@ describe("background processes extension", () => {
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
 
     await tools
-      .get("monitor")!
+      .get("background_event_stream")!
       .execute("call", { command: "watch", description: "events" }, undefined, undefined, ctx);
     expect(mocks.runtime.launch).toHaveBeenLastCalledWith(
-      expect.objectContaining({ kind: "monitor", timeout: 300 }),
+      expect.objectContaining({ kind: "background_event_stream", timeout: 300 }),
     );
     await tools
-      .get("monitor")!
+      .get("background_event_stream")!
       .execute(
         "call",
         { command: "watch", description: "events", timeout: 10, persistent: true },
@@ -233,7 +261,7 @@ describe("background processes extension", () => {
         ctx,
       );
     expect(mocks.runtime.launch).toHaveBeenLastCalledWith(
-      expect.objectContaining({ kind: "monitor", timeout: undefined }),
+      expect.objectContaining({ kind: "background_event_stream", timeout: undefined }),
     );
   });
 
@@ -293,13 +321,13 @@ describe("background processes extension", () => {
     controller.abort();
     await expect(
       tools
-        .get("background_bash")!
+        .get("background_run")!
         .execute("call", { command: "true" }, controller.signal, undefined, ctx),
     ).rejects.toThrow("aborted");
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
 
     const result = (await tools
-      .get("background_bash")!
+      .get("background_run")!
       .execute("call", { command: "true" }, undefined, undefined, ctx)) as {
       content: Array<{ text: string }>;
     };
@@ -373,9 +401,9 @@ describe("background processes extension", () => {
 
     const renderCall = (name: string, args: unknown) =>
       (tools.get(name)!.renderCall as (...values: unknown[]) => unknown)(args, theme);
-    renderCall("background_bash", { command: unsafe });
-    renderCall("background_bash", { command: "ignored", description: unsafe });
-    renderCall("monitor", { command: "ignored", description: unsafe });
+    renderCall("background_run", { command: unsafe });
+    renderCall("background_run", { command: "ignored", description: unsafe });
+    renderCall("background_event_stream", { command: "ignored", description: unsafe });
     renderCall("background_status", { jobId: unsafe });
     renderCall("background_wait", { jobIds: [unsafe, unsafe] });
     renderCall("background_stop", { jobIds: [unsafe, unsafe] });
@@ -445,7 +473,7 @@ describe("background processes extension", () => {
     const render = tools.get("background_status")!.renderResult as (...args: unknown[]) => unknown;
     const base = {
       jobId: "bg_1",
-      kind: "background_bash",
+      kind: "background_run",
       description: undefined,
       cwd: "/tmp",
       createdAt: "now",

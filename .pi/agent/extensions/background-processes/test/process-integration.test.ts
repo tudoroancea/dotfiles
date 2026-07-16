@@ -64,7 +64,7 @@ describe("local process integration", () => {
     });
     await runtime.initialize();
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "printf exact",
       cwd: process.cwd(),
     });
@@ -90,7 +90,7 @@ describe("local process integration", () => {
     expect(payload.text).toContain("artifact   root");
     expect(runtime.get(job.id)?.deliveryState).toBe("sent");
     await expect(
-      runtime.launch({ kind: "background_bash", command: "true", cwd: process.cwd() }),
+      runtime.launch({ kind: "background_run", command: "true", cwd: process.cwd() }),
     ).resolves.toMatchObject({ id: "bg_2" });
     await runtime.shutdown();
   });
@@ -119,7 +119,7 @@ describe("local process integration", () => {
 
     for (let index = 1; index <= 105; index += 1) {
       const job = await runtime.launch({
-        kind: "background_bash",
+        kind: "background_run",
         command: `turnover ${index}`,
         cwd: process.cwd(),
       });
@@ -145,7 +145,7 @@ describe("local process integration", () => {
   it("captures raw stdout and stderr from the first byte", async () => {
     const runtime = await createRuntime();
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: "printf 'stdout'; printf 'stderr' >&2",
       cwd: process.cwd(),
     });
@@ -194,7 +194,7 @@ describe("local process integration", () => {
         await handlers.get("session_start")!({}, context);
         const command = `sh -c 'trap "" TERM; sh -c '"'"'trap "" TERM; while :; do echo tick; sleep .05; done'"'"' & echo "$$ $!"; wait'`;
         const launched = (await tools
-          .get("monitor")!
+          .get("background_event_stream")!
           .execute(
             "lifecycle" as never,
             { command, description: `lifecycle ${reason}`, persistent: true } as never,
@@ -231,7 +231,7 @@ describe("local process integration", () => {
     const runtime = await createRuntime();
     const bytes = 4 * 1024 * 1024;
     const job = await runtime.launch({
-      kind: "background_bash",
+      kind: "background_run",
       command: `dd if=/dev/zero bs=65536 count=64 2>/dev/null | tr '\\0' x`,
       cwd: process.cwd(),
     });
@@ -253,7 +253,7 @@ describe("local process integration", () => {
   it("stops a shell child and its grandchild process tree", async () => {
     const runtime = await createRuntime();
     const command = `sh -c 'sleep 300 & echo "$$ $!"; wait'`;
-    const job = await runtime.launch({ kind: "background_bash", command, cwd: process.cwd() });
+    const job = await runtime.launch({ kind: "background_run", command, cwd: process.cwd() });
     const output = await waitForOutput(job.outputPath!);
     const pids = output.trim().split(/\s+/).map(Number);
     expect(pids).toHaveLength(2);

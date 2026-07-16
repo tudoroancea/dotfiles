@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { JobStore, MAX_JOB_NUMBER } from "../src/runtime/job-store.ts";
 
 const input = {
-  kind: "background_bash" as const,
+  kind: "background_run" as const,
   command: "sleep 1",
   cwd: "/tmp",
 };
@@ -13,7 +13,9 @@ describe("JobStore", () => {
     const firstGeneration = store.beginGeneration();
 
     expect(store.create(firstGeneration, input)?.id).toBe("bg_1");
-    expect(store.create(firstGeneration, { ...input, kind: "monitor" })?.id).toBe("mon_2");
+    expect(store.create(firstGeneration, { ...input, kind: "background_event_stream" })?.id).toBe(
+      "mon_2",
+    );
 
     expect(store.endGeneration(firstGeneration)).toBe(true);
     const secondGeneration = store.beginGeneration();
@@ -25,7 +27,7 @@ describe("JobStore", () => {
     const generation = store.beginGeneration();
     (store as unknown as { nextJobNumber: number }).nextJobNumber = MAX_JOB_NUMBER;
 
-    expect(store.create(generation, { ...input, kind: "monitor" })?.id).toBe(
+    expect(store.create(generation, { ...input, kind: "background_event_stream" })?.id).toBe(
       `mon_${MAX_JOB_NUMBER}`,
     );
     expect(() => store.create(generation, input)).toThrow(/ID counter exhausted.*new session/i);

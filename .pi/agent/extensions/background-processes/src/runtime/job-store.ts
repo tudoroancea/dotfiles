@@ -37,7 +37,7 @@ export class JobStore {
         `Background job ID counter exhausted at ${MAX_JOB_NUMBER}; start a new session before launching another job.`,
       );
     }
-    const prefix = input.kind === "monitor" ? "mon" : "bg";
+    const prefix = input.kind === "background_event_stream" ? "mon" : "bg";
     const id = `${prefix}_${this.nextJobNumber}`;
     this.nextJobNumber += 1;
     const job: JobRecord = {
@@ -52,7 +52,7 @@ export class JobStore {
       outputBytes: 0,
       deliveryState: "pending",
       monitor:
-        input.kind === "monitor"
+        input.kind === "background_event_stream"
           ? {
               deliveries: 0,
               deliveredBytes: 0,

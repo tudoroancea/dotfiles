@@ -1,6 +1,6 @@
 import type { BoundedTailSnapshot } from "./bounded-tail.ts";
 
-export type JobKind = "background_bash" | "monitor";
+export type JobKind = "background_run" | "background_event_stream";
 
 export type JobStatus =
   | "running"

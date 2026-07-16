@@ -199,7 +199,7 @@ export class ProcessRuntime {
         logClosing: false,
         logSettled: false,
       };
-      if (record.kind === "monitor") {
+      if (record.kind === "background_event_stream") {
         active.monitor = {
           pipeline: new MonitorPipeline(() => this.monitorReady(active)),
           queued: false,

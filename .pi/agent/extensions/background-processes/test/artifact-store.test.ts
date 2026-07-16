@@ -24,7 +24,7 @@ function metadata(overrides: Partial<JobMetadata> = {}): JobMetadata {
   return {
     id: "bg_1",
     runtimeId: "runtime",
-    kind: "background_bash",
+    kind: "background_run",
     command: "printf secret",
     cwd: "/tmp",
     createdAt: "2026-01-01T00:00:00.000Z",

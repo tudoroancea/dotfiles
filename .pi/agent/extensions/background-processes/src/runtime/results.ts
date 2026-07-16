@@ -114,7 +114,7 @@ function durationMs(record: JobRecord, now: number): number {
 }
 
 export function compactSnapshot(record: JobRecord, now = Date.now()): JobSnapshot {
-  const monitor = record.kind === "monitor";
+  const monitor = record.kind === "background_event_stream";
   return {
     jobId: safeLine(record.id)!,
     kind: record.kind,
@@ -183,7 +183,7 @@ function stringify(jobs: JobSnapshot[], truncated: boolean, omitted?: OmittedJob
 
 function largestCompactSnapshot(kind: JobRecord["kind"], pathBytes: number): JobSnapshot {
   const common: JobSnapshot = {
-    jobId: kind === "monitor" ? MAX_GENERATED_JOB_ID : `bg_${MAX_JOB_NUMBER}`,
+    jobId: kind === "background_event_stream" ? MAX_GENERATED_JOB_ID : `bg_${MAX_JOB_NUMBER}`,
     kind,
     status: "cleanup_failed",
     exitCode: Number.MIN_SAFE_INTEGER,
@@ -197,7 +197,7 @@ function largestCompactSnapshot(kind: JobRecord["kind"], pathBytes: number): Job
     monitorDeliveryPersistenceError: "x".repeat(32),
     tailTruncated: true,
   };
-  if (kind === "background_bash") {
+  if (kind === "background_run") {
     return {
       ...common,
       description: "x".repeat(12),
@@ -238,8 +238,8 @@ function completionSafeArtifactPathMaximum(kind: JobRecord["kind"]): number {
 }
 
 export const ARTIFACT_JOB_PATH_MAX_BYTES = Math.min(
-  completionSafeArtifactPathMaximum("background_bash"),
-  completionSafeArtifactPathMaximum("monitor"),
+  completionSafeArtifactPathMaximum("background_run"),
+  completionSafeArtifactPathMaximum("background_event_stream"),
 );
 
 function fitTail(jobs: JobSnapshot[], index: number, tail: string, omitted?: OmittedJobs): boolean {

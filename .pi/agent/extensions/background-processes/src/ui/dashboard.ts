@@ -122,7 +122,7 @@ function overview(job: JobRecord): string {
     [
       `${statusIcon(job.status)} ${jobName(job)}`,
       `ID: ${safe(job.id)}`,
-      `Type: ${job.kind === "monitor" ? "monitor" : "background command"}`,
+      `Type: ${job.kind === "background_event_stream" ? "event stream" : "background command"}`,
       `Status: ${job.status}`,
       `Runtime: ${jobDuration(job)}`,
       `Started: ${safe(job.createdAt)}`,
@@ -135,16 +135,16 @@ function overview(job: JobRecord): string {
       job.metadataPath ? `Metadata artifact: ${safe(job.metadataPath)}` : "",
       `Completion delivery: ${job.deliveryState}`,
       monitor
-        ? `Monitor: ${monitor.deliveries} deliveries · ${monitor.deliveredLines} lines delivered · ${monitor.droppedLines} dropped${monitor.captureOnly ? " · capture-only" : ""}`
+        ? `Event stream: ${monitor.deliveries} deliveries · ${monitor.deliveredLines} lines delivered · ${monitor.droppedLines} dropped${monitor.captureOnly ? " · capture-only" : ""}`
         : "",
       job.error ? `Error: ${safe(job.error)}` : "",
       job.deliveryError ? `Delivery error: ${safe(job.deliveryError)}` : "",
       job.deliveryPersistenceError
         ? `Delivery checkpoint error: ${safe(job.deliveryPersistenceError)}`
         : "",
-      monitor?.deliveryError ? `Monitor send error: ${safe(monitor.deliveryError)}` : "",
+      monitor?.deliveryError ? `Event stream send error: ${safe(monitor.deliveryError)}` : "",
       job.monitorDeliveryPersistenceError
-        ? `Monitor checkpoint error: ${safe(job.monitorDeliveryPersistenceError)}`
+        ? `Event stream checkpoint error: ${safe(job.monitorDeliveryPersistenceError)}`
         : "",
     ]
       .filter(Boolean)
@@ -261,7 +261,7 @@ export async function showBackgroundTasks(
       jobs.map((job) => ({
         value: job.id,
         label: `${statusIcon(job.status)} ${jobName(job)}`,
-        description: `${job.id} · ${job.kind === "monitor" ? "monitor" : "command"} · ${job.status} · ${jobDuration(job)}`,
+        description: `${job.id} · ${job.kind === "background_event_stream" ? "event stream" : "command"} · ${job.status} · ${jobDuration(job)}`,
       })),
       "↑↓ navigate • enter inspect • esc close",
     );

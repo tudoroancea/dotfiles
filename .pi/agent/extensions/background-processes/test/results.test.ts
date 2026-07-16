@@ -14,7 +14,7 @@ function record(index: number): JobRecord {
   return {
     id: `bg_${index}`,
     generation: 1,
-    kind: "background_bash",
+    kind: "background_run",
     command: "large command",
     description: "d".repeat(500),
     cwd: "/tmp",
@@ -96,7 +96,7 @@ describe("aggregate job results", () => {
       return {
         ...job,
         id: MAX_GENERATED_JOB_ID,
-        kind: "monitor" as const,
+        kind: "background_event_stream" as const,
         status: "cleanup_failed" as const,
         description: hostile,
         cwd: hostile,
@@ -168,7 +168,7 @@ describe("aggregate job results", () => {
 
     const delivered = {
       ...empty,
-      kind: "monitor" as const,
+      kind: "background_event_stream" as const,
       outputBytes: 10,
       monitor: {
         deliveries: 1,

@@ -1,7 +1,7 @@
 {
   "name": "pi-background-processes",
   "version": "0.1.0",
-  "description": "Session-scoped background process runtime for Pi",
+  "description": "Completion-oriented background runs and event-oriented background streams for Pi",
   "keywords": [
     "extension",
     "pi"
