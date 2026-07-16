@@ -53,7 +53,7 @@ describe("child deadline and disposal", () => {
     try {
       const dispose = vi.fn();
       const emit = vi.fn(async () => new Promise<never>(() => undefined));
-      const completion = disposeChildSession({ dispose, _extensionRunner: { emit } } as never, 100);
+      const completion = disposeChildSession({ dispose, extensionRunner: { emit } } as never, 100);
 
       await vi.advanceTimersByTimeAsync(100);
       await completion;

@@ -12,7 +12,7 @@ afterAll(async () => {
 
 describe("registered extension SDK smoke", () => {
   it("executes all registered tools in RPC/TUI-compatible contexts and exits cleanly", async () => {
-    const agentDirectory = await mkdtemp(join(tmpdir(), "pi-background-sdk-smoke-"));
+    const agentDirectory = await mkdtemp(join(tmpdir(), "pi-bg-smoke-"));
     roots.push(agentDirectory);
     const previousAgentDirectory = process.env.PI_CODING_AGENT_DIR;
     process.env.PI_CODING_AGENT_DIR = agentDirectory;

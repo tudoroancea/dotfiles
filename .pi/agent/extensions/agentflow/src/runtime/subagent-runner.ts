@@ -19,6 +19,7 @@ import { promisify } from "node:util";
 import { Type, type TSchema } from "typebox";
 import type { AgentNodeSpec, ChildExecutionResult, UsageSnapshot } from "../types.ts";
 import { RunStore } from "../state/run-store.ts";
+import { ChildModelRuntime } from "./child-model-runtime.ts";
 import { finishToolCallSnapshot, startToolCallSnapshot } from "./tool-call-snapshots.ts";
 
 const DEFAULT_SYSTEM_PROMPT =
@@ -99,13 +100,11 @@ export async function settleChildAbort(
 }
 
 export async function disposeChildSession(
-  session: Pick<AgentSession, "dispose">,
+  session: Pick<AgentSession, "dispose" | "extensionRunner">,
   shutdownTimeoutMs = SHUTDOWN_TIMEOUT_MS,
 ): Promise<void> {
   try {
-    const runner = (
-      session as unknown as { _extensionRunner?: { emit(event: unknown): Promise<unknown> } }
-    )._extensionRunner;
+    const runner = session.extensionRunner;
     if (runner)
       await Promise.race([
         runner.emit({ type: "session_shutdown", reason: "quit" }),
@@ -183,6 +182,8 @@ const gitInspectTool = (cwd: string) =>
   });
 
 export class SubagentRunner {
+  private readonly childModelRuntime = new ChildModelRuntime();
+
   constructor(
     private readonly store: RunStore,
     private readonly getInheritedTools: () => string[],
@@ -279,7 +280,10 @@ export class SubagentRunner {
           ]
         : []),
     ];
-    let model = ctx.model;
+    const modelRuntime = await this.childModelRuntime.get(ctx.modelRegistry);
+    let model = ctx.model
+      ? (modelRuntime.getModel(ctx.model.provider, ctx.model.id) ?? ctx.model)
+      : undefined;
     let thinking = (config.thinking ?? this.getInheritedThinking()) as ThinkingLevel | undefined;
     const requestedModel = resolveRequestedModel(
       config.model,
@@ -290,13 +294,14 @@ export class SubagentRunner {
       const resolved = resolveCliModel({
         cliModel: requestedModel,
         cliThinking: thinking,
-        modelRegistry: ctx.modelRegistry,
+        modelRuntime,
       });
       if (resolved.error || !resolved.model)
         throw new Error(resolved.error ?? `Model not found: ${requestedModel}`);
       model = resolved.model;
       thinking = resolved.thinkingLevel ?? thinking;
     }
+    await this.childModelRuntime.ensureAuth(modelRuntime, ctx.modelRegistry, model);
     const inheritedTools = this.getInheritedTools();
     const inherited = inheritedTools.filter((name) => !isDeniedChildTool(name));
     const requested = requestedToolNames;
@@ -318,7 +323,7 @@ export class SubagentRunner {
       sessionManager,
       settingsManager,
       model,
-      modelRegistry: ctx.modelRegistry,
+      modelRuntime,
       thinkingLevel: thinking,
       tools,
       noTools: config.tools === false ? "all" : undefined,

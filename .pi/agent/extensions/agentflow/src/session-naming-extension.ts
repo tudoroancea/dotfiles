@@ -11,6 +11,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { ChildModelRuntime } from "./runtime/child-model-runtime.ts";
 
 const SYSTEM_PROMPT =
   "Name coding sessions. Return only a concise 3-5 word lowercase title with no quotes, punctuation, or explanation.";
@@ -20,7 +21,12 @@ const TIMEOUT_MS = 25_000;
 const ATTEMPT_ENTRY = "automatic-session-name-attempt";
 export const HERDR_RENAME_LOG = "/tmp/pi-herdr-tab-renaming.log";
 
-type NamingContext = Pick<ExtensionContext, "cwd" | "model" | "modelRegistry" | "sessionManager">;
+type NamingContext = Pick<
+  ExtensionContext,
+  "cwd" | "model" | "modelRegistry" | "sessionManager"
+> & {
+  childModelRuntime?: ChildModelRuntime;
+};
 
 type NamingDependencies = {
   generateName: (
@@ -125,8 +131,12 @@ export async function generateSessionName(
   transcript: string,
   signal: AbortSignal,
 ): Promise<string | null> {
-  const model = selectNamingModel(ctx);
-  if (!model || signal.aborted) return null;
+  const selectedModel = selectNamingModel(ctx);
+  if (!selectedModel || signal.aborted) return null;
+  const childModelRuntime = ctx.childModelRuntime ?? new ChildModelRuntime();
+  const modelRuntime = await childModelRuntime.get(ctx.modelRegistry);
+  const model = modelRuntime.getModel(selectedModel.provider, selectedModel.id) ?? selectedModel;
+  await childModelRuntime.ensureAuth(modelRuntime, ctx.modelRegistry, model);
 
   const settingsManager = SettingsManager.inMemory();
   const loader = new DefaultResourceLoader({
@@ -150,7 +160,7 @@ export async function generateSessionName(
     sessionManager: SessionManager.inMemory(ctx.cwd),
     settingsManager,
     model,
-    modelRegistry: ctx.modelRegistry,
+    modelRuntime,
     thinkingLevel: "low",
     noTools: "all",
   });
@@ -204,6 +214,7 @@ export function createAutomaticSessionNameExtension(
 ): (pi: ExtensionAPI) => void {
   const renameHerdrTab = dependencies.renameHerdrTab ?? renameCurrentHerdrTab;
   return (pi) => {
+    const childModelRuntime = new ChildModelRuntime();
     pi.registerFlag("no-herdr-tab-renaming", {
       description: "Do not rename the current Herdr tab when naming a session",
       type: "boolean",
@@ -296,6 +307,7 @@ export function createAutomaticSessionNameExtension(
         model: ctx.model,
         modelRegistry: ctx.modelRegistry,
         sessionManager: ctx.sessionManager,
+        childModelRuntime,
       };
 
       void dependencies
