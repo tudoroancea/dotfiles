@@ -534,7 +534,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   pi.registerCommand("background-tasks", {
     description: "Open the background task dashboard: /background-tasks [jobId]",
     handler: async (args, ctx) => {
-      await showBackgroundTasks(ctx, requireRuntime(runtime), args.trim() || undefined);
+      await showBackgroundTasks(pi.events, ctx, requireRuntime(runtime), args.trim() || undefined);
     },
   });
 

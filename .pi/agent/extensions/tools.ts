@@ -12,6 +12,7 @@
 import type { ExtensionAPI, ExtensionContext, ToolInfo } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
+import { withHerdrBlocked } from "./lib/herdr-blocked.ts";
 
 // State persisted to session
 interface ToolsState {
@@ -67,10 +68,15 @@ export default function toolsExtension(pi: ExtensionAPI) {
 	pi.registerCommand("tools", {
 		description: "Enable/disable tools",
 		handler: async (_args, ctx) => {
+			if (ctx.mode !== "tui") {
+				ctx.ui.notify("/tools requires interactive TUI mode.", "error");
+				return;
+			}
+
 			// Refresh tool list
 			allTools = pi.getAllTools();
 
-			await ctx.ui.custom((tui, theme, _kb, done) => {
+			const showTools = () => ctx.ui.custom((tui, theme, _kb, done) => {
 				// Build settings items for each tool
 				const items: SettingItem[] = allTools.map((tool) => ({
 					id: tool.name,
@@ -126,6 +132,7 @@ export default function toolsExtension(pi: ExtensionAPI) {
 
 				return component;
 			});
+			await withHerdrBlocked(pi.events, "Waiting for tool settings input", showTools);
 		},
 	});
 

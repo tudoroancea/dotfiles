@@ -6,6 +6,7 @@ import {
   wrapTextWithAnsi,
   type KeybindingsManager,
 } from "@earendil-works/pi-tui";
+import { withHerdrBlocked } from "../../../lib/herdr-blocked.ts";
 import type { RunEngine } from "../runtime/run-engine.ts";
 import type { RunResult, RunSnapshot, UsageSnapshot } from "../types.ts";
 import {
@@ -381,6 +382,7 @@ export class AgentflowDashboard {
 }
 
 async function showDashboard(
+  pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
   engine: RunEngine,
   initialRunId?: string,
@@ -414,42 +416,44 @@ async function showDashboard(
 
   let dashboard: AgentflowDashboard | undefined;
   try {
-    await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
-      let activeDashboard: AgentflowDashboard;
-      const cancel = async (runId: string): Promise<void> => {
-        try {
-          const fresh = engine.getSnapshot(runId) as RunSnapshot;
-          if (fresh.status !== "running" && fresh.status !== "queued") {
-            activeDashboard.replaceSnapshot(fresh);
-            ctx.ui.notify(`${runId} is no longer active.`, "info");
-            return;
+    await withHerdrBlocked(pi.events, "Waiting for Agentflow dashboard input", () =>
+      ctx.ui.custom<void>((tui, theme, keybindings, done) => {
+        let activeDashboard: AgentflowDashboard;
+        const cancel = async (runId: string): Promise<void> => {
+          try {
+            const fresh = engine.getSnapshot(runId) as RunSnapshot;
+            if (fresh.status !== "running" && fresh.status !== "queued") {
+              activeDashboard.replaceSnapshot(fresh);
+              ctx.ui.notify(`${runId} is no longer active.`, "info");
+              return;
+            }
+            const confirmed = await ctx.ui.confirm(
+              "Cancel Agentflow run?",
+              `${runId} · ${fresh.name ?? fresh.kind}`,
+            );
+            if (!confirmed) return;
+            await engine.cancel([runId]);
+            const cancelled = engine.getSnapshot(runId) as RunSnapshot;
+            activeDashboard.replaceSnapshot(cancelled);
+            results.set(runId, engine.getResult(runId));
+            ctx.ui.notify(`Cancellation requested for ${runId}.`, "info");
+          } catch (error) {
+            ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
           }
-          const confirmed = await ctx.ui.confirm(
-            "Cancel Agentflow run?",
-            `${runId} · ${fresh.name ?? fresh.kind}`,
-          );
-          if (!confirmed) return;
-          await engine.cancel([runId]);
-          const cancelled = engine.getSnapshot(runId) as RunSnapshot;
-          activeDashboard.replaceSnapshot(cancelled);
-          results.set(runId, engine.getResult(runId));
-          ctx.ui.notify(`Cancellation requested for ${runId}.`, "info");
-        } catch (error) {
-          ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-        }
-      };
-      activeDashboard = new AgentflowDashboard(snapshots, theme, keybindings, {
-        initialRunId,
-        results,
-        resolveResult: (runId) => engine.getResult(runId),
-        subscribe: (listener) => engine.subscribe(listener),
-        onClose: () => done(undefined),
-        onCancel: (runId) => void cancel(runId),
-        requestRender: () => tui.requestRender(),
-      });
-      dashboard = activeDashboard;
-      return activeDashboard;
-    });
+        };
+        activeDashboard = new AgentflowDashboard(snapshots, theme, keybindings, {
+          initialRunId,
+          results,
+          resolveResult: (runId) => engine.getResult(runId),
+          subscribe: (listener) => engine.subscribe(listener),
+          onClose: () => done(undefined),
+          onCancel: (runId) => void cancel(runId),
+          requestRender: () => tui.requestRender(),
+        });
+        dashboard = activeDashboard;
+        return activeDashboard;
+      }),
+    );
   } finally {
     dashboard?.dispose();
   }
@@ -458,6 +462,6 @@ async function showDashboard(
 export function registerDashboard(pi: ExtensionAPI, engine: RunEngine): void {
   pi.registerCommand("agentflow", {
     description: "Open the Agentflow run dashboard: /agentflow [runId]",
-    handler: async (args, ctx) => showDashboard(ctx, engine, args.trim() || undefined),
+    handler: async (args, ctx) => showDashboard(pi, ctx, engine, args.trim() || undefined),
   });
 }

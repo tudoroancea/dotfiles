@@ -114,6 +114,7 @@ function harness() {
       renderers.set(name, renderer),
     ),
     sendMessage: vi.fn(),
+    events: { emit: vi.fn() },
   };
   backgroundProcessesExtension(pi as never);
   return { pi, handlers, tools, commands, renderers };
@@ -376,7 +377,7 @@ describe("background processes extension", () => {
   });
 
   it("opens an interactive task dashboard in TUI mode instead of notifying raw JSON", async () => {
-    const { handlers, commands } = harness();
+    const { pi, handlers, commands } = harness();
     const ctx = context("tui");
     mocks.runtime.list.mockReturnValue([mocks.job]);
     await handlers.get("session_start")?.({} as never, ctx as never);
@@ -385,6 +386,10 @@ describe("background processes extension", () => {
 
     expect(ctx.ui.custom).toHaveBeenCalledOnce();
     expect(ctx.ui.notify).not.toHaveBeenCalled();
+    expect(pi.events.emit.mock.calls).toEqual([
+      ["herdr:blocked", { active: true, label: "Waiting for background task dashboard input" }],
+      ["herdr:blocked", { active: false }],
+    ]);
   });
 
   it("sanitizes ESC, CSI, OSC, C1, and control characters before rendering model values", () => {

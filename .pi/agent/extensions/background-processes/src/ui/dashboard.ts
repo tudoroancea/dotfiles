@@ -5,6 +5,7 @@ import {
   wrapTextWithAnsi,
   type KeybindingsManager,
 } from "@earendil-works/pi-tui";
+import { withHerdrBlocked, type ExtensionEventBus } from "../../../lib/herdr-blocked.ts";
 import type { ProcessRuntime } from "../runtime/process-runtime.ts";
 import type { JobRecord } from "../runtime/types.ts";
 import {
@@ -400,6 +401,7 @@ function withTail(runtime: ProcessRuntime, jobId: string): JobRecord {
 }
 
 export async function showBackgroundTasks(
+  events: ExtensionEventBus,
   ctx: ExtensionCommandContext,
   runtime: ProcessRuntime,
   initialJobId?: string,
@@ -434,42 +436,44 @@ export async function showBackgroundTasks(
 
   let dashboard: BackgroundDashboard | undefined;
   try {
-    await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
-      let activeDashboard: BackgroundDashboard;
-      const stop = async (jobId: string): Promise<void> => {
-        try {
-          const fresh = runtime.resolve([jobId])[0]!;
-          activeDashboard.replaceJob(fresh);
-          if (fresh.status !== "running") {
-            ctx.ui.notify(`${jobId} is no longer running.`, "info");
-            return;
+    await withHerdrBlocked(events, "Waiting for background task dashboard input", () =>
+      ctx.ui.custom<void>((tui, theme, keybindings, done) => {
+        let activeDashboard: BackgroundDashboard;
+        const stop = async (jobId: string): Promise<void> => {
+          try {
+            const fresh = runtime.resolve([jobId])[0]!;
+            activeDashboard.replaceJob(fresh);
+            if (fresh.status !== "running") {
+              ctx.ui.notify(`${jobId} is no longer running.`, "info");
+              return;
+            }
+            const confirmed = await ctx.ui.confirm(
+              "Stop background task?",
+              `${jobId} · ${formatCommand(fresh.command, { maximum: 120, singleLine: true })}`,
+            );
+            if (!confirmed) return;
+            await runtime.stopManyResult([jobId]);
+            activeDashboard.replaceJob(withTail(runtime, jobId));
+            ctx.ui.notify(`Stop requested for ${jobId}.`, "info");
+          } catch (error) {
+            ctx.ui.notify(errorMessage(error), "error");
           }
-          const confirmed = await ctx.ui.confirm(
-            "Stop background task?",
-            `${jobId} · ${formatCommand(fresh.command, { maximum: 120, singleLine: true })}`,
-          );
-          if (!confirmed) return;
-          await runtime.stopManyResult([jobId]);
-          activeDashboard.replaceJob(withTail(runtime, jobId));
-          ctx.ui.notify(`Stop requested for ${jobId}.`, "info");
-        } catch (error) {
-          ctx.ui.notify(errorMessage(error), "error");
-        }
-      };
-      activeDashboard = new BackgroundDashboard(jobs, theme, keybindings, {
-        initialJobId,
-        onClose: () => done(undefined),
-        onStop: (jobId) => void stop(jobId),
-        loadTail: (jobId) => withTail(runtime, jobId),
-        requestRender: () => tui.requestRender(),
-        subscribe:
-          typeof runtime.subscribe === "function"
-            ? (listener) => runtime.subscribe(() => listener(sortedJobs(runtime)))
-            : undefined,
-      });
-      dashboard = activeDashboard;
-      return activeDashboard;
-    });
+        };
+        activeDashboard = new BackgroundDashboard(jobs, theme, keybindings, {
+          initialJobId,
+          onClose: () => done(undefined),
+          onStop: (jobId) => void stop(jobId),
+          loadTail: (jobId) => withTail(runtime, jobId),
+          requestRender: () => tui.requestRender(),
+          subscribe:
+            typeof runtime.subscribe === "function"
+              ? (listener) => runtime.subscribe(() => listener(sortedJobs(runtime)))
+              : undefined,
+        });
+        dashboard = activeDashboard;
+        return activeDashboard;
+      }),
+    );
   } finally {
     dashboard?.dispose();
   }

@@ -8,6 +8,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Editor, type EditorTheme, Key, matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { withHerdrBlocked } from "./lib/herdr-blocked.ts";
 
 // Types
 interface QuestionOption {
@@ -82,8 +83,8 @@ export default function questionnaire(pi: ExtensionAPI) {
 		parameters: QuestionnaireParams,
 
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			if (!ctx.hasUI) {
-				return errorResult("Error: UI not available (running in non-interactive mode)");
+			if (ctx.mode !== "tui") {
+				return errorResult("Error: Questionnaire requires interactive TUI mode");
 			}
 			if (params.questions.length === 0) {
 				return errorResult("Error: No questions provided");
@@ -99,7 +100,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 			const isMulti = questions.length > 1;
 			const totalTabs = questions.length + 1; // questions + Submit
 
-			const result = await ctx.ui.custom<QuestionnaireResult>((tui, theme, _kb, done) => {
+			const showQuestionnaire = () => ctx.ui.custom<QuestionnaireResult>((tui, theme, _kb, done) => {
 				// State
 				let currentTab = 0;
 				let optionIndex = 0;
@@ -371,6 +372,11 @@ export default function questionnaire(pi: ExtensionAPI) {
 					handleInput,
 				};
 			});
+			const result = await withHerdrBlocked(
+				pi.events,
+				"Waiting for questionnaire response",
+				showQuestionnaire,
+			);
 
 			if (result.cancelled) {
 				return {

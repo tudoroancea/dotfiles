@@ -31,6 +31,10 @@ function job(overrides: Partial<JobRecord> = {}): JobRecord {
   };
 }
 
+function eventBus() {
+  return { emit: vi.fn() };
+}
+
 function runtime(jobs: JobRecord[]): ProcessRuntime {
   return {
     list: vi.fn(() => jobs),
@@ -66,9 +70,11 @@ describe("background task dashboard formatting", () => {
     const notify = vi.fn();
     const ctx = { mode: "rpc", ui: { notify } };
 
-    await showBackgroundTasks(ctx as never, current);
+    const events = eventBus();
+    await showBackgroundTasks(events, ctx as never, current);
 
     expect(notify).toHaveBeenCalledWith(expect.stringContaining("1 running, 2 recent"), "info");
+    expect(events.emit).not.toHaveBeenCalled();
     expect(notify.mock.calls[0]![0]).not.toContain('{"jobs"');
     expect(compactTaskSummary(current)).toContain("bg_1 running");
   });
@@ -219,26 +225,58 @@ describe("background task dashboard formatting", () => {
     let dashboard: { handleInput: (data: string) => void } | undefined;
     const confirm = vi.fn(async () => false);
     const custom = vi.fn(async (factory) => {
-      dashboard = factory(
-        { requestRender: vi.fn() },
-        { fg: (_tone: string, value: string) => value, bold: (value: string) => value },
-        {
-          matches: () => false,
-          getKeys: () => [],
-        },
-        vi.fn(),
-      );
+      await new Promise<void>((resolve) => {
+        const activeDashboard = factory(
+          { requestRender: vi.fn() },
+          { fg: (_tone: string, value: string) => value, bold: (value: string) => value },
+          {
+            matches: (data: string, action: string) =>
+              data === "B" && action === "tui.select.cancel",
+            getKeys: () => [],
+          },
+          resolve,
+        );
+        dashboard = activeDashboard;
+        activeDashboard.handleInput("x");
+        queueMicrotask(() => dashboard?.handleInput("B"));
+      });
     });
     const ctx = { mode: "tui", ui: { custom, confirm, notify: vi.fn() } };
 
-    await showBackgroundTasks(ctx as never, current);
-    dashboard!.handleInput("x");
+    const events = eventBus();
+    await showBackgroundTasks(events, ctx as never, current);
     await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
 
     expect(current.resolve).toHaveBeenCalledWith(["bg_1"]);
     expect(current.tail).not.toHaveBeenCalled();
     expect(ctx.ui.custom).toHaveBeenCalledOnce();
     expect("editor" in ctx.ui).toBe(false);
+    expect(events.emit.mock.calls).toEqual([
+      ["herdr:blocked", { active: true, label: "Waiting for background task dashboard input" }],
+      ["herdr:blocked", { active: false }],
+    ]);
+  });
+
+  it("balances dashboard rejection and skips blocked state when there are no jobs", async () => {
+    const failure = new Error("dashboard failed");
+    const events = eventBus();
+    const rejectingContext = {
+      mode: "tui",
+      ui: { custom: vi.fn(async () => Promise.reject(failure)), notify: vi.fn() },
+    };
+    await expect(
+      showBackgroundTasks(events, rejectingContext as never, runtime([job()])),
+    ).rejects.toBe(failure);
+    expect(events.emit.mock.calls).toEqual([
+      ["herdr:blocked", { active: true, label: "Waiting for background task dashboard input" }],
+      ["herdr:blocked", { active: false }],
+    ]);
+
+    events.emit.mockClear();
+    const emptyContext = { mode: "tui", ui: { custom: vi.fn(), notify: vi.fn() } };
+    await showBackgroundTasks(events, emptyContext as never, runtime([]));
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(emptyContext.ui.custom).not.toHaveBeenCalled();
   });
 
   it("honors a requested RPC job and sanitizes unknown IDs", async () => {
@@ -249,11 +287,11 @@ describe("background task dashboard formatting", () => {
     const notify = vi.fn();
     const ctx = { mode: "rpc", ui: { notify } };
 
-    await showBackgroundTasks(ctx as never, current, "bg_2");
+    await showBackgroundTasks(eventBus(), ctx as never, current, "bg_2");
     expect(notify).toHaveBeenLastCalledWith(expect.stringContaining("◆ running"), "info");
     expect(notify.mock.calls.at(-1)![0]).toContain("/tmp/second.log");
 
-    await showBackgroundTasks(ctx as never, current, "bad\u001b]0;title\u0007-id");
+    await showBackgroundTasks(eventBus(), ctx as never, current, "bad\u001b]0;title\u0007-id");
     const [message, level] = notify.mock.calls.at(-1)!;
     expect(level).toBe("error");
     expect(message).not.toContain("\u001b");

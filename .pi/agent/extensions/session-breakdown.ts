@@ -29,6 +29,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { createReadStream, type Dirent } from "node:fs";
 import readline from "node:readline";
+import { withHerdrBlocked } from "./lib/herdr-blocked.ts";
 
 type ModelKey = string; // `${provider}/${model}`
 
@@ -814,7 +815,7 @@ export default function sessionBreakdownExtension(pi: ExtensionAPI) {
 	pi.registerCommand("session-breakdown", {
 		description: "Interactive breakdown of today/7/30/90 days of ~/.pi session usage (sessions + cost by model)",
 		handler: async (_args, ctx: ExtensionContext) => {
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				// Non-interactive fallback: just notify.
 				const data = await computeBreakdown(undefined);
 				const range = data.ranges.get(1)!;
@@ -845,9 +846,11 @@ export default function sessionBreakdownExtension(pi: ExtensionAPI) {
 				return;
 			}
 
-			await ctx.ui.custom<void>((tui, _theme, _kb, done) => {
-				return new BreakdownComponent(data, tui, done);
-			});
+			await withHerdrBlocked(pi.events, "Waiting for session breakdown input", () =>
+				ctx.ui.custom<void>((tui, _theme, _kb, done) => {
+					return new BreakdownComponent(data, tui, done);
+				}),
+			);
 		},
 	});
 }

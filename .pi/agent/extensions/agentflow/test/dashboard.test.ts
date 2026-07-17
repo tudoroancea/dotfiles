@@ -1,7 +1,12 @@
 import { KeybindingsManager, TUI_KEYBINDINGS, visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import type { RunSnapshot } from "../src/types.ts";
-import { AgentflowDashboard, renderRunDetail, renderRunList } from "../src/ui/dashboard.ts";
+import {
+  AgentflowDashboard,
+  registerDashboard,
+  renderRunDetail,
+  renderRunList,
+} from "../src/ui/dashboard.ts";
 
 const usage = (total = 1_250, cost = 0.12) => ({
   input: total - 250,
@@ -127,6 +132,126 @@ describe("Agentflow dashboard formatting", () => {
     expect(text).toContain("run error");
     expect(text).toContain("/tmp/session.jsonl");
     expect(text).toContain("/tmp/artifacts/run");
+  });
+});
+
+describe("Agentflow dashboard command blocked state", () => {
+  function commandHarness(engineOverrides: Record<string, unknown> = {}, order?: string[]) {
+    let handler: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    const events: Array<{ event: string; data: unknown }> = [];
+    const run = snapshot();
+    const engine = {
+      listRuns: vi.fn(() => [run]),
+      getResult: vi.fn(() => undefined),
+      getSnapshot: vi.fn(() => run),
+      subscribe: vi.fn(() => vi.fn()),
+      cancel: vi.fn(async () => undefined),
+      ...engineOverrides,
+    };
+    const pi = {
+      events: {
+        emit: vi.fn((event: string, data: unknown) => {
+          events.push({ event, data });
+          order?.push((data as { active: boolean }).active ? "active" : "inactive");
+        }),
+      },
+      registerCommand: vi.fn(
+        (_name: string, command: { handler: (args: string, ctx: unknown) => Promise<void> }) => {
+          handler = command.handler;
+        },
+      ),
+    };
+    registerDashboard(pi as never, engine as never);
+    return { events, handler: handler!, run };
+  }
+
+  function context(mode: string, custom: unknown, confirm = vi.fn(async () => false)) {
+    return {
+      mode,
+      ui: {
+        custom,
+        confirm,
+        notify: vi.fn(),
+      },
+    };
+  }
+
+  it("balances one blocked scope around close and nested cancellation confirmation", async () => {
+    const order: string[] = [];
+    const { events, handler } = commandHarness({}, order);
+    const confirm = vi.fn(async () => {
+      order.push("confirm");
+      return false;
+    });
+    const custom = vi.fn(
+      async (
+        factory: (
+          tui: { requestRender(): void },
+          theme: typeof plainTheme,
+          bindings: KeybindingsManager,
+          done: (value: void) => void,
+        ) => AgentflowDashboard,
+      ) => {
+        order.push("custom");
+        await new Promise<void>((resolve) => {
+          const dashboard = factory({ requestRender: vi.fn() }, plainTheme, keybindings(), resolve);
+          dashboard.handleInput("x");
+          queueMicrotask(() => dashboard.handleInput("b"));
+        });
+      },
+    );
+
+    await handler("", context("tui", custom, confirm));
+
+    expect(order).toEqual(["active", "custom", "confirm", "inactive"]);
+    expect(events).toEqual([
+      {
+        event: "herdr:blocked",
+        data: { active: true, label: "Waiting for Agentflow dashboard input" },
+      },
+      { event: "herdr:blocked", data: { active: false } },
+    ]);
+  });
+
+  it("balances the blocked scope when the custom dashboard rejects", async () => {
+    const { events, handler } = commandHarness();
+    const failure = new Error("dashboard failed");
+    const custom = vi.fn(async () => {
+      throw failure;
+    });
+
+    await expect(handler("", context("tui", custom))).rejects.toBe(failure);
+    expect(events).toEqual([
+      {
+        event: "herdr:blocked",
+        data: { active: true, label: "Waiting for Agentflow dashboard input" },
+      },
+      { event: "herdr:blocked", data: { active: false } },
+    ]);
+  });
+
+  it.each([
+    ["RPC", "", "rpc", {}],
+    ["no runs", "", "tui", { listRuns: vi.fn(() => []) }],
+    ["unknown run", "missing", "tui", {}],
+    [
+      "runtime error",
+      "",
+      "tui",
+      {
+        listRuns: vi.fn(() => {
+          throw new Error("storage unavailable");
+        }),
+      },
+    ],
+  ])("emits no blocked events for %s", async (_name, args, mode, overrides) => {
+    const { events, handler } = commandHarness(overrides);
+    const custom = vi.fn();
+
+    await handler(args, context(mode, custom));
+
+    expect(events).toEqual([]);
+    expect(custom).not.toHaveBeenCalled();
   });
 });
 
