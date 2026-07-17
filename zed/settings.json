@@ -65,6 +65,11 @@
         },
         {
           "paths": [
+            "/home/ted/dotfiles/./"
+          ]
+        },
+        {
+          "paths": [
             "/home/tudor"
           ]
         },
