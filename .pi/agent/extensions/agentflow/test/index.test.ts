@@ -190,11 +190,17 @@ describe("extension tool registration", () => {
 
     const renderer = renderers.get("agentflow-result")!;
     const message = sendMessage.mock.calls[0]![0];
+    const bg = vi.fn((_role: string, text: string) => text);
     const theme = {
       bold: (text: string) => text,
       fg: (_role: string, text: string) => text,
+      bg,
     };
-    const collapsed = renderer(message, { expanded: false }, theme).render(200).join("\n");
+    const collapsedLines = renderer(message, { expanded: false }, theme).render(200);
+    const collapsed = collapsedLines.join("\n");
+    expect(collapsedLines[0]).toBe(" ".repeat(200));
+    expect(collapsedLines.at(-1)).toBe(" ".repeat(200));
+    expect(bg).toHaveBeenCalledWith("customMessageBg", expect.any(String));
     expect(collapsed).toContain("1 findings · 1 tools");
     expect(collapsed).toContain("expand");
     const expanded = renderer(message, { expanded: true }, theme).render(200).join("\n");

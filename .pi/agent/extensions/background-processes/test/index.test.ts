@@ -402,6 +402,7 @@ describe("background processes extension", () => {
         themedValues.push(value);
         return value;
       },
+      bg: (_color: string, value: string) => value,
     };
     const isSafe = (value: string) =>
       [...value].every((character) => {
@@ -437,13 +438,13 @@ describe("background processes extension", () => {
 
     const renderMessage = renderers.get("background-process-completion") as (
       ...args: unknown[]
-    ) => { text: string };
+    ) => { render(width: number): string[] };
     const expanded = renderMessage(
       { details: payload, content: unsafe },
       { expanded: true },
       theme,
     );
-    expect(isSafe(expanded.text)).toBe(true);
+    expect(expanded.render(200).every(isSafe)).toBe(true);
   });
 
   it("does not expose redundant stop or tail slash commands", () => {
@@ -574,13 +575,15 @@ describe("background processes extension", () => {
     expect(markers).toEqual([...markers].sort((left, right) => left - right));
   });
 
-  it("renders completion and live-event cards with shared hierarchy and configured expand hints", async () => {
+  it("renders boxed completion and live-event cards with shared hierarchy and configured expand hints", async () => {
     const { handlers, tools, renderers } = harness();
     const ctx = context("tui");
     await handlers.get("session_start")?.({} as never, ctx as never);
+    const bg = vi.fn((_color: string, value: string) => value);
     const theme = {
       bold: (value: string) => value,
       fg: (_color: string, value: string) => value,
+      bg,
     };
     const payload = {
       jobs: [
@@ -611,11 +614,17 @@ describe("background processes extension", () => {
     expect(toolCollapsed).toContain("expand");
 
     const completion = renderers.get("background-process-completion") as (...args: unknown[]) => {
-      text: string;
+      render(width: number): string[];
     };
-    expect(
-      completion({ details: payload, content: "" }, { expanded: false }, theme).text,
-    ).toContain("expand");
+    const completionLines = completion(
+      { details: payload, content: "" },
+      { expanded: false },
+      theme,
+    ).render(200);
+    expect(completionLines.join("\n")).toContain("expand");
+    expect(completionLines[0]).toBe(" ".repeat(200));
+    expect(completionLines.at(-1)).toBe(" ".repeat(200));
+    expect(bg).toHaveBeenCalledWith("customMessageBg", expect.any(String));
 
     mocks.runtime.get.mockReturnValueOnce({
       ...mocks.job,
@@ -624,7 +633,7 @@ describe("background processes extension", () => {
       kind: "background_event_stream",
     } as never);
     const event = renderers.get("background-monitor-event") as (...args: unknown[]) => {
-      text: string;
+      render(width: number): string[];
     };
     const message = {
       details: {
@@ -636,10 +645,10 @@ describe("background processes extension", () => {
       },
       content: "line one\nline two",
     };
-    const collapsed = event(message, { expanded: false }, theme).text;
+    const collapsed = event(message, { expanded: false }, theme).render(200).join("\n");
     expect(collapsed).toContain("■ bg_1");
     expect(collapsed).toContain("expand");
-    const expanded = event(message, { expanded: true }, theme).text;
+    const expanded = event(message, { expanded: true }, theme).render(200).join("\n");
     const markers = [
       "/work/events",
       "$ nub run watch",

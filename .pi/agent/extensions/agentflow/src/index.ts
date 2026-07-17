@@ -1,5 +1,10 @@
-import { keyHint, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import {
+  keyHint,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type Theme,
+} from "@earendil-works/pi-coding-agent";
+import { Box, Text, type Component } from "@earendil-works/pi-tui";
 import { RunEngine } from "./runtime/run-engine.ts";
 import { SemanticAgentService } from "./semantic/semantic-agent-service.ts";
 import { registerAgentTool } from "./tools/agent-tool.ts";
@@ -18,6 +23,12 @@ function expandHint(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function boxedMessage(component: Component, theme: Theme): Component {
+  const box = new Box(1, 1, (text) => theme.bg("customMessageBg", text));
+  box.addChild(component);
+  return box;
 }
 
 export default function agentflowExtension(pi: ExtensionAPI): void {
@@ -116,17 +127,23 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   pi.registerMessageRenderer("agentflow-result", (message, options, theme) => {
     const snapshot = (message.details as { snapshot?: RunSnapshot } | undefined)?.snapshot;
     if (snapshot)
-      return renderSemanticSnapshot(
-        snapshot,
-        { expanded: options.expanded, role: snapshot.semanticRole ?? "agent" },
+      return boxedMessage(
+        renderSemanticSnapshot(
+          snapshot,
+          { expanded: options.expanded, role: snapshot.semanticRole ?? "agent" },
+          theme,
+        ),
         theme,
       );
     const configuredHint = expandHint();
     const hint = !options.expanded && configuredHint ? ` · ${configuredHint}` : "";
-    return new Text(
-      `${theme.fg("accent", "Agentflow result")}${theme.fg("dim", hint)}\n${message.content}`,
-      0,
-      0,
+    return boxedMessage(
+      new Text(
+        `${theme.fg("accent", "Agentflow result")}${theme.fg("dim", hint)}\n${message.content}`,
+        0,
+        0,
+      ),
+      theme,
     );
   });
   pi.on("session_start", async (_event, ctx) => {

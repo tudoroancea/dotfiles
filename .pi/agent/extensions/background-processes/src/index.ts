@@ -1,5 +1,10 @@
-import { keyHint, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text, truncateToWidth, type Component } from "@earendil-works/pi-tui";
+import {
+  keyHint,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type Theme,
+} from "@earendil-works/pi-coding-agent";
+import { Box, Text, truncateToWidth, type Component } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import { formatMonitorEvent, type MonitorEvent } from "./runtime/monitor.ts";
 import { ProcessRuntime } from "./runtime/process-runtime.ts";
@@ -123,6 +128,12 @@ function resultNotices(details: SerializedJobs | undefined): string[] {
   }
   if (details.truncated) notices.push("Result payload truncated; inspect the artifact paths above");
   return notices.map(sanitizeRenderedValue);
+}
+
+function boxedMessage(component: Component, theme: Theme): Component {
+  const box = new Box(1, 1, (text) => theme.bg("customMessageBg", text));
+  box.addChild(component);
+  return box;
 }
 
 function renderToolResult(
@@ -475,19 +486,22 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     if (expanded) {
       const job = details?.jobId ? runtime?.get(details.jobId) : undefined;
       if (job) {
-        return new Text(
-          theme.fg(
-            "dim",
-            formatJobDetails({
-              ...compactSnapshot(job),
-              tail: sanitizeRenderedValue(content),
-            }),
+        return boxedMessage(
+          new Text(
+            theme.fg(
+              "dim",
+              formatJobDetails({
+                ...compactSnapshot(job),
+                tail: sanitizeRenderedValue(content),
+              }),
+            ),
+            0,
+            0,
           ),
-          0,
-          0,
+          theme,
         );
       }
-      return new Text(sanitizeRenderedValue(content), 0, 0);
+      return boxedMessage(new Text(sanitizeRenderedValue(content), 0, 0), theme);
     }
     const range = details?.firstSequence
       ? `${details.firstSequence}-${details.lastSequence}`
@@ -495,21 +509,26 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     const suffix = details?.captureOnly ? " · capture-only" : "";
     const drops = details?.droppedLines ? ` · drop ${details.droppedLines}` : "";
     const hint = expandHint();
-    return new Text(
-      theme.fg(
-        details?.captureOnly ? "warning" : "success",
-        `■ ${sanitizeRenderedValue(details?.jobId ?? "event stream")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}${hint ? ` · ${hint}` : ""}`,
+    return boxedMessage(
+      new Text(
+        theme.fg(
+          details?.captureOnly ? "warning" : "success",
+          `■ ${sanitizeRenderedValue(details?.jobId ?? "event stream")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}${hint ? ` · ${hint}` : ""}`,
+        ),
+        0,
+        0,
       ),
-      0,
-      0,
+      theme,
     );
   });
 
   pi.registerMessageRenderer(COMPLETION_TYPE, (message, { expanded }, theme) => {
     const details = message.details as SerializedJobs | undefined;
     const jobs = details?.jobs ?? [];
-    if (expanded) return new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0);
-    if (!jobs.length) return new Text(theme.fg("muted", "Background completion"), 0, 0);
+    if (expanded)
+      return boxedMessage(new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0), theme);
+    if (!jobs.length)
+      return boxedMessage(new Text(theme.fg("muted", "Background completion"), 0, 0), theme);
     const statuses = jobs.map((job) => formatStatus(job.status));
     const aggregate = statuses.some((status) => status.tone === "error")
       ? formatStatus("failed")
@@ -524,10 +543,16 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       .join(" · ");
     const omitted = jobs.length > 3 ? ` · +${jobs.length - 3} more` : "";
     const hint = expandHint();
-    return new Text(
-      theme.fg(aggregate.tone, `${aggregate.icon} ${summary}${omitted}${hint ? ` · ${hint}` : ""}`),
-      0,
-      0,
+    return boxedMessage(
+      new Text(
+        theme.fg(
+          aggregate.tone,
+          `${aggregate.icon} ${summary}${omitted}${hint ? ` · ${hint}` : ""}`,
+        ),
+        0,
+        0,
+      ),
+      theme,
     );
   });
 

@@ -176,7 +176,10 @@ describe("registered extension SDK smoke", () => {
         deliveryState: "consumed",
       });
 
-      const theme = { fg: (_color: string, text: string) => text };
+      const theme = {
+        fg: (_color: string, text: string) => text,
+        bg: (_color: string, text: string) => text,
+      };
       const monitorRendered = renderers.get("background-monitor-event")!(
         monitorMessage.message as never,
         { expanded: false } as never,
@@ -187,10 +190,14 @@ describe("registered extension SDK smoke", () => {
         { expanded: false } as never,
         theme as never,
       ) as { render: (width: number) => string[] };
-      expect(monitorRendered.render(200).join("\n").trimEnd()).toBe(`■ ${monitorJob.jobId} #1 1-2`);
-      expect(completionRendered.render(200).join("\n").trimEnd()).toBe(
+      const monitorLines = monitorRendered.render(200);
+      const completionLines = completionRendered.render(200);
+      expect(monitorLines.map((line) => line.trim()).filter(Boolean)).toEqual([
+        `■ ${monitorJob.jobId} #1 1-2`,
+      ]);
+      expect(completionLines.map((line) => line.trim()).filter(Boolean)).toEqual([
         `✓ ${completionJob.jobId} completed`,
-      );
+      ]);
 
       await handlers.get("session_shutdown")!({ reason: "quit" }, context);
       started = false;
