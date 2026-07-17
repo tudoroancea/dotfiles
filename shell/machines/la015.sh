@@ -30,3 +30,7 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)
 export PATH="$HOME/.nub/bin:$PATH"
 export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
 
+# go
+export PATH="/opt/go/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"
+
