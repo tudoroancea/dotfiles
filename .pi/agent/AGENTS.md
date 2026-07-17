@@ -46,6 +46,12 @@ These guidelines apply to the main agent and all child agents. Follow only the s
 - Follow security best practices and never expose or log secrets or keys.
 - Do not add comments unless requested or the code is sufficiently complex that the context is necessary.
 
+## Committing work 
+- When committing progress, only commit the changes made in this session and ignore other changes and do not change their staged/unstaged status. 
+- Don't hesitate to make temporary draft commits and amend them.
+- Do your best to choose an appropriate short commit message and don't bother with prefixes such as `fix(ci)`. 
+- If the commits is big enough to warrant explanations, put them in the commit description not title.
+
 ## Language-specific guidance
 
 ### Python
