@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.80.10",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
-  "defaultProvider": "pave",
+  "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
