@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RunEngine, type ChildRunner } from "../src/runtime/run-engine.ts";
 import type { AgentNodeSpec, ChildExecutionResult } from "../src/types.ts";
 
-const context = {} as never;
+const context = { cwd: "/tmp/project" } as never;
 const usage = { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, total: 10, cost: 0.25 };
 const childResult = (text: string): ChildExecutionResult => ({ text, usage });
 const engineWith = (
@@ -22,6 +22,38 @@ const engineWith = (
     options.globalConcurrency,
     options.idle,
   );
+
+describe("RunEngine subscriptions", () => {
+  it("publishes fresh start, update, and settlement snapshots globally and per run", () => {
+    const engine = new RunEngine();
+    const global = vi.fn();
+    const unsubscribeGlobal = engine.subscribe(global);
+    const runId = engine.startRun({ kind: "agent" }, context);
+
+    expect(global).toHaveBeenCalledWith([expect.objectContaining({ runId, status: "running" })]);
+    global.mock.calls[0]![0][0].name = "mutated by observer";
+    expect(engine.getRun(runId).name).toBeUndefined();
+
+    const perRun = vi.fn();
+    const unsubscribeRun = engine.subscribeRun(runId, perRun);
+    engine.log(runId, "live output");
+    const received = perRun.mock.calls[0]![0];
+    received.name = "also mutated by observer";
+    expect(engine.getRun(runId).name).toBeUndefined();
+
+    engine.finish(runId, "completed", "done");
+    expect(perRun.mock.calls.map(([value]) => value.status)).toEqual(["running", "completed"]);
+    expect(perRun.mock.calls[0]![0].logs).toEqual(["live output"]);
+    expect(engine.listRuns()).toEqual([engine.getRun(runId)]);
+
+    unsubscribeRun();
+    unsubscribeRun();
+    unsubscribeGlobal();
+    unsubscribeGlobal();
+    engine.startRun({ kind: "agent" }, context);
+    expect(global).toHaveBeenCalledTimes(3);
+  });
+});
 
 describe("RunEngine settlement", () => {
   it("is first-writer-wins and does not duplicate settlement side effects", () => {
@@ -121,7 +153,15 @@ describe("RunEngine settlement", () => {
     expect(engine.getSnapshot(runId)).toMatchObject({
       originTool: "agentflow_review",
       semanticRole: "review",
-      nodes: [{ originTool: "agentflow_review", semanticRole: "review", usage }],
+      nodes: [
+        {
+          originTool: "agentflow_review",
+          semanticRole: "review",
+          prompt: "inspect",
+          cwd: "/tmp/project",
+          usage,
+        },
+      ],
     });
   });
 

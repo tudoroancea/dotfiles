@@ -3,8 +3,10 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
-import type { AgentNodeSpec } from "../types.ts";
-import { formatTokens, formatUsd, runCostDetails, truncateToolText } from "../utils.ts";
+import type { AgentNodeSpec, RunSnapshot } from "../types.ts";
+import { formatPrompt } from "../ui/formatters.ts";
+import { renderSemanticSnapshot } from "../ui/semantic-renderer.ts";
+import { runCostDetails, truncateToolText } from "../utils.ts";
 const Thinking = StringEnum(["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const);
 const SessionMode = StringEnum(["memory", "file", "existing"] as const);
 const Mode = StringEnum(["foreground", "background"] as const);
@@ -103,26 +105,19 @@ export function registerAgentTool(pi: ExtensionAPI, engine: RunEngine): void {
     },
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("agentflow "))}${theme.fg("accent", args.label ?? "agent")}${args.mode === "background" ? theme.fg("dim", " · background") : ""}\n${theme.fg("dim", args.prompt.slice(0, 100))}`,
+        `${theme.fg("toolTitle", theme.bold("agentflow "))}${theme.fg("accent", args.label ?? "agent")}${args.mode === "background" ? theme.fg("dim", " · background") : ""}\n${theme.fg("dim", formatPrompt(args.prompt).slice(0, 100))}`,
         0,
         0,
       );
     },
     renderResult(result, options, theme) {
-      const s = (result.details as any)?.snapshot;
-      if (!s)
+      const snapshot = (result.details as any)?.snapshot as RunSnapshot | undefined;
+      if (!snapshot)
         return new Text(result.content[0]?.type === "text" ? result.content[0].text : "", 0, 0);
-      const n = s.nodes[0];
-      const icon =
-        s.status === "completed"
-          ? theme.fg("success", "✓")
-          : s.status === "failed" || s.status === "aborted"
-            ? theme.fg("error", "✗")
-            : theme.fg("dim", "◆");
-      return new Text(
-        `${icon} ${theme.fg("accent", n?.label ?? s.name ?? "agent")} · ${theme.fg("dim", s.runId)} · ${n?.tools ?? 0} tools · ${formatTokens(n?.usage?.total ?? 0)} tokens · ${formatUsd(n?.usage?.cost ?? 0)}${options.expanded && n?.resultPreview ? `\n${n.resultPreview}` : ""}`,
-        0,
-        0,
+      return renderSemanticSnapshot(
+        snapshot,
+        { role: "agent", expanded: options.expanded, collapsedPrompt: true },
+        theme,
       );
     },
   });

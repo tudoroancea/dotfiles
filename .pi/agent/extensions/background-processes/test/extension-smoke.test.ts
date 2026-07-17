@@ -187,7 +187,7 @@ describe("registered extension SDK smoke", () => {
         { expanded: false } as never,
         theme as never,
       ) as { render: (width: number) => string[] };
-      expect(monitorRendered.render(200).join("\n").trimEnd()).toBe(`◆ ${monitorJob.jobId} #1 1-2`);
+      expect(monitorRendered.render(200).join("\n").trimEnd()).toBe(`■ ${monitorJob.jobId} #1 1-2`);
       expect(completionRendered.render(200).join("\n").trimEnd()).toBe(
         `✓ ${completionJob.jobId} completed`,
       );

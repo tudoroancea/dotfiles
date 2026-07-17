@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -35,6 +35,8 @@ describe("workflow artifacts", () => {
           label: "finder",
           originTool: "agentflow_workflow",
           semanticRole: "finder",
+          prompt: "Inspect authentication boundaries",
+          cwd: "/tmp/project",
           status: "completed",
           tools: 1,
           toolCalls: [],
@@ -67,12 +69,62 @@ describe("workflow artifacts", () => {
     expect(persistedRun.nodes[0]).toMatchObject({
       originTool: "agentflow_workflow",
       semanticRole: "finder",
+      prompt: "Inspect authentication boundaries",
+      cwd: "/tmp/project",
     });
     expect(transcripts[0]).toMatchObject({
       originTool: "agentflow_workflow",
       semanticRole: "finder",
+      prompt: "Inspect authentication boundaries",
+      cwd: "/tmp/project",
       result: '{"findings":[]}',
     });
     expect(persistedResult.result.finder).toMatchObject({ ok: true, output: "done" });
+    await expect(store.recover()).resolves.toMatchObject([
+      { nodes: [{ prompt: "Inspect authentication boundaries", cwd: "/tmp/project" }] },
+    ]);
+  });
+
+  it("recovers interrupted checkpoints with prompt and cwd intact", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agentflow-recovery-"));
+    roots.push(root);
+    const store = new ArtifactStore(root);
+    const artifactDir = await store.create("af_running", "return null", null);
+    await writeFile(
+      join(artifactDir, "run.json"),
+      JSON.stringify({
+        runId: "af_running",
+        kind: "agent",
+        status: "running",
+        createdAt: new Date(0).toISOString(),
+        phases: [],
+        logs: [],
+        nodes: [
+          {
+            id: "agent",
+            label: "agent",
+            prompt: "Initial task prompt",
+            cwd: "/effective/cwd",
+            status: "running",
+            startedAt: new Date(0).toISOString(),
+            tools: 0,
+            toolCalls: [],
+            usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0 },
+          },
+        ],
+      }),
+    );
+
+    const [snapshot] = await store.recover();
+    expect(snapshot).toMatchObject({
+      status: "aborted",
+      nodes: [
+        {
+          status: "aborted",
+          prompt: "Initial task prompt",
+          cwd: "/effective/cwd",
+        },
+      ],
+    });
   });
 });

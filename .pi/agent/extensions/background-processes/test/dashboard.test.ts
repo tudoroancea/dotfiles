@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ProcessRuntime } from "../src/runtime/process-runtime.ts";
 import type { JobRecord } from "../src/runtime/types.ts";
 import {
+  BackgroundDashboard,
   compactTaskSummary,
   formatDuration,
   jobDuration,
+  renderJobDetail,
+  renderJobList,
   showBackgroundTasks,
 } from "../src/ui/dashboard.ts";
 
@@ -38,6 +41,7 @@ function runtime(jobs: JobRecord[]): ProcessRuntime {
         return match;
       }),
     ),
+    tail: vi.fn(() => undefined),
   } as unknown as ProcessRuntime;
 }
 
@@ -69,23 +73,172 @@ describe("background task dashboard formatting", () => {
     expect(compactTaskSummary(current)).toContain("bg_1 running");
   });
 
-  it("keeps the newest multiline output in the recent-tail view", async () => {
-    const current = runtime([job()]);
+  it("prioritizes cwd and command before elapsed and omits IDs in narrow rows", () => {
+    const lines = renderJobList(
+      [job({ cwd: "/work/project", command: "nub run test" })],
+      "bg_1",
+      50,
+      Date.parse("2026-01-01T00:00:00.000Z"),
+    );
+    const text = lines.join("\n");
+    expect(text.indexOf("/work/project")).toBeLessThan(text.indexOf("nub run test"));
+    expect(text.indexOf("nub run test")).toBeLessThan(text.indexOf("0s"));
+    expect(text).not.toContain("bg_1");
+  });
+
+  it("renders detail hierarchy with a bounded newest output tail", () => {
     const tail = `old-line\n${"x".repeat(21_000)}\nnewest-line`;
-    Object.assign(current, { tail: vi.fn(() => ({ content: tail })) });
-    const custom = vi.fn().mockResolvedValueOnce("tail").mockResolvedValueOnce("back");
-    const editor = vi.fn(async (_title: string, _content: string) => undefined);
-    const ctx = {
-      mode: "tui",
-      ui: { custom, editor, notify: vi.fn(), confirm: vi.fn(), setEditorText: vi.fn() },
-    };
+    const text = renderJobDetail(job({ terminalTail: { content: tail } as never }), 100).join("\n");
+    const markers = [
+      "◆ running ·",
+      "Working directory",
+      "Command",
+      "Terminal",
+      "Output tail",
+      "Delivery health",
+      "Artifacts",
+    ].map((value) => text.indexOf(value));
+    expect(markers).toEqual([...markers].sort((left, right) => left - right));
+    expect(text).toContain("newest-line");
+    expect(text).not.toContain("old-line");
+  });
 
-    await showBackgroundTasks(ctx as never, current, "bg_1");
+  it("uses configured navigation and keeps selection stable by job ID", () => {
+    const requestRender = vi.fn();
+    const dashboard = new BackgroundDashboard(
+      [job(), job({ id: "bg_2", command: "second" })],
+      { fg: (_tone: string, value: string) => value, bold: (value: string) => value } as never,
+      {
+        matches: (data: string, action: string) =>
+          (data === "N" && action === "tui.select.down") ||
+          (data === "O" && action === "tui.select.confirm") ||
+          (data === "B" && action === "tui.select.cancel"),
+        getKeys: (action: string) => [action],
+      } as never,
+      {
+        onClose: vi.fn(),
+        onStop: vi.fn(),
+        loadTail: (id) => job({ id, command: id === "bg_2" ? "second" : "sleep 10" }),
+        requestRender,
+      },
+    );
+    dashboard.handleInput("N");
+    expect(dashboard.render(60).join("\n")).toContain("> ◆ running");
+    dashboard.handleInput("O");
+    expect(dashboard.render(60).join("\n")).toContain("$ second");
+    dashboard.replaceJob(job({ id: "bg_2", command: "updated", status: "completed" }));
+    expect(dashboard.render(60).join("\n")).toContain("$ updated");
+    dashboard.handleInput("B");
+    expect(dashboard.render(60).join("\n")).toContain("Background tasks");
+  });
 
-    const content = editor.mock.calls[0]![1];
-    expect(content).toContain("\n");
-    expect(content).toContain("newest-line");
-    expect(content).not.toContain("old-line");
+  it("coalesces live updates, ticks elapsed, scrolls a stable output viewport, and disposes", () => {
+    vi.useFakeTimers();
+    try {
+      let publish!: (jobs: JobRecord[]) => void;
+      const unsubscribe = vi.fn();
+      const requestRender = vi.fn();
+      const current = job({
+        terminalTail: {
+          content: Array.from({ length: 18 }, (_, index) => `line-${index}`).join("\n"),
+        } as never,
+      });
+      const dashboard = new BackgroundDashboard(
+        [current],
+        { fg: (_tone: string, value: string) => value, bold: (value: string) => value } as never,
+        {
+          matches: (data: string, action: string) =>
+            (data === "O" && action === "tui.select.confirm") ||
+            (data === "U" && action === "tui.select.up") ||
+            (data === "D" && action === "tui.select.down") ||
+            (data === "P" && action === "tui.select.pageUp") ||
+            (data === "N" && action === "tui.select.pageDown"),
+          getKeys: (action: string) => [action],
+        } as never,
+        {
+          onClose: vi.fn(),
+          onStop: vi.fn(),
+          loadTail: () => current,
+          requestRender,
+          subscribe: (listener) => {
+            publish = listener;
+            return unsubscribe;
+          },
+        },
+      );
+      dashboard.handleInput("O");
+      const bottom = dashboard.render(80);
+      const bottomOutput = bottom.slice(
+        bottom.findIndex((line) => line.includes("Output tail")) + 1,
+        bottom.findIndex((line) => line.includes("Output tail")) + 11,
+      );
+      expect(bottomOutput).toHaveLength(10);
+      expect(bottomOutput.join("\n")).toContain("line-17");
+
+      dashboard.handleInput("g");
+      const top = dashboard.render(80);
+      const topOutput = top.slice(
+        top.findIndex((line) => line.includes("Output tail")) + 1,
+        top.findIndex((line) => line.includes("Output tail")) + 11,
+      );
+      expect(topOutput).toHaveLength(bottomOutput.length);
+      expect(topOutput.join("\n")).toContain("line-0");
+      dashboard.handleInput("G");
+      dashboard.handleInput("P");
+      expect(dashboard.render(80).join("\n")).toContain("line-8");
+      dashboard.handleInput("N");
+
+      dashboard.invalidate();
+      expect(unsubscribe).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+      requestRender.mockClear();
+      publish([job({ id: "bg_2" })]);
+      publish([current]);
+      vi.advanceTimersByTime(49);
+      expect(requestRender).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(requestRender).toHaveBeenCalledOnce();
+      vi.advanceTimersByTime(1_000);
+      expect(requestRender).toHaveBeenCalledTimes(2);
+
+      dashboard.dispose();
+      dashboard.dispose();
+      expect(unsubscribe).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("fresh-resolves and confirms x stop without nested action views", async () => {
+    const current = runtime([job()]);
+    Object.assign(current, {
+      stopManyResult: vi.fn(async () => ({ jobs: [] })),
+    });
+    let dashboard: { handleInput: (data: string) => void } | undefined;
+    const confirm = vi.fn(async () => false);
+    const custom = vi.fn(async (factory) => {
+      dashboard = factory(
+        { requestRender: vi.fn() },
+        { fg: (_tone: string, value: string) => value, bold: (value: string) => value },
+        {
+          matches: () => false,
+          getKeys: () => [],
+        },
+        vi.fn(),
+      );
+    });
+    const ctx = { mode: "tui", ui: { custom, confirm, notify: vi.fn() } };
+
+    await showBackgroundTasks(ctx as never, current);
+    dashboard!.handleInput("x");
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+
+    expect(current.resolve).toHaveBeenCalledWith(["bg_1"]);
+    expect(current.tail).not.toHaveBeenCalled();
+    expect(ctx.ui.custom).toHaveBeenCalledOnce();
+    expect("editor" in ctx.ui).toBe(false);
   });
 
   it("honors a requested RPC job and sanitizes unknown IDs", async () => {
@@ -97,7 +250,7 @@ describe("background task dashboard formatting", () => {
     const ctx = { mode: "rpc", ui: { notify } };
 
     await showBackgroundTasks(ctx as never, current, "bg_2");
-    expect(notify).toHaveBeenLastCalledWith(expect.stringContaining("second"), "info");
+    expect(notify).toHaveBeenLastCalledWith(expect.stringContaining("◆ running"), "info");
     expect(notify.mock.calls.at(-1)![0]).toContain("/tmp/second.log");
 
     await showBackgroundTasks(ctx as never, current, "bad\u001b]0;title\u0007-id");

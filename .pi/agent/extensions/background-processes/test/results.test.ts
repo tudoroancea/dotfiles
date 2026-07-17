@@ -132,6 +132,9 @@ describe("aggregate job results", () => {
     expect(result.jobs.map((job) => job.metadataPath)).toEqual(
       records.map((job) => job.metadataPath),
     );
+    expect(result.jobs.every((job) => job.command && job.cwd && job.durationMs !== undefined)).toBe(
+      true,
+    );
     expect(Buffer.byteLength(result.text)).toBeLessThanOrEqual(50 * 1024);
     expect(result.text.split("\n")).toHaveLength(1);
   });

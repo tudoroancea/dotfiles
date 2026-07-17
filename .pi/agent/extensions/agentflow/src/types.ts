@@ -74,6 +74,8 @@ export interface NodeSnapshot {
   dependsOn?: string[];
   originTool?: string;
   semanticRole?: SemanticRole;
+  prompt: string;
+  cwd: string;
   status: NodeStatus;
   queuedAt?: string;
   startedAt?: string;

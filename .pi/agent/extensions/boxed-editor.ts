@@ -6,7 +6,7 @@ import {
   type KeybindingsManager,
   type Theme,
 } from "@earendil-works/pi-coding-agent";
-import { visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 import { getSessionCost } from "./agentflow/src/session-cost.ts";
 
 type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
@@ -50,6 +50,28 @@ function stripAnsi(text: string): string {
     .replace(/\x1b\[[0-9;]*[mGKHJ]/g, "")
     .replace(/\x1b_[^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
+}
+
+function sanitizeStatus(text: string): string {
+  return text
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/ +/g, " ")
+    .trim();
+}
+
+export function composeActivityFooter(
+  statuses: ReadonlyMap<string, string>,
+  width: number,
+  ellipsis = "…",
+): string[] {
+  const activity = [...statuses.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, status]) => sanitizeStatus(status))
+    .filter(Boolean)
+    .join("  ");
+  if (!activity || width <= 0) return [];
+
+  return [truncateToWidth(`  ${activity}`, width, ellipsis)];
 }
 
 class BoxedEditor extends CustomEditor {
@@ -169,9 +191,10 @@ export default function boxedEditorExtension(pi: ExtensionAPI): void {
       editor = new BoxedEditor(tui, editorTheme, keybindings, ctx.ui.theme);
       return editor;
     });
-    ctx.ui.setFooter(() => ({
+    ctx.ui.setFooter((_tui, theme, footerData) => ({
       invalidate() {},
-      render: () => [],
+      render: (width) =>
+        composeActivityFooter(footerData.getExtensionStatuses(), width, theme.fg("dim", "…")),
     }));
     updateIndicators(editor, pi, ctx);
   });

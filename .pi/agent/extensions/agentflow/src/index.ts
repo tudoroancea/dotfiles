@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { keyHint, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { RunEngine } from "./runtime/run-engine.ts";
 import { SemanticAgentService } from "./semantic/semantic-agent-service.ts";
@@ -9,7 +9,16 @@ import { registerSteerTool } from "./tools/steer-tool.ts";
 import { registerWorkflowTool } from "./tools/workflow-tool.ts";
 import type { RunSnapshot } from "./types.ts";
 import { registerDashboard } from "./ui/dashboard.ts";
+import { renderSemanticSnapshot } from "./ui/semantic-renderer.ts";
 import { runCostDetails } from "./utils.ts";
+
+function expandHint(): string | undefined {
+  try {
+    return keyHint("app.tools.expand", "to expand");
+  } catch {
+    return undefined;
+  }
+}
 
 export default function agentflowExtension(pi: ExtensionAPI): void {
   pi.registerFlag("agentflow-raw", {
@@ -21,22 +30,19 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   let engine!: RunEngine;
   const refreshUi = () => {
     if (!lastContext) return;
-    const active = (engine.getSnapshot() as any[]).filter(
-      (run) =>
-        (run.status === "running" || run.status === "queued") &&
-        (run.background || run.kind === "workflow"),
+    const active = (engine.getSnapshot() as RunSnapshot[]).filter(
+      (run) => run.status === "running" || run.status === "queued",
     );
-    // Worktrunk's custom footer renders extension statuses after its primary
-    // status line, matching Claude Code's placement without a second widget.
-    const summaries = active.slice(0, 2).map((run) => {
-      const done = run.nodes.filter((node: any) => node.status === "completed").length;
-      return `${run.name ?? run.kind} ${run.runId} ${done}/${run.nodes.length}`;
-    });
-    const overflow =
-      active.length > summaries.length ? ` +${active.length - summaries.length}` : "";
+    const completedTasks = active.reduce(
+      (count, run) => count + run.nodes.filter((node) => node.status === "completed").length,
+      0,
+    );
+    const totalTasks = active.reduce((count, run) => count + run.nodes.length, 0);
     lastContext.ui.setStatus(
       "agentflow",
-      active.length ? `agentflow ◆ ${summaries.join(" · ")}${overflow}` : undefined,
+      active.length
+        ? `◆ agents ${active.length} · ${completedTasks}/${totalTasks} tasks · /agentflow`
+        : undefined,
     );
   };
   engine = new RunEngine(
@@ -59,7 +65,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
           customType: "agentflow-result",
           content: message,
           display: true,
-          details: runCostDetails(result.snapshot),
+          details: { snapshot: result.snapshot, ...runCostDetails(result.snapshot) },
         },
         { triggerTurn: true, deliverAs: "followUp" },
       ),
@@ -107,12 +113,24 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   registerStatusTool(pi, engine);
   registerSteerTool(pi, engine);
   registerDashboard(pi, engine);
-  pi.registerMessageRenderer(
-    "agentflow-result",
-    (message, _options, theme) =>
-      new Text(`${theme.fg("accent", "Agentflow result")}\n${message.content}`, 0, 0),
-  );
+  pi.registerMessageRenderer("agentflow-result", (message, options, theme) => {
+    const snapshot = (message.details as { snapshot?: RunSnapshot } | undefined)?.snapshot;
+    if (snapshot)
+      return renderSemanticSnapshot(
+        snapshot,
+        { expanded: options.expanded, role: snapshot.semanticRole ?? "agent" },
+        theme,
+      );
+    const configuredHint = expandHint();
+    const hint = !options.expanded && configuredHint ? ` · ${configuredHint}` : "";
+    return new Text(
+      `${theme.fg("accent", "Agentflow result")}${theme.fg("dim", hint)}\n${message.content}`,
+      0,
+      0,
+    );
+  });
   pi.on("session_start", async (_event, ctx) => {
+    lastContext?.ui.setStatus("agentflow", undefined);
     lastContext = ctx;
     await engine.recover();
     refreshUi();

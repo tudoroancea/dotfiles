@@ -62,13 +62,14 @@ child.stdout.on("data", (chunk) => {
       const names = new Set(
         (event.data?.commands ?? event.data ?? []).map((command) => command.name),
       );
-      const expected = ["background-tasks", "background-stop", "background-tail"];
+      const removed = ["background-stop", "background-tail"];
       if (
         !event.success ||
         event.command !== "get_commands" ||
-        expected.some((name) => !names.has(name))
+        !names.has("background-tasks") ||
+        removed.some((name) => names.has(name))
       ) {
-        finish(new Error(`Background commands missing from RPC response: ${line}`));
+        finish(new Error(`Unexpected background commands in RPC response: ${line}`));
       } else {
         commandsVerified = true;
         maybeFinish();

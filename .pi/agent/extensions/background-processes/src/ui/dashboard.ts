@@ -1,33 +1,28 @@
-import { DynamicBorder, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { Container, type SelectItem, SelectList, Text } from "@earendil-works/pi-tui";
+import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
+import {
+  matchesKey,
+  truncateToWidth,
+  wrapTextWithAnsi,
+  type KeybindingsManager,
+} from "@earendil-works/pi-tui";
 import type { ProcessRuntime } from "../runtime/process-runtime.ts";
-import { sanitizeMonitorText } from "../runtime/monitor.ts";
-import type { JobRecord, JobStatus } from "../runtime/types.ts";
+import type { JobRecord } from "../runtime/types.ts";
+import {
+  boundText,
+  formatCommand,
+  formatCwd,
+  formatDuration,
+  formatStatus,
+  sanitizeRenderedValue,
+} from "./formatters.ts";
 
-const MAX_INSPECT_CHARS = 20_000;
+const MAX_DETAIL_COMMAND = 4_000;
+const MAX_DETAIL_OUTPUT = 20_000;
+const DETAIL_OUTPUT_HEIGHT = 10;
+const UPDATE_COALESCE_MS = 50;
+const ELAPSED_TICK_MS = 1_000;
 
-function safe(value: string | undefined): string {
-  return sanitizeMonitorText(value ?? "").trim();
-}
-
-function safeMultiline(value: string): string {
-  return value.split("\n").map(sanitizeMonitorText).join("\n").trim();
-}
-
-function bounded(value: string): string {
-  if (value.length <= MAX_INSPECT_CHARS) return value;
-  return `${value.slice(0, MAX_INSPECT_CHARS)}\n\n[View truncated at ${MAX_INSPECT_CHARS} characters. Inspect the output artifact for the complete content.]`;
-}
-
-export function formatDuration(milliseconds: number): string {
-  const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ${minutes % 60}m`;
-  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
-}
+export { formatDuration };
 
 export function jobDuration(job: JobRecord, now = Date.now()): string {
   const started = Date.parse(job.createdAt);
@@ -37,22 +32,17 @@ export function jobDuration(job: JobRecord, now = Date.now()): string {
   );
 }
 
-function statusIcon(status: JobStatus): string {
-  if (status === "completed") return "✓";
-  if (status === "failed" || status === "cleanup_failed") return "✗";
-  if (status === "running") return "◆";
-  return "◇";
+function kindLabel(job: JobRecord): string {
+  return job.kind === "background_event_stream" ? "event stream" : "background command";
 }
 
-function boundedTail(value: string): string {
-  if (value.length <= MAX_INSPECT_CHARS) return value;
-  return `[Earlier output omitted]\n${value.slice(-MAX_INSPECT_CHARS)}`;
-}
-
-function jobName(job: JobRecord): string {
-  const label = safe(job.description || job.command).replace(/\s+/g, " ");
-  if (!label) return job.id;
-  return label.length <= 80 ? label : `${label.slice(0, 79)}…`;
+function hasWarning(job: JobRecord): boolean {
+  return Boolean(
+    job.deliveryError ||
+    job.deliveryPersistenceError ||
+    job.monitor?.deliveryError ||
+    job.monitorDeliveryPersistenceError,
+  );
 }
 
 function sortedJobs(runtime: ProcessRuntime): JobRecord[] {
@@ -70,159 +60,343 @@ export function compactTaskSummary(runtime: ProcessRuntime): string {
   const recent = jobs
     .slice(0, 3)
     .map((job) => {
-      const warning =
-        job.deliveryError ||
-        job.deliveryPersistenceError ||
-        job.monitor?.deliveryError ||
-        job.monitorDeliveryPersistenceError
-          ? " ! delivery-error"
-          : "";
-      return `${statusIcon(job.status)} ${job.id} ${job.status} ${jobDuration(job)}${warning}`;
+      const status = formatStatus(job.status);
+      return `${status.icon} ${job.id} ${status.label} ${jobDuration(job)}${hasWarning(job) ? " ! delivery-error" : ""}`;
     })
     .join(" · ");
   return `${running} running, ${jobs.length} recent · ${recent}`;
 }
 
-async function select(
-  ctx: ExtensionCommandContext,
-  title: string,
-  items: SelectItem[],
-  help = "↑↓ navigate • enter select • esc back",
-): Promise<string | undefined> {
-  return ctx.ui.custom<string | undefined>((tui, theme, _keybindings, done) => {
-    const container = new Container();
-    container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
-    container.addChild(new Text(theme.fg("accent", theme.bold(title)), 1, 0));
-    const list = new SelectList(items, Math.min(Math.max(items.length, 1), 14), {
-      selectedPrefix: (text) => theme.fg("accent", text),
-      selectedText: (text) => theme.fg("accent", text),
-      description: (text) => theme.fg("muted", text),
-      scrollInfo: (text) => theme.fg("dim", text),
-      noMatch: (text) => theme.fg("warning", text),
-    });
-    list.onSelect = (item) => done(item.value);
-    list.onCancel = () => done(undefined);
-    container.addChild(list);
-    container.addChild(new Text(theme.fg("dim", help), 1, 0));
-    container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
-    return {
-      render: (width: number) => container.render(width),
-      invalidate: () => container.invalidate(),
-      handleInput: (data: string) => {
-        list.handleInput(data);
-        tui.requestRender();
-      },
-    };
-  });
-}
-
-function overview(job: JobRecord): string {
-  const monitor = job.monitor;
-  return bounded(
-    [
-      `${statusIcon(job.status)} ${jobName(job)}`,
-      `ID: ${safe(job.id)}`,
-      `Type: ${job.kind === "background_event_stream" ? "event stream" : "background command"}`,
-      `Status: ${job.status}`,
-      `Runtime: ${jobDuration(job)}`,
-      `Started: ${safe(job.createdAt)}`,
-      job.completedAt ? `Finished: ${safe(job.completedAt)}` : "",
-      job.exitCode !== undefined ? `Exit code: ${job.exitCode ?? "signal"}` : "",
-      job.requestedTerminalCause ? `Terminal cause: ${job.requestedTerminalCause}` : "",
-      `Working directory: ${safe(job.cwd)}`,
-      `Output: ${job.outputBytes} bytes`,
-      job.outputPath ? `Output artifact: ${safe(job.outputPath)}` : "",
-      job.metadataPath ? `Metadata artifact: ${safe(job.metadataPath)}` : "",
-      `Completion delivery: ${job.deliveryState}`,
-      monitor
-        ? `Event stream: ${monitor.deliveries} deliveries · ${monitor.deliveredLines} lines delivered · ${monitor.droppedLines} dropped${monitor.captureOnly ? " · capture-only" : ""}`
-        : "",
-      job.error ? `Error: ${safe(job.error)}` : "",
-      job.deliveryError ? `Delivery error: ${safe(job.deliveryError)}` : "",
-      job.deliveryPersistenceError
-        ? `Delivery checkpoint error: ${safe(job.deliveryPersistenceError)}`
-        : "",
-      monitor?.deliveryError ? `Event stream send error: ${safe(monitor.deliveryError)}` : "",
-      job.monitorDeliveryPersistenceError
-        ? `Event stream checkpoint error: ${safe(job.monitorDeliveryPersistenceError)}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  );
-}
-
-async function showJob(
-  ctx: ExtensionCommandContext,
-  runtime: ProcessRuntime,
-  jobId: string,
-): Promise<void> {
-  for (;;) {
-    const job = runtime.resolve([jobId])[0]!;
-    const items: SelectItem[] = [
-      { value: "overview", label: "Overview", description: `${job.status} · ${jobDuration(job)}` },
-      { value: "command", label: "Command", description: safe(job.command).split("\n")[0] },
-      { value: "tail", label: "Recent output", description: `${job.outputBytes} bytes captured` },
-      {
-        value: "artifacts",
-        label: "Artifacts",
-        description: job.outputPath ? safe(job.outputPath) : "Paths unavailable",
-      },
-    ];
-    if (job.outputPath)
-      items.push({
-        value: "copy-output",
-        label: "Copy output path",
-        description: "Place the path in the input editor",
-      });
-    if (job.status === "running") {
-      items.push({ value: "stop", label: "Stop task", description: "Terminate its process tree" });
-      items.push({ value: "refresh", label: "Refresh", description: "Reload status and runtime" });
-    }
-    items.push({ value: "back", label: "Back", description: "Return to recent tasks" });
-
-    const action = await select(
-      ctx,
-      `${statusIcon(job.status)} ${jobName(job)} · ${job.id}`,
-      items,
+/** Plain, width-sensitive list rows in dashboard information priority order. */
+export function renderJobList(
+  jobs: JobRecord[],
+  selectedJobId: string | undefined,
+  width: number,
+  now = Date.now(),
+): string[] {
+  const lines: string[] = [];
+  for (const job of jobs) {
+    const status = formatStatus(job.status);
+    const marker = job.id === selectedJobId ? ">" : " ";
+    lines.push(
+      truncateToWidth(`${marker} ${status.icon} ${status.label} · ${formatCwd(job.cwd)}`, width),
     );
-    if (!action || action === "back") return;
-    if (action === "overview") await ctx.ui.editor(`Background task · ${job.id}`, overview(job));
-    else if (action === "command")
-      await ctx.ui.editor(`Command · ${job.id}`, bounded(safeMultiline(job.command)));
-    else if (action === "tail") {
-      const tail = runtime.tail(job.id);
-      const content = tail?.content ? safeMultiline(tail.content) : "(no output captured yet)";
-      await ctx.ui.editor(`Recent output · ${job.id}`, boundedTail(content));
-    } else if (action === "artifacts") {
-      await ctx.ui.editor(
-        `Artifacts · ${job.id}`,
-        [
-          `Output: ${safe(job.outputPath) || "unavailable"}`,
-          `Metadata: ${safe(job.metadataPath) || "unavailable"}`,
-        ].join("\n"),
-      );
-    } else if (action === "copy-output" && job.outputPath) {
-      ctx.ui.setEditorText(job.outputPath);
-      ctx.ui.notify("Output path copied to the input editor.", "info");
-    } else if (action === "stop") {
-      const confirmed = await ctx.ui.confirm(
-        "Stop background task?",
-        `${job.id} · ${jobName(job)}`,
-      );
-      if (confirmed) {
-        const stopped = (await runtime.stopManyResult([job.id])).jobs[0];
-        ctx.ui.notify(
-          stopped ? `${stopped.jobId} is ${stopped.status}.` : `Stop requested for ${job.id}.`,
-          "info",
-        );
-      }
+
+    const elapsed = jobDuration(job, now);
+    const optional = [
+      width >= 72 ? kindLabel(job) : "",
+      width >= 88 && hasWarning(job) ? "! delivery warning" : "",
+      width >= 112 ? job.id : "",
+    ].filter(Boolean);
+    const suffix = ` · ${elapsed}${optional.length ? ` · ${optional.join(" · ")}` : ""}`;
+    const commandWidth = Math.max(1, width - 4 - suffix.length);
+    const command = formatCommand(job.command, { maximum: commandWidth, singleLine: true });
+    lines.push(truncateToWidth(`  $ ${command}${suffix}`, width));
+  }
+  return lines;
+}
+
+function wrapped(value: string, width: number): string[] {
+  return value.split("\n").flatMap((line) => (line ? wrapTextWithAnsi(line, width) : [""]));
+}
+
+function outputTail(job: JobRecord): string {
+  const content = job.terminalTail?.content;
+  if (!content)
+    return job.outputBytes
+      ? `${job.outputBytes} bytes captured; no tail available`
+      : "(no output captured yet)";
+  const safe = sanitizeRenderedValue(content).trim();
+  if (safe.length <= MAX_DETAIL_OUTPUT) return safe;
+  return `[Earlier output omitted]\n${safe.slice(-MAX_DETAIL_OUTPUT)}`;
+}
+
+interface DetailRenderOptions {
+  outputHeight?: number;
+  outputOffset?: number;
+  wrappedOutput?: string[];
+}
+
+function outputViewport(lines: string[], height: number, offset: number): string[] {
+  const boundedHeight = Math.max(1, height);
+  const maximumOffset = Math.max(0, lines.length - boundedHeight);
+  const boundedOffset = Math.max(0, Math.min(maximumOffset, offset));
+  const end = lines.length - boundedOffset;
+  const visible = lines.slice(Math.max(0, end - boundedHeight), end);
+  return [...visible, ...Array.from({ length: boundedHeight - visible.length }, () => "")];
+}
+
+/** Plain detail view in the required information hierarchy. */
+export function renderJobDetail(
+  job: JobRecord,
+  width: number,
+  now = Date.now(),
+  options: DetailRenderOptions = {},
+): string[] {
+  const status = formatStatus(job.status);
+  const command = formatCommand(job.command, { maximum: MAX_DETAIL_COMMAND });
+  const monitor = job.monitor;
+  const terminal = [
+    job.requestedTerminalCause
+      ? `Terminal cause: ${sanitizeRenderedValue(job.requestedTerminalCause)}`
+      : "",
+    job.exitCode !== undefined ? `Exit: ${job.exitCode ?? "signal"}` : "",
+    job.error ? `Error: ${sanitizeRenderedValue(job.error)}` : "",
+  ].filter(Boolean);
+  const delivery = [
+    `Completion: ${job.deliveryState}`,
+    job.deliveryError ? `Send error: ${sanitizeRenderedValue(job.deliveryError)}` : "",
+    job.deliveryPersistenceError
+      ? `Checkpoint error: ${sanitizeRenderedValue(job.deliveryPersistenceError)}`
+      : "",
+    monitor
+      ? `Event stream: ${monitor.deliveries} deliveries · ${monitor.deliveredLines} lines · ${monitor.droppedLines} dropped${monitor.captureOnly ? " · capture-only" : ""}`
+      : "",
+    monitor?.deliveryError
+      ? `Event send error: ${sanitizeRenderedValue(monitor.deliveryError)}`
+      : "",
+    job.monitorDeliveryPersistenceError
+      ? `Event checkpoint error: ${sanitizeRenderedValue(job.monitorDeliveryPersistenceError)}`
+      : "",
+  ].filter(Boolean);
+  const outputLines = options.wrappedOutput ?? wrapped(outputTail(job), width);
+  const output = outputViewport(
+    outputLines,
+    options.outputHeight ?? DETAIL_OUTPUT_HEIGHT,
+    options.outputOffset ?? 0,
+  );
+  const lines = [
+    `${status.icon} ${status.label} · ${jobDuration(job, now)} · ${kindLabel(job)}`,
+    "",
+    "Working directory",
+    formatCwd(job.cwd),
+    "",
+    "Command",
+    ...wrapped(`$ ${command}`, width),
+    "",
+    "Terminal",
+    ...(terminal.length ? terminal : ["(still running)"]),
+    "",
+    "Output tail",
+    ...output,
+    "",
+    "Delivery health",
+    ...delivery,
+    "",
+    "Artifacts",
+    job.outputPath ? `Output: ${sanitizeRenderedValue(job.outputPath)}` : "Output: unavailable",
+    job.metadataPath
+      ? `Metadata: ${sanitizeRenderedValue(job.metadataPath)}`
+      : "Metadata: unavailable",
+  ];
+  return lines.map((line) => truncateToWidth(line, width));
+}
+
+interface DashboardOptions {
+  initialJobId?: string;
+  onClose: () => void;
+  onStop: (jobId: string) => void;
+  loadTail: (jobId: string) => JobRecord;
+  requestRender: () => void;
+  subscribe?: (listener: (jobs: JobRecord[]) => void) => () => void;
+  now?: () => number;
+}
+
+interface OutputCache {
+  jobId: string;
+  outputBytes: number;
+  content: string | undefined;
+  width: number;
+  lines: string[];
+}
+
+export class BackgroundDashboard {
+  private selectedJobId: string | undefined;
+  private detailJobId: string | undefined;
+  private outputOffset = 0;
+  private maximumOutputOffset = 0;
+  private outputCache?: OutputCache;
+  private pendingJobs?: JobRecord[];
+  private repaintTimer?: NodeJS.Timeout;
+  private elapsedTimer?: NodeJS.Timeout;
+  private unsubscribe?: () => void;
+  private disposed = false;
+
+  constructor(
+    private jobs: JobRecord[],
+    private readonly theme: Theme,
+    private readonly keybindings: KeybindingsManager,
+    private readonly options: DashboardOptions,
+  ) {
+    this.selectedJobId = jobs.find((job) => job.id === options.initialJobId)?.id ?? jobs[0]?.id;
+    this.detailJobId = options.initialJobId ? this.selectedJobId : undefined;
+    if (options.subscribe) {
+      this.unsubscribe = options.subscribe((freshJobs) => this.queueJobs(freshJobs));
+      this.elapsedTimer = setInterval(() => this.options.requestRender(), ELAPSED_TICK_MS);
     }
+  }
+
+  replaceJobs(jobs: JobRecord[]): void {
+    this.jobs = jobs;
+    if (!jobs.some((job) => job.id === this.selectedJobId)) {
+      this.selectedJobId = jobs[0]?.id;
+    }
+    if (!jobs.some((job) => job.id === this.detailJobId)) {
+      this.detailJobId = undefined;
+      this.outputOffset = 0;
+    }
+    this.options.requestRender();
+  }
+
+  replaceJob(job: JobRecord): void {
+    const index = this.jobs.findIndex((candidate) => candidate.id === job.id);
+    if (index >= 0) this.jobs[index] = job;
+    else this.jobs.push(job);
+    this.options.requestRender();
+  }
+
+  private queueJobs(jobs: JobRecord[]): void {
+    if (this.disposed) return;
+    this.pendingJobs = jobs;
+    if (this.repaintTimer) return;
+    this.repaintTimer = setTimeout(() => {
+      this.repaintTimer = undefined;
+      const pending = this.pendingJobs;
+      this.pendingJobs = undefined;
+      if (pending && !this.disposed) this.replaceJobs(pending);
+    }, UPDATE_COALESCE_MS);
+  }
+
+  private move(delta: number): void {
+    if (!this.jobs.length) return;
+    if (this.detailJobId) {
+      this.outputOffset = Math.max(
+        0,
+        Math.min(this.maximumOutputOffset, this.outputOffset + delta),
+      );
+      return;
+    }
+    const current = this.jobs.findIndex((job) => job.id === this.selectedJobId);
+    const index = Math.max(0, Math.min(this.jobs.length - 1, current + delta));
+    this.selectedJobId = this.jobs[index]?.id;
+  }
+
+  handleInput(data: string): void {
+    if (this.keybindings.matches(data, "tui.select.cancel")) {
+      if (this.detailJobId) {
+        this.detailJobId = undefined;
+        this.outputOffset = 0;
+      } else this.options.onClose();
+    } else if (this.keybindings.matches(data, "tui.select.confirm")) {
+      if (!this.detailJobId && this.selectedJobId) {
+        const job = this.options.loadTail(this.selectedJobId);
+        this.replaceJob(job);
+        this.detailJobId = this.selectedJobId;
+        this.outputOffset = 0;
+      }
+    } else if (this.keybindings.matches(data, "tui.select.up") || matchesKey(data, "k")) {
+      this.move(this.detailJobId ? 1 : -1);
+    } else if (this.keybindings.matches(data, "tui.select.down") || matchesKey(data, "j")) {
+      this.move(this.detailJobId ? -1 : 1);
+    } else if (this.detailJobId && this.keybindings.matches(data, "tui.select.pageUp")) {
+      this.move(DETAIL_OUTPUT_HEIGHT - 1);
+    } else if (this.detailJobId && this.keybindings.matches(data, "tui.select.pageDown")) {
+      this.move(-(DETAIL_OUTPUT_HEIGHT - 1));
+    } else if (this.detailJobId && matchesKey(data, "g")) {
+      this.outputOffset = this.maximumOutputOffset;
+    } else if (this.detailJobId && data === "G") {
+      this.outputOffset = 0;
+    } else if (matchesKey(data, "x")) {
+      const jobId = this.detailJobId ?? this.selectedJobId;
+      if (jobId) this.options.onStop(jobId);
+    }
+    this.options.requestRender();
+  }
+
+  render(width: number): string[] {
+    const contentWidth = Math.max(1, width - 2);
+    const detail = this.jobs.find((job) => job.id === this.detailJobId);
+    const title = detail ? "Background task" : `Background tasks · ${this.jobs.length}`;
+    let content: string[];
+    if (detail) {
+      const output = outputTail(detail);
+      if (
+        !this.outputCache ||
+        this.outputCache.jobId !== detail.id ||
+        this.outputCache.outputBytes !== detail.outputBytes ||
+        this.outputCache.content !== detail.terminalTail?.content ||
+        this.outputCache.width !== contentWidth
+      ) {
+        this.outputCache = {
+          jobId: detail.id,
+          outputBytes: detail.outputBytes,
+          content: detail.terminalTail?.content,
+          width: contentWidth,
+          lines: wrapped(output, contentWidth),
+        };
+      }
+      this.maximumOutputOffset = Math.max(0, this.outputCache.lines.length - DETAIL_OUTPUT_HEIGHT);
+      this.outputOffset = Math.min(this.outputOffset, this.maximumOutputOffset);
+      content = renderJobDetail(detail, contentWidth, this.options.now?.() ?? Date.now(), {
+        outputHeight: DETAIL_OUTPUT_HEIGHT,
+        outputOffset: this.outputOffset,
+        wrappedOutput: this.outputCache.lines,
+      });
+    } else {
+      content = renderJobList(
+        this.jobs,
+        this.selectedJobId,
+        contentWidth,
+        this.options.now?.() ?? Date.now(),
+      );
+    }
+    const key = (
+      binding:
+        | "tui.select.up"
+        | "tui.select.down"
+        | "tui.select.pageUp"
+        | "tui.select.pageDown"
+        | "tui.select.confirm"
+        | "tui.select.cancel",
+    ) => this.keybindings.getKeys(binding).join("/") || "unbound";
+    const help = detail
+      ? `${key("tui.select.up")}/${key("tui.select.down")} scroll · ${key("tui.select.pageUp")}/${key("tui.select.pageDown")} page · g/G ends · ${key("tui.select.cancel")} back · x stop`
+      : `${key("tui.select.up")}/${key("tui.select.down")} or k/j navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x stop`;
+    return [
+      truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
+      ...content.map((line) => truncateToWidth(` ${line}`, width)),
+      truncateToWidth(this.theme.fg("dim", ` ${help}`), width),
+    ];
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.unsubscribe?.();
+    this.unsubscribe = undefined;
+    if (this.repaintTimer) clearTimeout(this.repaintTimer);
+    if (this.elapsedTimer) clearInterval(this.elapsedTimer);
+    this.repaintTimer = undefined;
+    this.elapsedTimer = undefined;
+    this.pendingJobs = undefined;
+  }
+
+  invalidate(): void {
+    this.outputCache = undefined;
   }
 }
 
 function errorMessage(error: unknown): string {
-  return bounded(safe(error instanceof Error ? error.message : String(error)));
+  return boundText(
+    sanitizeRenderedValue(error instanceof Error ? error.message : String(error)).trim(),
+    MAX_DETAIL_OUTPUT,
+  );
+}
+
+function withTail(runtime: ProcessRuntime, jobId: string): JobRecord {
+  const job = runtime.resolve([jobId])[0]!;
+  const tail = runtime.tail(jobId);
+  return tail ? { ...job, terminalTail: tail } : job;
 }
 
 export async function showBackgroundTasks(
@@ -232,44 +406,71 @@ export async function showBackgroundTasks(
 ): Promise<void> {
   if (ctx.mode !== "tui") {
     try {
-      ctx.ui.notify(
-        initialJobId ? overview(runtime.resolve([initialJobId])[0]!) : compactTaskSummary(runtime),
-        "info",
-      );
+      const message = initialJobId
+        ? renderJobDetail(withTail(runtime, initialJobId), 240).join("\n")
+        : compactTaskSummary(runtime);
+      ctx.ui.notify(message, "info");
     } catch (error) {
       ctx.ui.notify(errorMessage(error), "error");
     }
     return;
   }
-  if (initialJobId) {
-    try {
-      await showJob(ctx, runtime, initialJobId);
-    } catch (error) {
-      ctx.ui.notify(errorMessage(error), "error");
-    }
-    return;
-  }
-  for (;;) {
-    const jobs = sortedJobs(runtime);
+
+  let jobs: JobRecord[];
+  try {
+    jobs = sortedJobs(runtime);
     if (!jobs.length) {
       ctx.ui.notify("No background tasks yet.", "info");
       return;
     }
-    const jobId = await select(
-      ctx,
-      "Background tasks",
-      jobs.map((job) => ({
-        value: job.id,
-        label: `${statusIcon(job.status)} ${jobName(job)}`,
-        description: `${job.id} · ${job.kind === "background_event_stream" ? "event stream" : "command"} · ${job.status} · ${jobDuration(job)}`,
-      })),
-      "↑↓ navigate • enter inspect • esc close",
-    );
-    if (!jobId) return;
-    try {
-      await showJob(ctx, runtime, jobId);
-    } catch (error) {
-      ctx.ui.notify(errorMessage(error), "error");
+    if (initialJobId) {
+      if (!jobs.some((job) => job.id === initialJobId)) runtime.resolve([initialJobId]);
+      jobs = jobs.map((job) => (job.id === initialJobId ? withTail(runtime, job.id) : job));
     }
+  } catch (error) {
+    ctx.ui.notify(errorMessage(error), "error");
+    return;
+  }
+
+  let dashboard: BackgroundDashboard | undefined;
+  try {
+    await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
+      let activeDashboard: BackgroundDashboard;
+      const stop = async (jobId: string): Promise<void> => {
+        try {
+          const fresh = runtime.resolve([jobId])[0]!;
+          activeDashboard.replaceJob(fresh);
+          if (fresh.status !== "running") {
+            ctx.ui.notify(`${jobId} is no longer running.`, "info");
+            return;
+          }
+          const confirmed = await ctx.ui.confirm(
+            "Stop background task?",
+            `${jobId} · ${formatCommand(fresh.command, { maximum: 120, singleLine: true })}`,
+          );
+          if (!confirmed) return;
+          await runtime.stopManyResult([jobId]);
+          activeDashboard.replaceJob(withTail(runtime, jobId));
+          ctx.ui.notify(`Stop requested for ${jobId}.`, "info");
+        } catch (error) {
+          ctx.ui.notify(errorMessage(error), "error");
+        }
+      };
+      activeDashboard = new BackgroundDashboard(jobs, theme, keybindings, {
+        initialJobId,
+        onClose: () => done(undefined),
+        onStop: (jobId) => void stop(jobId),
+        loadTail: (jobId) => withTail(runtime, jobId),
+        requestRender: () => tui.requestRender(),
+        subscribe:
+          typeof runtime.subscribe === "function"
+            ? (listener) => runtime.subscribe(() => listener(sortedJobs(runtime)))
+            : undefined,
+      });
+      dashboard = activeDashboard;
+      return activeDashboard;
+    });
+  } finally {
+    dashboard?.dispose();
   }
 }

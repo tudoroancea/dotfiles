@@ -156,6 +156,8 @@ return { found }`,
         expect(transcripts[0]).toMatchObject({
           originTool: "agentflow_workflow",
           semanticRole: "finder",
+          prompt: "inspect",
+          cwd: "/tmp/project",
           status: "completed",
         });
       });

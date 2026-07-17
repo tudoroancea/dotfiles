@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { RunResult, RunSnapshot } from "../types.ts";
+import { boundEffectiveCwd, boundInitialPrompt } from "./snapshot-fields.ts";
 
 const MAX_JSON = 512_000;
 function safe(value: unknown, max = MAX_JSON): string {
@@ -40,22 +41,40 @@ export class ArtifactStore {
   constructor(root = join(getAgentDir(), "agentflow")) {
     this.root = root;
   }
-  async recover(): Promise<void> {
+  async recover(): Promise<RunSnapshot[]> {
     await mkdir(this.root, { recursive: true });
+    const recovered: RunSnapshot[] = [];
     for (const name of await readdir(this.root).catch(() => [] as string[])) {
       const path = join(this.root, name, "run.json");
       try {
-        const data = JSON.parse(await readFile(path, "utf8"));
+        const data = JSON.parse(await readFile(path, "utf8")) as RunSnapshot;
+        if (!data.runId || !Array.isArray(data.nodes)) continue;
+        for (const node of data.nodes) {
+          node.prompt = boundInitialPrompt(
+            typeof node.prompt === "string" ? node.prompt : "(prompt unavailable)",
+          );
+          node.cwd = boundEffectiveCwd(
+            typeof node.cwd === "string" ? node.cwd : "(cwd unavailable)",
+          );
+        }
         if (data.status === "running" || data.status === "queued") {
           data.status = "aborted";
           data.error = "Pi exited before the run settled";
           data.completedAt = new Date().toISOString();
+          for (const node of data.nodes)
+            if (node.status === "running" || node.status === "queued") {
+              node.status = "aborted";
+              node.completedAt = data.completedAt;
+              node.error ??= data.error;
+            }
           await atomic(path, safe(data));
         }
+        recovered.push(data);
       } catch {
         /* ignore incomplete artifacts */
       }
     }
+    return recovered;
   }
   async create(runId: string, script: string, args: unknown): Promise<string> {
     const dir = join(this.root, runId);
@@ -87,6 +106,8 @@ export class ArtifactStore {
       label: n.label,
       originTool: n.originTool,
       semanticRole: n.semanticRole,
+      prompt: n.prompt,
+      cwd: n.cwd,
       status: n.status,
       toolCalls: n.toolCalls,
       result: n.resultPreview,

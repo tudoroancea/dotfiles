@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => {
     outputPath: "/artifacts/bg_1/output.log",
     metadataPath: "/artifacts/bg_1/job.json",
     deliveryState: "pending" as const,
+    deliveryError: undefined as string | undefined,
     verification: {
       processSettled: false,
       outputLogClosed: false,
@@ -59,6 +60,10 @@ const mocks = vi.hoisted(() => {
   return { runtime, constructorCalls, ProcessRuntime, job };
 });
 vi.mock("../src/runtime/process-runtime.ts", () => ({ ProcessRuntime: mocks.ProcessRuntime }));
+vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => ({
+  ...(await importOriginal()),
+  keyHint: () => "alt+e to expand",
+}));
 
 import backgroundProcessesExtension from "../src/index.ts";
 
@@ -122,7 +127,7 @@ function context(mode = "rpc") {
     isIdle: () => true,
     sessionManager: { getSessionId: () => "session-id" },
     ui: {
-      setWidget: vi.fn(),
+      setStatus: vi.fn(),
       notify: vi.fn(),
       custom: vi.fn(async () => undefined),
       editor: vi.fn(async () => undefined),
@@ -136,7 +141,7 @@ function context(mode = "rpc") {
 describe("background processes extension", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("registers five strict tools, three commands, and both renderers", () => {
+  it("registers five strict model tools, only the dashboard command, and both renderers", () => {
     const { pi, tools, commands } = harness();
     expect([...tools.keys()]).toEqual([
       "background_run",
@@ -165,11 +170,9 @@ describe("background processes extension", () => {
     expect(streamGuidance).toContain("background_event_stream launches the command itself");
     expect(streamGuidance).toContain("not a read-only observer");
     expect(streamGuidance).toContain("not mutability or duration");
-    expect([...commands.keys()]).toEqual([
-      "background-tasks",
-      "background-stop",
-      "background-tail",
-    ]);
+    expect([...commands.keys()]).toEqual(["background-tasks"]);
+    expect(tools.has("background_stop")).toBe(true);
+    expect(tools.has("background_status")).toBe(true);
     for (const tool of tools.values()) expect(tool.parameters.additionalProperties).toBe(false);
     for (const name of ["background_wait", "background_stop"]) {
       const schema = tools.get(name)!.parameters as {
@@ -203,7 +206,7 @@ describe("background processes extension", () => {
     expect(mocks.runtime.launch).not.toHaveBeenCalled();
   });
 
-  it("clears a provisional widget when launch setup fails", async () => {
+  it("clears a provisional status when launch setup fails", async () => {
     const { handlers, tools } = harness();
     const ctx = context("tui");
     await handlers.get("session_start")?.({} as never, ctx as never);
@@ -214,7 +217,7 @@ describe("background processes extension", () => {
       tools.get("background_run")!.execute("call", { command: "true" }, undefined, undefined, ctx),
     ).rejects.toThrow("checkpoint failed");
 
-    expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", undefined);
+    expect(ctx.ui.setStatus).toHaveBeenLastCalledWith("background-processes", undefined);
   });
 
   it("validates event stream mode and timeout before allocation and applies timeout semantics", async () => {
@@ -338,36 +341,38 @@ describe("background processes extension", () => {
     expect(result.content[0]!.text).toContain("/artifacts/bg_1/output.log");
   });
 
-  it("renders a sanitized, bounded active-job widget above the editor", async () => {
+  it("publishes aggregate active and unresolved-warning status, then clears it", async () => {
     const { handlers } = harness();
     const ctx = context("tui");
     mocks.runtime.list.mockReturnValue([
+      mocks.job,
       {
         ...mocks.job,
-        description: `\u001b[31munsafe\u0007 ${"x".repeat(100)}`,
+        id: "bg_2",
+        deliveryError: "send failed",
       },
     ]);
     await handlers.get("session_start")?.({} as never, ctx as never);
     const options = mocks.constructorCalls.at(-1)?.options as { onChange: () => void };
     options.onChange();
-    expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", expect.any(Function));
-    const factory = ctx.ui.setWidget.mock.calls.at(-1)?.[1] as (
-      tui: unknown,
-      theme: unknown,
-    ) => { render: (width: number) => string[]; dispose: () => void };
-    const component = factory(
-      { requestRender: vi.fn() },
-      {
-        bold: (value: string) => value,
-        fg: (_color: string, value: string) => value,
-      },
+
+    expect(ctx.ui.setStatus).toHaveBeenLastCalledWith(
+      "background-processes",
+      "■ processes 2 · warnings 1 · /background-tasks",
     );
-    const lines = component.render(70);
-    expect(lines[0]).toContain("BACKGROUND TASKS");
-    expect(lines.join("\n")).toContain("bg_1");
-    expect(lines.join("\n")).not.toContain("[31m");
-    expect(lines.every((line) => line.length <= 70)).toBe(true);
-    component.dispose();
+    expect(ctx.ui.setStatus.mock.calls.flat().join(" ")).not.toContain("sleep 1");
+    expect("setWidget" in ctx.ui).toBe(false);
+
+    mocks.runtime.list.mockReturnValue([mocks.job]);
+    options.onChange();
+    expect(ctx.ui.setStatus).toHaveBeenLastCalledWith(
+      "background-processes",
+      "■ processes 1 · /background-tasks",
+    );
+
+    mocks.runtime.list.mockReturnValue([]);
+    options.onChange();
+    expect(ctx.ui.setStatus).toHaveBeenLastCalledWith("background-processes", undefined);
   });
 
   it("opens an interactive task dashboard in TUI mode instead of notifying raw JSON", async () => {
@@ -436,35 +441,12 @@ describe("background processes extension", () => {
     expect(isSafe(expanded.text)).toBe(true);
   });
 
-  it("sanitizes ESC, C0, and C1 CSI/OSC/ST controls in all command notifications", async () => {
-    const { handlers, commands } = harness();
-    const ctx = context();
-    await handlers.get("session_start")?.({} as never, ctx as never);
-    const unsafe = `visible\u001b[31mCSI\u001b]title\u001b\\ESCST\u009b32mC1CSI\u009dtitle\u009cC1ST\u0000BEL\u0007`;
-    const unsafeJob = { ...mocks.job, command: unsafe, description: unsafe };
-    mocks.runtime.list.mockReturnValue([unsafeJob]);
-    mocks.runtime.stopManyResult.mockResolvedValue({
-      jobs: [],
-      text: unsafe,
-      truncated: false,
-      omittedCount: 0,
-    });
-    mocks.runtime.resolve.mockReturnValue([unsafeJob]);
-    mocks.runtime.tail.mockReturnValue({ content: unsafe, bytes: unsafe.length, truncated: false });
-
-    await commands.get("background-tasks")!.handler("", ctx);
-    await commands.get("background-stop")!.handler("bg_1", ctx);
-    await commands.get("background-tail")!.handler("bg_1", ctx);
-
-    expect(ctx.ui.notify).toHaveBeenCalledTimes(3);
-    for (const [message] of ctx.ui.notify.mock.calls) {
-      expect(
-        [...message].every((character) => {
-          const code = character.charCodeAt(0);
-          return code === 0x0a || (code >= 0x20 && !(code >= 0x7f && code <= 0x9f));
-        }),
-      ).toBe(true);
-    }
+  it("does not expose redundant stop or tail slash commands", () => {
+    const { commands, tools } = harness();
+    expect(commands.has("background-stop")).toBe(false);
+    expect(commands.has("background-tail")).toBe(false);
+    expect(tools.has("background_stop")).toBe(true);
+    expect(tools.has("background_status")).toBe(true);
   });
 
   it("renders completed, warning, and failed statuses with semantic icons and colors", () => {
@@ -483,7 +465,7 @@ describe("background processes extension", () => {
     };
     for (const [status, color, icon] of [
       ["completed", "success", "✓"],
-      ["cancelled", "warning", "◆"],
+      ["cancelled", "muted", "◇"],
       ["failed", "error", "✗"],
     ] as const) {
       fg.mockClear();
@@ -494,6 +476,134 @@ describe("background processes extension", () => {
       );
       expect(fg).toHaveBeenCalledWith(color, expect.stringContaining(icon));
     }
+  });
+
+  it("renders pending launch cwd and command, then persisted details in priority order", () => {
+    const { tools } = harness();
+    const theme = {
+      bold: (value: string) => value,
+      fg: (_color: string, value: string) => value,
+    };
+    const call = (
+      tools.get("background_run")!.renderCall as (...args: unknown[]) => { text: string }
+    )({ command: "nub run test", description: "tests" }, theme, {
+      expanded: true,
+      cwd: "/work/project",
+    });
+    expect(call.text).toContain("/work/project\n$ nub run test");
+
+    const result = (
+      tools.get("background_status")!.renderResult as (...args: unknown[]) => { text: string }
+    )(
+      {
+        details: {
+          jobs: [
+            {
+              jobId: "bg_1",
+              kind: "background_run",
+              status: "completed",
+              command: "nub run test",
+              cwd: "/work/project",
+              durationMs: 2_000,
+              outputBytes: 4,
+              tail: "pass",
+              outputPath: "/artifacts/output.log",
+              metadataPath: "/artifacts/job.json",
+              deliveryState: "sent",
+            },
+          ],
+          text: "",
+          truncated: false,
+          omittedCount: 0,
+        },
+      },
+      { expanded: true },
+      theme,
+    );
+    const markers = [
+      "/work/project",
+      "$ nub run test",
+      "✓ completed · 2s",
+      "Output",
+      "Delivery",
+      "Artifacts",
+    ].map((value) => result.text.indexOf(value));
+    expect(markers).toEqual([...markers].sort((left, right) => left - right));
+  });
+
+  it("renders completion and live-event cards with shared hierarchy and configured expand hints", async () => {
+    const { handlers, tools, renderers } = harness();
+    const ctx = context("tui");
+    await handlers.get("session_start")?.({} as never, ctx as never);
+    const theme = {
+      bold: (value: string) => value,
+      fg: (_color: string, value: string) => value,
+    };
+    const payload = {
+      jobs: [
+        {
+          jobId: "bg_1",
+          kind: "background_run",
+          status: "completed",
+          command: "nub run test",
+          cwd: "/work/project",
+          durationMs: 2_000,
+          outputBytes: 4,
+          outputPath: "/artifacts/output.log",
+          metadataPath: "/artifacts/job.json",
+          deliveryState: "sent",
+        },
+      ],
+      text: "",
+      truncated: false,
+      omittedCount: 0,
+    };
+    const toolCollapsed = (
+      tools.get("background_status")!.renderResult as (...args: unknown[]) => { text: string }
+    )({ details: payload }, { expanded: false }, theme).text;
+    expect(toolCollapsed).toContain("expand");
+
+    const completion = renderers.get("background-process-completion") as (...args: unknown[]) => {
+      text: string;
+    };
+    expect(
+      completion({ details: payload, content: "" }, { expanded: false }, theme).text,
+    ).toContain("expand");
+
+    mocks.runtime.get.mockReturnValueOnce({
+      ...mocks.job,
+      command: "nub run watch",
+      cwd: "/work/events",
+      kind: "background_event_stream",
+    } as never);
+    const event = renderers.get("background-monitor-event") as (...args: unknown[]) => {
+      text: string;
+    };
+    const message = {
+      details: {
+        jobId: "bg_1",
+        delivery: 3,
+        firstSequence: 4,
+        lastSequence: 5,
+        lines: ["line one", "line two"],
+      },
+      content: "line one\nline two",
+    };
+    const collapsed = event(message, { expanded: false }, theme).text;
+    expect(collapsed).toContain("■ bg_1");
+    expect(collapsed).toContain("expand");
+    const expanded = event(message, { expanded: true }, theme).text;
+    const markers = [
+      "/work/events",
+      "$ nub run watch",
+      "running",
+      "Output",
+      "line one",
+      "Delivery",
+      "Artifacts",
+    ].map((value) => expanded.indexOf(value));
+    expect(markers.every((index) => index >= 0)).toBe(true);
+    expect(markers).toEqual([...markers].sort((left, right) => left - right));
   });
 
   it("status inspection is non-consuming", async () => {
@@ -559,7 +669,7 @@ describe("background processes extension", () => {
       const ctx = context("tui");
       await handlers.get("session_start")?.({} as never, ctx as never);
       await handlers.get("session_shutdown")?.({ reason } as never, ctx as never);
-      expect(ctx.ui.setWidget).toHaveBeenLastCalledWith("background-processes", undefined);
+      expect(ctx.ui.setStatus).toHaveBeenLastCalledWith("background-processes", undefined);
       expect(mocks.runtime.shutdown).toHaveBeenCalledOnce();
 
       await handlers.get("agent_settled")?.({} as never, ctx as never);

@@ -15,6 +15,27 @@ export class RunStore {
     this.runs.set(run.snapshot.runId, run);
     this.prune();
   }
+  addRecovered(snapshot: RunSnapshot): void {
+    if (this.runs.has(snapshot.runId)) return;
+    const controller = new AbortController();
+    controller.abort();
+    const result: RunResult = {
+      runId: snapshot.runId,
+      status: snapshot.status,
+      error: snapshot.error,
+      snapshot: clone(snapshot),
+    };
+    this.runs.set(snapshot.runId, {
+      snapshot: clone(snapshot),
+      sessions: new Map(),
+      controller,
+      completion: Promise.resolve(result),
+      resolveCompletion: () => {},
+      consumed: true,
+      result,
+    });
+    this.prune();
+  }
   getLive(runId: string): LiveRun | undefined {
     return this.runs.get(runId);
   }

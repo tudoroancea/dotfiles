@@ -112,6 +112,49 @@ function abortableOperation(onAbort?: () => void): BashOperations {
 }
 
 describe("ProcessRuntime", () => {
+  it("publishes fresh global and per-job snapshots with idempotent unsubscribe", async () => {
+    let push!: (chunk: Buffer) => void;
+    const { runtime } = runtimeWith({
+      exec: vi.fn(async (_command, _cwd, { onData, signal }) => {
+        push = onData;
+        await new Promise<void>((_resolve, reject) => {
+          signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        });
+        return { exitCode: null };
+      }),
+    });
+    const global = vi.fn();
+    const perJob = vi.fn();
+    const unsubscribeGlobal = runtime.subscribe(global);
+    const job = await runtime.launch({ kind: "background_run", command: "live", cwd: "/tmp" });
+    const unsubscribeJob = runtime.subscribeJob(job.id, perJob);
+
+    push(Buffer.from("fresh output"));
+    expect(global).toHaveBeenCalled();
+    expect(global.mock.calls.at(-1)![0][0]).toMatchObject({
+      id: job.id,
+      outputBytes: 12,
+      terminalTail: { content: "fresh output" },
+    });
+    expect(perJob).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: job.id, outputBytes: 12 }),
+    );
+    global.mock.calls.at(-1)![0][0].outputBytes = 999;
+    expect(runtime.get(job.id)?.outputBytes).toBe(12);
+
+    unsubscribeGlobal();
+    unsubscribeGlobal();
+    unsubscribeJob();
+    unsubscribeJob();
+    const globalCalls = global.mock.calls.length;
+    const jobCalls = perJob.mock.calls.length;
+    push(Buffer.from(" ignored by subscribers"));
+    expect(global).toHaveBeenCalledTimes(globalCalls);
+    expect(perJob).toHaveBeenCalledTimes(jobCalls);
+    await runtime.stop(job.id);
+    await runtime.shutdown();
+  });
+
   it("streams complete combined bytes and maps zero/nonzero exits", async () => {
     let invocation = 0;
     const operations: BashOperations = {

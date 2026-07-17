@@ -12,6 +12,7 @@ import type {
 import { RunStore } from "../state/run-store.ts";
 import { ArtifactStore } from "./artifact-store.ts";
 import { SubagentRunner } from "./subagent-runner.ts";
+import { boundEffectiveCwd, boundInitialPrompt } from "./snapshot-fields.ts";
 
 const emptyUsage = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0 });
 const preview = (v: unknown) => {
@@ -25,6 +26,7 @@ const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const isAbort = (e: unknown) => e instanceof DOMException && e.name === "AbortError";
 const TASK_SETTLE_TIMEOUT_MS = 3_000;
 type Update = (snapshot: RunSnapshot) => void;
+type ListUpdate = (snapshots: RunSnapshot[]) => void;
 interface Runtime {
   scheduled: number;
   active: number;
@@ -46,6 +48,8 @@ export class RunEngine {
   private readonly store = new RunStore();
   private readonly runner: ChildRunner;
   private readonly runtime = new Map<string, Runtime>();
+  private readonly subscribers = new Set<ListUpdate>();
+  private readonly runSubscribers = new Map<string, Set<Update>>();
   private globalActive = 0;
   private readonly globalQueue: Array<{
     start: () => void;
@@ -69,7 +73,7 @@ export class RunEngine {
   }
 
   async recover(): Promise<void> {
-    await this.artifacts.recover();
+    for (const snapshot of await this.artifacts.recover()) this.store.addRecovered(snapshot);
   }
 
   startRun(
@@ -119,7 +123,8 @@ export class RunEngine {
       resolveCompletion,
       consumed: !spec.background,
       notify: (s) => {
-        onUpdate?.(s);
+        onUpdate?.(structuredClone(s));
+        this.publish(s);
         this.emit("agentflow:run.updated", s);
         this.artifacts.checkpoint(s);
       },
@@ -136,6 +141,7 @@ export class RunEngine {
       state.deadline = setTimeout(() => {
         void this.cancel([runId], false);
       }, limits.timeoutMs);
+    this.publish(snapshot);
     this.emit("agentflow:run.started", structuredClone(snapshot));
     return runId;
   }
@@ -252,6 +258,8 @@ export class RunEngine {
         dependsOn: node.dependsOn,
         originTool: node.originTool ?? live.snapshot.originTool,
         semanticRole: node.semanticRole ?? live.snapshot.semanticRole,
+        prompt: boundInitialPrompt(node.prompt),
+        cwd: boundEffectiveCwd(node.config?.cwd ?? live.context!.cwd),
         status: "queued",
         queuedAt: new Date().toISOString(),
         tools: 0,
@@ -480,11 +488,62 @@ export class RunEngine {
     if (!r) throw new Error(`Run is no longer active: ${runId}`);
     return r.limits;
   }
+  list(): RunSnapshot[] {
+    return this.store.list();
+  }
+  get(runId: string): RunSnapshot | undefined {
+    return this.store.get(runId);
+  }
+  listRuns(): RunSnapshot[] {
+    return this.list();
+  }
+  getRun(runId: string): RunSnapshot {
+    const snapshot = this.get(runId);
+    if (!snapshot) throw new Error(`Unknown run: ${runId}`);
+    return snapshot;
+  }
+  subscribe(listener: ListUpdate): () => void {
+    this.subscribers.add(listener);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      this.subscribers.delete(listener);
+    };
+  }
+  subscribeRun(runId: string, listener: Update): () => void {
+    let listeners = this.runSubscribers.get(runId);
+    if (!listeners) {
+      listeners = new Set();
+      this.runSubscribers.set(runId, listeners);
+    }
+    listeners.add(listener);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      listeners!.delete(listener);
+      if (!listeners!.size) this.runSubscribers.delete(runId);
+    };
+  }
+  private publish(snapshot: RunSnapshot): void {
+    for (const listener of this.subscribers) {
+      try {
+        listener(this.list());
+      } catch {
+        // Observers cannot interrupt run lifecycle transitions.
+      }
+    }
+    for (const listener of this.runSubscribers.get(snapshot.runId) ?? []) {
+      try {
+        listener(structuredClone(snapshot));
+      } catch {
+        // Observers cannot interrupt run lifecycle transitions.
+      }
+    }
+  }
   getSnapshot(runId?: string): RunSnapshot | RunSnapshot[] {
-    if (!runId) return this.store.list();
-    const s = this.store.get(runId);
-    if (!s) throw new Error(`Unknown run: ${runId}`);
-    return s;
+    return runId ? this.getRun(runId) : this.listRuns();
   }
   getResult(runId: string): RunResult | undefined {
     if (!this.store.get(runId)) throw new Error(`Unknown run: ${runId}`);

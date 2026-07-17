@@ -1,201 +1,362 @@
+import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import {
-  DynamicBorder,
-  type ExtensionAPI,
-  type ExtensionCommandContext,
-} from "@earendil-works/pi-coding-agent";
-import { Container, type SelectItem, SelectList, Text } from "@earendil-works/pi-tui";
+  matchesKey,
+  truncateToWidth,
+  wrapTextWithAnsi,
+  type KeybindingsManager,
+} from "@earendil-works/pi-tui";
 import type { RunEngine } from "../runtime/run-engine.ts";
-import type { NodeSnapshot, RunSnapshot } from "../types.ts";
+import type { RunResult, RunSnapshot, UsageSnapshot } from "../types.ts";
+import {
+  boundedLines,
+  formatElapsed,
+  formatPrompt,
+  formatStatus,
+  formatToolCall,
+  formatUsage,
+  MAX_DETAIL_OUTPUT_LINES,
+  MAX_DETAIL_PROMPT_LINES,
+  sanitizeRenderedValue,
+} from "./formatters.ts";
 
-const MAX_INSPECT_CHARS = 20_000;
+const ZERO_USAGE: UsageSnapshot = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  total: 0,
+  cost: 0,
+};
 
-function statusIcon(status: RunSnapshot["status"] | NodeSnapshot["status"]): string {
-  if (status === "completed") return "✓";
-  if (status === "failed" || status === "aborted") return "✗";
-  if (status === "running") return "◆";
-  return "·";
+function runUsage(snapshot: RunSnapshot): UsageSnapshot {
+  return snapshot.nodes.reduce(
+    (total, node) => ({
+      input: total.input + node.usage.input,
+      output: total.output + node.usage.output,
+      cacheRead: total.cacheRead + node.usage.cacheRead,
+      cacheWrite: total.cacheWrite + node.usage.cacheWrite,
+      total: total.total + node.usage.total,
+      cost: total.cost + node.usage.cost,
+    }),
+    ZERO_USAGE,
+  );
 }
 
-function bounded(value: unknown): string {
-  let text: string;
+function initialPrompt(snapshot: RunSnapshot): string {
+  return formatPrompt(snapshot.nodes[0]?.prompt);
+}
+
+function singleLine(value: string): string {
+  return value.replaceAll(/\s+/g, " ").trim();
+}
+
+function valueText(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string") return value;
   try {
-    text = typeof value === "string" ? value : (JSON.stringify(value, null, 2) ?? "null");
+    return JSON.stringify(value, null, 2) ?? "null";
   } catch {
-    text = "[Value is not serializable]";
+    return "[Value is not serializable]";
   }
-  return text.length <= MAX_INSPECT_CHARS
-    ? text
-    : `${text.slice(0, MAX_INSPECT_CHARS)}\n\n[View truncated at ${MAX_INSPECT_CHARS} characters. See workflow artifacts for the persisted result.]`;
 }
 
-async function select(
-  ctx: ExtensionCommandContext,
-  title: string,
-  items: SelectItem[],
-  help = "↑↓ navigate • enter select • esc back",
-): Promise<string | undefined> {
-  return ctx.ui.custom<string | undefined>((tui, theme, _keybindings, done) => {
-    const container = new Container();
-    container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
-    container.addChild(new Text(theme.fg("accent", theme.bold(title)), 1, 0));
-    const list = new SelectList(items, Math.min(Math.max(items.length, 1), 14), {
-      selectedPrefix: (text) => theme.fg("accent", text),
-      selectedText: (text) => theme.fg("accent", text),
-      description: (text) => theme.fg("muted", text),
-      scrollInfo: (text) => theme.fg("dim", text),
-      noMatch: (text) => theme.fg("warning", text),
-    });
-    list.onSelect = (item) => done(item.value);
-    list.onCancel = () => done(undefined);
-    container.addChild(list);
-    container.addChild(new Text(theme.fg("dim", help), 1, 0));
-    container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
-    return {
-      render: (width: number) => container.render(width),
-      invalidate: () => container.invalidate(),
-      handleInput: (data: string) => {
-        list.handleInput(data);
-        tui.requestRender();
-      },
-    };
-  });
+const sanitizedLine = sanitizeRenderedValue;
+
+function boundedWrapped(text: string | undefined, maxLines: number, width: number): string[] {
+  const safe = boundedLines(text, maxLines).map(sanitizedLine);
+  return safe.flatMap((line) => (line ? wrapTextWithAnsi(line, width) : [""])).slice(0, maxLines);
 }
 
-function transcript(snapshot: RunSnapshot): string {
+function completedNodes(snapshot: RunSnapshot): number {
+  return snapshot.nodes.filter((node) => node.status === "completed").length;
+}
+
+/** Plain dashboard rows, exported to keep width-sensitive formatting focused and testable. */
+export function renderRunList(
+  snapshots: RunSnapshot[],
+  selectedRunId: string | undefined,
+  width: number,
+  now = Date.now(),
+): string[] {
+  const lines: string[] = [];
+  for (const snapshot of snapshots) {
+    const selected = snapshot.runId === selectedRunId;
+    const role = snapshot.semanticRole ?? snapshot.nodes[0]?.semanticRole ?? snapshot.kind;
+    const marker = selected ? ">" : " ";
+    const heading = `${marker} ${formatStatus(snapshot.status)} · ${role}`;
+    const identity = width >= 100 ? ` · ${snapshot.name ?? snapshot.kind} · ${snapshot.runId}` : "";
+    lines.push(truncateToWidth(sanitizedLine(`${heading}${identity}`), width));
+
+    const prompt = singleLine(initialPrompt(snapshot));
+    lines.push(truncateToWidth(`  ${prompt}`, width));
+
+    const usage = runUsage(snapshot);
+    const elapsed = formatElapsed(snapshot.createdAt, snapshot.completedAt, now);
+    const progress =
+      snapshot.kind === "workflow" && width >= 72
+        ? ` · ${completedNodes(snapshot)}/${snapshot.nodes.length} completed`
+        : "";
+    lines.push(truncateToWidth(`  ${elapsed} · ${formatUsage(usage)}${progress}`, width));
+  }
+  return lines;
+}
+
+/** Plain detail view in information priority order. */
+export function renderRunDetail(
+  snapshot: RunSnapshot,
+  width: number,
+  result?: RunResult,
+  now = Date.now(),
+): string[] {
+  const usage = runUsage(snapshot);
   const lines = [
-    `${snapshot.name ?? snapshot.kind} (${snapshot.runId})`,
-    `Status: ${snapshot.status}`,
-    snapshot.semanticRole ? `Role: ${snapshot.semanticRole}` : "",
-    snapshot.originTool ? `Origin: ${snapshot.originTool}` : "",
-    snapshot.artifactDir ? `Artifacts: ${snapshot.artifactDir}` : "",
+    truncateToWidth(
+      `${formatStatus(snapshot.status)} · ${formatElapsed(snapshot.createdAt, snapshot.completedAt, now)} · ${formatUsage(usage)}`,
+      width,
+    ),
+    "",
+    "Prompt",
+    ...boundedWrapped(initialPrompt(snapshot), MAX_DETAIL_PROMPT_LINES, width),
     "",
   ];
-  for (const node of snapshot.nodes) {
+
+  if (snapshot.kind === "workflow") {
     lines.push(
-      `${statusIcon(node.status)} ${node.label} (${node.id})`,
-      `  status=${node.status} tools=${node.tools} tokens=${node.usage.total}${node.semanticRole ? ` role=${node.semanticRole}` : ""}${node.originTool ? ` origin=${node.originTool}` : ""}`,
+      "Workflow",
+      `${completedNodes(snapshot)}/${snapshot.nodes.length} completed${snapshot.currentPhase ? ` · phase ${snapshot.currentPhase}` : ""}`,
+      ...(snapshot.description ? boundedWrapped(snapshot.description, 4, width) : []),
+      "",
     );
-    if (node.sessionFile) lines.push(`  session=${node.sessionFile}`);
-    if (node.error) lines.push(`  error=${node.error}`);
-    if (node.resultPreview) lines.push(`  ${node.resultPreview}`);
-    lines.push("");
   }
-  if (snapshot.logs.length) lines.push("Logs:", ...snapshot.logs.map((line) => `  ${line}`));
-  return bounded(lines.filter((line, index) => line || index > 0).join("\n"));
-}
 
-async function inspectTasks(ctx: ExtensionCommandContext, snapshot: RunSnapshot): Promise<void> {
-  if (!snapshot.nodes.length) {
-    ctx.ui.notify("This run has not scheduled any tasks yet.", "info");
-    return;
+  lines.push("Nodes");
+  if (!snapshot.nodes.length) lines.push("(none)");
+  for (const node of snapshot.nodes) {
+    const role = node.semanticRole ? ` · ${node.semanticRole}` : "";
+    lines.push(
+      `${formatStatus(node.status)} ${node.label}${role} · ${formatElapsed(node.startedAt ?? node.queuedAt, node.completedAt, now)} · ${formatUsage(node.usage)}`,
+    );
+    if (node.phase) lines.push(`  phase: ${node.phase}`);
+    if (node.dependsOn?.length) lines.push(`  depends on: ${node.dependsOn.join(", ")}`);
+    for (const call of node.toolCalls)
+      lines.push(...formatToolCall(call, true).map((line) => `  ${line}`));
   }
-  const taskId = await select(
-    ctx,
-    `${snapshot.runId} · tasks`,
-    snapshot.nodes.map((node) => ({
-      value: node.id,
-      label: `${statusIcon(node.status)} ${node.label}`,
-      description: `${node.id} · ${node.status} · ${node.tools} tools · ${node.usage.total} tokens`,
-    })),
+
+  const output = valueText(result?.result) ?? snapshot.resultPreview;
+  lines.push("", "Output / result", ...boundedWrapped(output, MAX_DETAIL_OUTPUT_LINES, width));
+
+  const errors = [
+    snapshot.error,
+    result?.error,
+    ...snapshot.nodes.map((node) => node.error),
+    ...snapshot.nodes.flatMap((node) => node.toolCalls.map((call) => call.error)),
+  ].filter((error): error is string => Boolean(error));
+  const sessions = snapshot.nodes.flatMap((node) =>
+    node.sessionFile ? [`${node.label}: ${node.sessionFile}`] : [],
   );
-  if (!taskId) return;
-  const node = snapshot.nodes.find((candidate) => candidate.id === taskId);
-  if (node) await ctx.ui.editor(`Agentflow task · ${node.id}`, bounded(node));
+  lines.push(
+    "",
+    "Errors",
+    ...(errors.length ? errors : ["(none)"]),
+    "",
+    "Sessions",
+    ...(sessions.length ? sessions : ["(none)"]),
+    "",
+    "Artifacts",
+    snapshot.artifactDir ?? "(none)",
+  );
+  return lines.map((line) => truncateToWidth(sanitizedLine(line), width));
 }
 
-async function steerRun(
-  ctx: ExtensionCommandContext,
-  engine: RunEngine,
-  snapshot: RunSnapshot,
-): Promise<void> {
-  const running = snapshot.nodes.filter((node) => node.status === "running");
-  if (!running.length) {
-    ctx.ui.notify("No running task is available to steer.", "warning");
-    return;
-  }
-  const nodeId =
-    running.length === 1
-      ? running[0].id
-      : await select(
-          ctx,
-          `${snapshot.runId} · choose task to steer`,
-          running.map((node) => ({ value: node.id, label: node.label, description: node.id })),
-        );
-  if (!nodeId) return;
-  const message = await ctx.ui.input("Steer child task", "Additional instruction");
-  if (!message?.trim()) return;
-  await engine.steer(snapshot.runId, nodeId, message.trim());
-  ctx.ui.notify(`Steering accepted for ${nodeId}.`, "info");
+interface DashboardOptions {
+  initialRunId?: string;
+  results?: Map<string, RunResult | undefined>;
+  resolveResult?: (runId: string) => RunResult | undefined;
+  subscribe?: (listener: (snapshots: RunSnapshot[]) => void) => () => void;
+  onClose: () => void;
+  onCancel: (runId: string) => void;
+  requestRender: () => void;
 }
 
-async function showRun(
-  ctx: ExtensionCommandContext,
-  engine: RunEngine,
-  runId: string,
-): Promise<void> {
-  for (;;) {
-    const snapshot = engine.getSnapshot(runId) as RunSnapshot;
-    const active = snapshot.status === "running" || snapshot.status === "queued";
-    const completed = snapshot.nodes.filter((node) => node.status === "completed").length;
-    const items: SelectItem[] = [
-      {
-        value: "tasks",
-        label: "Tasks",
-        description: `${completed}/${snapshot.nodes.length} completed`,
-      },
-      { value: "transcript", label: "Transcript", description: "Bounded task output and run logs" },
-      { value: "result", label: "Result", description: snapshot.resultPreview ?? "No result yet" },
-    ];
-    if (snapshot.artifactDir)
-      items.push({ value: "artifact", label: "Artifact path", description: snapshot.artifactDir });
-    if (active) {
-      items.push({
-        value: "steer",
-        label: "Steer",
-        description: "Send instructions to a live task",
-      });
-      items.push({
-        value: "cancel",
-        label: "Cancel run",
-        description: "Abort queued and active tasks",
-      });
-      items.push({ value: "refresh", label: "Refresh", description: "Reload this run snapshot" });
-    }
-    items.push({ value: "back", label: "Back", description: "Return to recent runs" });
+const DETAIL_VIEWPORT_HEIGHT = 40;
+const UPDATE_DELAY_MS = 50;
 
-    const action = await select(
-      ctx,
-      `${statusIcon(snapshot.status)} ${snapshot.name ?? snapshot.kind} · ${snapshot.runId} · ${snapshot.status}`,
-      items,
-    );
-    if (!action || action === "back") return;
-    try {
-      if (action === "tasks") await inspectTasks(ctx, snapshot);
-      else if (action === "transcript")
-        await ctx.ui.editor(`Agentflow transcript · ${runId}`, transcript(snapshot));
-      else if (action === "result") {
-        const result = engine.getResult(runId);
-        await ctx.ui.editor(
-          `Agentflow result · ${runId}`,
-          bounded(result?.result ?? snapshot.resultPreview),
-        );
-      } else if (action === "artifact" && snapshot.artifactDir) {
-        ctx.ui.setEditorText(snapshot.artifactDir);
-        ctx.ui.notify("Artifact path copied to the input editor.", "info");
-      } else if (action === "steer") await steerRun(ctx, engine, snapshot);
-      else if (action === "cancel") {
-        const confirmed = await ctx.ui.confirm(
-          "Cancel Agentflow run?",
-          `${runId} · ${snapshot.name ?? snapshot.kind}`,
-        );
-        if (confirmed) {
-          await engine.cancel([runId]);
-          ctx.ui.notify(`Cancellation requested for ${runId}.`, "info");
-        }
+export class AgentflowDashboard {
+  private selectedRunId: string | undefined;
+  private detailRunId: string | undefined;
+  private detailOffset = 0;
+  private pendingSnapshots: RunSnapshot[] | undefined;
+  private updateTimer: ReturnType<typeof setTimeout> | undefined;
+  private elapsedTimer: ReturnType<typeof setInterval> | undefined;
+  private unsubscribe: (() => void) | undefined;
+  private disposed = false;
+  private detailCache:
+    | {
+        snapshot: RunSnapshot;
+        result: RunResult | undefined;
+        width: number;
+        second: number;
+        lines: string[];
       }
-    } catch (error) {
-      ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+    | undefined;
+
+  constructor(
+    private snapshots: RunSnapshot[],
+    private readonly theme: Theme,
+    private readonly keybindings: KeybindingsManager,
+    private readonly options: DashboardOptions,
+  ) {
+    this.selectedRunId =
+      snapshots.find((snapshot) => snapshot.runId === options.initialRunId)?.runId ??
+      snapshots[0]?.runId;
+    this.detailRunId = options.initialRunId ? this.selectedRunId : undefined;
+    if (options.subscribe) {
+      this.unsubscribe = options.subscribe((snapshots) => this.queueSnapshots(snapshots));
+      this.elapsedTimer = setInterval(() => {
+        if (!this.disposed) this.options.requestRender();
+      }, 1_000);
     }
+  }
+
+  replaceSnapshot(snapshot: RunSnapshot): void {
+    if (this.disposed) return;
+    const index = this.snapshots.findIndex((candidate) => candidate.runId === snapshot.runId);
+    if (index >= 0) this.snapshots[index] = snapshot;
+    else this.snapshots.unshift(snapshot);
+    this.detailCache = undefined;
+    this.options.requestRender();
+  }
+
+  private queueSnapshots(snapshots: RunSnapshot[]): void {
+    if (this.disposed) return;
+    this.pendingSnapshots = snapshots;
+    if (this.updateTimer) return;
+    this.updateTimer = setTimeout(() => {
+      this.updateTimer = undefined;
+      const pending = this.pendingSnapshots;
+      this.pendingSnapshots = undefined;
+      if (!pending || this.disposed) return;
+      this.snapshots = pending;
+      for (const fresh of pending)
+        this.options.results?.set(fresh.runId, this.options.resolveResult?.(fresh.runId));
+      if (!pending.some((snapshot) => snapshot.runId === this.selectedRunId))
+        this.selectedRunId = pending[0]?.runId;
+      if (!pending.some((snapshot) => snapshot.runId === this.detailRunId)) {
+        this.detailRunId = undefined;
+        this.detailOffset = 0;
+      }
+      this.detailCache = undefined;
+      this.options.requestRender();
+    }, UPDATE_DELAY_MS);
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.unsubscribe?.();
+    this.unsubscribe = undefined;
+    if (this.updateTimer) clearTimeout(this.updateTimer);
+    if (this.elapsedTimer) clearInterval(this.elapsedTimer);
+    this.updateTimer = undefined;
+    this.elapsedTimer = undefined;
+    this.pendingSnapshots = undefined;
+  }
+
+  private move(delta: number): void {
+    if (!this.snapshots.length) return;
+    if (this.detailRunId) {
+      this.detailOffset = Math.max(0, this.detailOffset + delta);
+      return;
+    }
+    const current = this.snapshots.findIndex((run) => run.runId === this.selectedRunId);
+    const index = Math.max(0, Math.min(this.snapshots.length - 1, current + delta));
+    this.selectedRunId = this.snapshots[index]?.runId;
+  }
+
+  handleInput(data: string): void {
+    if (this.disposed) return;
+    if (this.keybindings.matches(data, "tui.select.cancel")) {
+      if (this.detailRunId) {
+        this.detailRunId = undefined;
+        this.detailOffset = 0;
+      } else {
+        this.dispose();
+        this.options.onClose();
+      }
+    } else if (this.keybindings.matches(data, "tui.select.confirm")) {
+      if (!this.detailRunId) {
+        this.detailRunId = this.selectedRunId;
+        this.detailOffset = 0;
+      }
+    } else if (this.keybindings.matches(data, "tui.select.up") || matchesKey(data, "k")) {
+      this.move(-1);
+    } else if (this.keybindings.matches(data, "tui.select.down") || matchesKey(data, "j")) {
+      this.move(1);
+    } else if (this.detailRunId && this.keybindings.matches(data, "tui.select.pageUp")) {
+      this.move(-DETAIL_VIEWPORT_HEIGHT);
+    } else if (this.detailRunId && this.keybindings.matches(data, "tui.select.pageDown")) {
+      this.move(DETAIL_VIEWPORT_HEIGHT);
+    } else if (this.detailRunId && matchesKey(data, "g")) {
+      this.detailOffset = 0;
+    } else if (this.detailRunId && matchesKey(data, "shift+g")) {
+      this.detailOffset = Number.MAX_SAFE_INTEGER;
+    } else if (matchesKey(data, "x")) {
+      const runId = this.detailRunId ?? this.selectedRunId;
+      if (runId) this.options.onCancel(runId);
+    }
+    this.options.requestRender();
+  }
+
+  render(width: number): string[] {
+    const contentWidth = Math.max(1, width - 2);
+    const snapshot = this.snapshots.find((run) => run.runId === this.detailRunId);
+    const title = snapshot
+      ? `Agentflow · ${snapshot.name ?? snapshot.kind}`
+      : `Agentflow runs · ${this.snapshots.length}`;
+    let content: string[];
+    if (snapshot) {
+      const result = this.options.results?.get(snapshot.runId);
+      const second = Math.floor(Date.now() / 1_000);
+      if (
+        !this.detailCache ||
+        this.detailCache.snapshot !== snapshot ||
+        this.detailCache.result !== result ||
+        this.detailCache.width !== contentWidth ||
+        this.detailCache.second !== second
+      ) {
+        this.detailCache = {
+          snapshot,
+          result,
+          width: contentWidth,
+          second,
+          lines: renderRunDetail(snapshot, contentWidth, result),
+        };
+      }
+      const maximumOffset = Math.max(0, this.detailCache.lines.length - DETAIL_VIEWPORT_HEIGHT);
+      this.detailOffset = Math.min(this.detailOffset, maximumOffset);
+      content = this.detailCache.lines.slice(
+        this.detailOffset,
+        this.detailOffset + DETAIL_VIEWPORT_HEIGHT,
+      );
+      while (content.length < DETAIL_VIEWPORT_HEIGHT) content.push("");
+    } else {
+      content = renderRunList(this.snapshots, this.selectedRunId, contentWidth);
+    }
+    const key = (
+      binding: "tui.select.up" | "tui.select.down" | "tui.select.confirm" | "tui.select.cancel",
+    ) => this.keybindings.getKeys(binding).join("/") || "unbound";
+    const help = snapshot
+      ? `${key("tui.select.up")}/${key("tui.select.down")} scroll · ${this.keybindings.getKeys("tui.select.pageUp").join("/") || "unbound"}/${this.keybindings.getKeys("tui.select.pageDown").join("/") || "unbound"} page · g/G ends · ${key("tui.select.cancel")} back · x cancel run`
+      : `${key("tui.select.up")}/${key("tui.select.down")} navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x cancel run`;
+    return [
+      truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
+      ...content.map((line) => truncateToWidth(` ${line}`, width)),
+      truncateToWidth(this.theme.fg("dim", ` ${help}`), width),
+    ];
+  }
+
+  invalidate(): void {
+    this.detailCache = undefined;
   }
 }
 
@@ -211,31 +372,66 @@ async function showDashboard(
     );
     return;
   }
-  if (initialRunId) {
-    await showRun(ctx, engine, initialRunId);
+
+  let snapshots: RunSnapshot[];
+  try {
+    snapshots = engine.listRuns();
+  } catch (error) {
+    ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
     return;
   }
-  for (;;) {
-    const snapshots = engine.getSnapshot() as RunSnapshot[];
-    if (!snapshots.length) {
-      ctx.ui.notify("No Agentflow runs yet.", "info");
-      return;
-    }
-    const runId = await select(
-      ctx,
-      "Agentflow runs",
-      snapshots.map((run) => {
-        const completed = run.nodes.filter((node) => node.status === "completed").length;
-        return {
-          value: run.runId,
-          label: `${statusIcon(run.status)} ${run.name ?? run.kind}`,
-          description: `${run.runId} · ${run.status} · ${completed}/${run.nodes.length}${run.artifactDir ? " · artifacts" : ""}`,
-        };
-      }),
-      "↑↓ navigate • enter inspect • esc close",
-    );
-    if (!runId) return;
-    await showRun(ctx, engine, runId);
+  if (!snapshots.length) {
+    ctx.ui.notify("No Agentflow runs yet.", "info");
+    return;
+  }
+  if (initialRunId && !snapshots.some((snapshot) => snapshot.runId === initialRunId)) {
+    ctx.ui.notify(`Unknown run: ${initialRunId}`, "error");
+    return;
+  }
+  const results = new Map(
+    snapshots.map((snapshot) => [snapshot.runId, engine.getResult(snapshot.runId)]),
+  );
+
+  let dashboard: AgentflowDashboard | undefined;
+  try {
+    await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
+      let activeDashboard: AgentflowDashboard;
+      const cancel = async (runId: string): Promise<void> => {
+        try {
+          const fresh = engine.getSnapshot(runId) as RunSnapshot;
+          if (fresh.status !== "running" && fresh.status !== "queued") {
+            activeDashboard.replaceSnapshot(fresh);
+            ctx.ui.notify(`${runId} is no longer active.`, "info");
+            return;
+          }
+          const confirmed = await ctx.ui.confirm(
+            "Cancel Agentflow run?",
+            `${runId} · ${fresh.name ?? fresh.kind}`,
+          );
+          if (!confirmed) return;
+          await engine.cancel([runId]);
+          const cancelled = engine.getSnapshot(runId) as RunSnapshot;
+          activeDashboard.replaceSnapshot(cancelled);
+          results.set(runId, engine.getResult(runId));
+          ctx.ui.notify(`Cancellation requested for ${runId}.`, "info");
+        } catch (error) {
+          ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+        }
+      };
+      activeDashboard = new AgentflowDashboard(snapshots, theme, keybindings, {
+        initialRunId,
+        results,
+        resolveResult: (runId) => engine.getResult(runId),
+        subscribe: (listener) => engine.subscribe(listener),
+        onClose: () => done(undefined),
+        onCancel: (runId) => void cancel(runId),
+        requestRender: () => tui.requestRender(),
+      });
+      dashboard = activeDashboard;
+      return activeDashboard;
+    });
+  } finally {
+    dashboard?.dispose();
   }
 }
 

@@ -1,19 +1,29 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text, truncateToWidth } from "@earendil-works/pi-tui";
+import { keyHint, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import { formatMonitorEvent, type MonitorEvent } from "./runtime/monitor.ts";
 import { ProcessRuntime } from "./runtime/process-runtime.ts";
-import { serializeJobs, type SerializedJobs } from "./runtime/results.ts";
+import { compactSnapshot, serializeJobs, type SerializedJobs } from "./runtime/results.ts";
 import type { JobRecord } from "./runtime/types.ts";
-import { formatDuration, showBackgroundTasks } from "./ui/dashboard.ts";
+import { showBackgroundTasks } from "./ui/dashboard.ts";
+import { formatCommand, formatCwd, formatStatus, sanitizeRenderedValue } from "./ui/formatters.ts";
+import { formatCompactJobs, formatJobDetails, formatJobDetailsList } from "./ui/job-formatters.ts";
 
-const WIDGET_KEY = "background-processes";
+const STATUS_KEY = "background-processes";
 const COMPLETION_TYPE = "background-process-completion";
 const MONITOR_EVENT_TYPE = "background-monitor-event";
 const MAX_IDS = 50;
 const MONITOR_DEFAULT_TIMEOUT_SECONDS = 300;
 const MONITOR_MAX_TIMEOUT_SECONDS = 3_600;
 const MAX_TIMEOUT_SECONDS = 2_147_483.647;
+
+function expandHint(): string | undefined {
+  try {
+    return keyHint("app.tools.expand", "to expand");
+  } catch {
+    return undefined;
+  }
+}
 
 export const backgroundRunSchema = Type.Object(
   {
@@ -93,53 +103,12 @@ function toolResult(payload: SerializedJobs) {
   };
 }
 
-function sanitizeRenderedValue(value: string): string {
-  let safe = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    const isEscape = code === 0x1b;
-    const isCsi = code === 0x9b;
-    const isOsc = code === 0x9d;
-    if (isEscape || isCsi || isOsc) {
-      const introducer = isEscape ? value[index + 1] : isCsi ? "[" : "]";
-      if (isEscape && (introducer === "[" || introducer === "]")) index += 1;
-      if (introducer === "[") {
-        while (index + 1 < value.length) {
-          const next = value.charCodeAt(index + 1);
-          index += 1;
-          if (next >= 0x40 && next <= 0x7e) break;
-        }
-      } else if (introducer === "]") {
-        while (index + 1 < value.length) {
-          const next = value.charCodeAt(index + 1);
-          index += 1;
-          if (next === 0x07 || next === 0x9c) break;
-          if (next === 0x1b && value[index + 1] === "\\") {
-            index += 1;
-            break;
-          }
-        }
-      }
-      safe += " ";
-      continue;
-    }
-    safe +=
-      code === 0x0a ? "\n" : code < 0x20 || (code >= 0x7f && code <= 0x9f) ? " " : value[index];
-  }
-  return safe;
-}
-
-function sanitizeLabel(value: string): string {
-  return sanitizeRenderedValue(value).replace(/\s+/g, " ").trim().slice(0, 40);
-}
-
-function jobLabel(job: JobRecord): string {
-  return sanitizeLabel(job.description || job.command) || sanitizeLabel(job.id);
-}
-
-function runningDuration(job: JobRecord): string {
-  const createdAt = Date.parse(job.createdAt);
-  return formatDuration(Number.isFinite(createdAt) ? Date.now() - createdAt : 0);
+function formatJobIds(jobIds: string[]): string {
+  const shown = jobIds
+    .slice(0, 3)
+    .map((id) => formatCommand(id, { maximum: 40, singleLine: true }))
+    .join(", ");
+  return jobIds.length > 3 ? `${shown}, +${jobIds.length - 3} more` : shown;
 }
 
 function renderToolResult(
@@ -151,27 +120,17 @@ function renderToolResult(
 ) {
   const details = result.details as SerializedJobs | undefined;
   const jobs = details?.jobs ?? [];
-  const status = (job: (typeof jobs)[number]) => {
-    const monitor = job.monitor;
-    const monitorSummary = monitor
-      ? ` #${monitor.deliveries}${monitor.droppedLines ? ` drop:${monitor.droppedLines}` : ""}${monitor.captureOnly ? " capture-only" : ""}${monitor.deliveryError ? " send-error" : ""}${job.monitorDeliveryPersistenceError ? " checkpoint-error" : ""}`
-      : "";
-    const summary = `${sanitizeRenderedValue(job.jobId)} ${job.status}${monitorSummary}`;
-    if (job.status === "completed") return theme.fg("success", `✓ ${summary}`);
-    if (job.status === "running" || job.status === "timed_out" || job.status === "cancelled")
-      return theme.fg("warning", `◆ ${summary}`);
-    return theme.fg("error", `✗ ${summary}`);
-  };
-  const compact = jobs.map(status).join(theme.fg("muted", " · ")) || "No jobs";
-  const text = options.expanded
-    ? theme.fg(
-        "dim",
-        sanitizeRenderedValue(
-          result.content?.find((part) => part.type === "text")?.text ?? compact,
-        ),
-      )
-    : compact;
-  return new Text(text, 0, 0);
+  if (options.expanded) return new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0);
+  const hint = expandHint();
+  const compact = `${formatCompactJobs(jobs)}${hint ? ` · ${hint}` : ""}`;
+  const aggregate = jobs.some((job) => formatStatus(job.status).tone === "error")
+    ? "error"
+    : jobs.some((job) => formatStatus(job.status).tone === "warning")
+      ? "warning"
+      : jobs.some((job) => formatStatus(job.status).tone === "muted")
+        ? "muted"
+        : "success";
+  return new Text(theme.fg(aggregate, compact), 0, 0);
 }
 
 export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
@@ -179,51 +138,24 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   let sessionContext: ExtensionContext | undefined;
   let terminalTimer: NodeJS.Timeout | undefined;
 
-  const updateWidget = () => {
-    if (sessionContext?.mode !== "tui") return;
-    const current = runtime;
-    const active = current?.list().filter((job) => job.status === "running") ?? [];
-    if (!current || active.length === 0) {
-      sessionContext.ui.setWidget(WIDGET_KEY, undefined);
-      return;
-    }
-    sessionContext.ui.setWidget(WIDGET_KEY, (tui, theme) => {
-      const timer = setInterval(() => tui.requestRender(), 1_000);
-      timer.unref();
-      return {
-        render(width: number) {
-          const jobs = current.list().filter((job) => job.status === "running");
-          if (jobs.length === 0) return [];
-          const header =
-            theme.fg("accent", theme.bold("◆ BACKGROUND TASKS")) +
-            theme.fg("muted", `  ${jobs.length} running · /background-tasks`);
-          const lines = jobs.slice(0, 2).map((job) => {
-            const monitor = job.monitor;
-            const monitorError = monitor?.deliveryError
-              ? " · send-error"
-              : job.monitorDeliveryPersistenceError
-                ? " · checkpoint-error"
-                : "";
-            const activity = monitor
-              ? ` · #${monitor.deliveries}${monitor.captureOnly ? " capture-only" : ""}${monitor.droppedLines ? ` · ${monitor.droppedLines} dropped` : ""}${monitorError}`
-              : "";
-            return `${theme.fg("accent", "│")} ${theme.fg("text", jobLabel(job))} ${theme.fg("dim", `· ${job.id} · ${runningDuration(job)}${activity}`)}`;
-          });
-          if (jobs.length > 2)
-            lines.push(
-              theme.fg(
-                "dim",
-                `└ ${jobs.length - 2} more running task${jobs.length === 3 ? "" : "s"}`,
-              ),
-            );
-          return [header, ...lines].map((line) => truncateToWidth(line, width));
-        },
-        invalidate() {},
-        dispose() {
-          clearInterval(timer);
-        },
-      };
-    });
+  const updateStatus = () => {
+    if (!sessionContext) return;
+    const jobs = runtime?.list() ?? [];
+    const activeCount = jobs.filter((job) => job.status === "running").length;
+    const warningCount = jobs.filter(
+      (job) =>
+        job.deliveryError ||
+        job.deliveryPersistenceError ||
+        job.monitor?.deliveryError ||
+        job.monitorDeliveryPersistenceError,
+    ).length;
+    const warnings = warningCount ? ` · warnings ${warningCount}` : "";
+    sessionContext.ui.setStatus?.(
+      STATUS_KEY,
+      activeCount || warningCount
+        ? `■ processes ${activeCount}${warnings} · /background-tasks`
+        : undefined,
+    );
   };
 
   const sendCompletions = async (ctx: ExtensionContext) => {
@@ -306,19 +238,27 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
           cwd: ctx.cwd,
         });
       } catch (error) {
-        updateWidget();
+        updateStatus();
         throw error;
       }
       current.markLaunchTransferred(job.id);
       const payload = serializeJobs([current.get(job.id) ?? job]);
       return toolResult(payload);
     },
-    renderCall(args, theme) {
-      return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_run"))} ${theme.fg("muted", sanitizeRenderedValue(args.description ?? args.command))}`,
-        0,
-        0,
-      );
+    renderCall(args, theme, context) {
+      const title = theme.fg("toolTitle", theme.bold("background_run"));
+      if (context?.expanded) {
+        return new Text(
+          `${title}\n${theme.fg("dim", formatCwd(context.cwd))}\n${theme.fg("muted", `$ ${formatCommand(args.command)}`)}`,
+          0,
+          0,
+        );
+      }
+      const label = formatCommand(args.description ?? args.command, {
+        maximum: 100,
+        singleLine: true,
+      });
+      return new Text(`${title} ${theme.fg("muted", label)}`, 0, 0);
     },
     renderResult: renderToolResult,
   });
@@ -362,16 +302,24 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
           cwd: ctx.cwd,
         });
       } catch (error) {
-        updateWidget();
+        updateStatus();
         throw error;
       }
       current.markLaunchTransferred(job.id);
       sendMonitorEvents(ctx);
       return toolResult(serializeJobs([current.get(job.id) ?? job]));
     },
-    renderCall(args, theme) {
+    renderCall(args, theme, context) {
+      const title = theme.fg("toolTitle", theme.bold("background_event_stream"));
+      if (context?.expanded) {
+        return new Text(
+          `${title}\n${theme.fg("dim", formatCwd(context.cwd))}\n${theme.fg("muted", `$ ${formatCommand(args.command)}`)}`,
+          0,
+          0,
+        );
+      }
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_event_stream"))} ${theme.fg("muted", sanitizeRenderedValue(args.description))}`,
+        `${title} ${theme.fg("muted", formatCommand(args.description, { maximum: 100, singleLine: true }))}`,
         0,
         0,
       );
@@ -445,7 +393,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     },
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_wait"))} ${theme.fg("muted", args.jobIds.map(sanitizeRenderedValue).join(", "))}`,
+        `${theme.fg("toolTitle", theme.bold("background_wait"))} ${theme.fg("muted", formatJobIds(args.jobIds))}`,
         0,
         0,
       );
@@ -470,7 +418,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     },
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_stop"))} ${theme.fg("muted", args.jobIds.map(sanitizeRenderedValue).join(", "))}`,
+        `${theme.fg("toolTitle", theme.bold("background_stop"))} ${theme.fg("muted", formatJobIds(args.jobIds))}`,
         0,
         0,
       );
@@ -487,16 +435,33 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
             .filter((part) => part.type === "text")
             .map((part) => part.text)
             .join("\n");
-    if (expanded) return new Text(sanitizeRenderedValue(content), 0, 0);
+    if (expanded) {
+      const job = details?.jobId ? runtime?.get(details.jobId) : undefined;
+      if (job) {
+        return new Text(
+          theme.fg(
+            "dim",
+            formatJobDetails({
+              ...compactSnapshot(job),
+              tail: sanitizeRenderedValue(content),
+            }),
+          ),
+          0,
+          0,
+        );
+      }
+      return new Text(sanitizeRenderedValue(content), 0, 0);
+    }
     const range = details?.firstSequence
       ? `${details.firstSequence}-${details.lastSequence}`
       : "event";
     const suffix = details?.captureOnly ? " · capture-only" : "";
     const drops = details?.droppedLines ? ` · drop ${details.droppedLines}` : "";
+    const hint = expandHint();
     return new Text(
       theme.fg(
         details?.captureOnly ? "warning" : "success",
-        `◆ ${sanitizeRenderedValue(details?.jobId ?? "event stream")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}`,
+        `■ ${sanitizeRenderedValue(details?.jobId ?? "event stream")} #${details?.delivery ?? "?"} ${range}${drops}${suffix}${hint ? ` · ${hint}` : ""}`,
       ),
       0,
       0,
@@ -506,29 +471,27 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   pi.registerMessageRenderer(COMPLETION_TYPE, (message, { expanded }, theme) => {
     const details = message.details as SerializedJobs | undefined;
     const jobs = details?.jobs ?? [];
-    const summary =
-      jobs
-        .map((job) => {
-          const monitor = job.monitor;
-          const monitorSummary = monitor
-            ? ` #${monitor.deliveries}${monitor.droppedLines ? ` drop:${monitor.droppedLines}` : ""}${monitor.captureOnly ? " capture-only" : ""}${monitor.deliveryError ? " send-error" : ""}${job.monitorDeliveryPersistenceError ? " checkpoint-error" : ""}`
-            : "";
-          return `${sanitizeRenderedValue(job.jobId)} ${job.status}${monitorSummary}`;
-        })
-        .join(" · ") || "Background completion";
-    const content =
-      typeof message.content === "string"
-        ? message.content
-        : message.content
-            .filter((part) => part.type === "text")
-            .map((part) => part.text)
-            .join("\n");
-    if (expanded) return new Text(sanitizeRenderedValue(content), 0, 0);
-    const hasError = jobs.some((job) => job.status === "failed" || job.status === "cleanup_failed");
-    const hasWarning = jobs.some((job) => job.status === "timed_out" || job.status === "cancelled");
-    const color = hasError ? "error" : hasWarning ? "warning" : "success";
-    const icon = hasError ? "✗" : hasWarning ? "◆" : "✓";
-    return new Text(theme.fg(color, `${icon} ${summary}`), 0, 0);
+    if (expanded) return new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0);
+    if (!jobs.length) return new Text(theme.fg("muted", "Background completion"), 0, 0);
+    const statuses = jobs.map((job) => formatStatus(job.status));
+    const aggregate = statuses.some((status) => status.tone === "error")
+      ? formatStatus("failed")
+      : statuses.some((status) => status.tone === "warning")
+        ? formatStatus("running")
+        : statuses.some((status) => status.tone === "muted")
+          ? formatStatus("cancelled")
+          : formatStatus("completed");
+    const summary = jobs
+      .slice(0, 3)
+      .map((job) => `${sanitizeRenderedValue(job.jobId)} ${formatStatus(job.status).label}`)
+      .join(" · ");
+    const omitted = jobs.length > 3 ? ` · +${jobs.length - 3} more` : "";
+    const hint = expandHint();
+    return new Text(
+      theme.fg(aggregate.tone, `${aggregate.icon} ${summary}${omitted}${hint ? ` · ${hint}` : ""}`),
+      0,
+      0,
+    );
   });
 
   pi.registerCommand("background-tasks", {
@@ -538,43 +501,17 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     },
   });
 
-  pi.registerCommand("background-stop", {
-    description: "Stop one background job: /background-stop <jobId>",
-    handler: async (args, ctx) => {
-      const jobId = args.trim();
-      if (!jobId) {
-        ctx.ui.notify(sanitizeRenderedValue("Usage: /background-stop <jobId>"), "warning");
-        return;
-      }
-      const payload = await requireRuntime(runtime).stopManyResult([jobId]);
-      ctx.ui.notify(sanitizeRenderedValue(payload.text), "info");
-    },
-  });
-
-  pi.registerCommand("background-tail", {
-    description: "Show the recent output tail: /background-tail <jobId>",
-    handler: async (args, ctx) => {
-      const jobId = args.trim();
-      if (!jobId) {
-        ctx.ui.notify(sanitizeRenderedValue("Usage: /background-tail <jobId>"), "warning");
-        return;
-      }
-      const current = requireRuntime(runtime);
-      const record = current.resolve([jobId])[0]!;
-      const tail = current.tail(jobId);
-      const payload = serializeJobs([{ ...record, ...(tail ? { terminalTail: tail } : {}) }], {
-        includeTails: true,
-        tailLines: 200,
-      });
-      ctx.ui.notify(sanitizeRenderedValue(payload.text), "info");
-    },
-  });
-
   pi.on("session_start", async (_event, context) => {
-    if (runtime) await runtime.shutdown();
+    const previous = runtime;
+    if (previous) {
+      sessionContext?.ui.setStatus?.(STATUS_KEY, undefined);
+      runtime = undefined;
+      sessionContext = undefined;
+      await previous.shutdown();
+    }
     sessionContext = context;
     const next = new ProcessRuntime(context.sessionManager.getSessionId(), {
-      onChange: updateWidget,
+      onChange: updateStatus,
       onTerminal: scheduleTerminalDelivery,
       onMonitorEvent: () => {
         if (sessionContext === context) sendMonitorEvents(context);
@@ -583,10 +520,10 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     runtime = next;
     try {
       await next.initialize();
-      updateWidget();
+      updateStatus();
     } catch (error) {
       if (runtime === next) runtime = undefined;
-      updateWidget();
+      updateStatus();
       throw error;
     }
   });
@@ -600,11 +537,10 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   pi.on("session_shutdown", async (_event, context) => {
     if (terminalTimer) clearTimeout(terminalTimer);
     terminalTimer = undefined;
-    if (context.mode === "tui") context.ui.setWidget(WIDGET_KEY, undefined);
+    context.ui.setStatus?.(STATUS_KEY, undefined);
     const current = runtime;
-    if (!current) return;
-    await current.shutdown();
     if (runtime === current) runtime = undefined;
     if (sessionContext === context) sessionContext = undefined;
+    if (current) await current.shutdown();
   });
 }

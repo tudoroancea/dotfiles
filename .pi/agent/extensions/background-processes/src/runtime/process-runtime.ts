@@ -29,6 +29,9 @@ export interface LaunchJobInput extends CreateJobInput {
   timeout?: number;
 }
 
+export type ProcessRuntimeListener = (jobs: JobRecord[]) => void;
+export type ProcessJobListener = (job: JobRecord | undefined) => void;
+
 export interface ProcessRuntimeOptions {
   operations?: BashOperations;
   artifacts?: ArtifactStore;
@@ -108,6 +111,8 @@ export class ProcessRuntime {
   private readonly onChange?: () => void;
   private readonly onTerminal?: () => void;
   private readonly onMonitorEvent?: () => void;
+  private readonly listeners = new Set<ProcessRuntimeListener>();
+  private readonly jobListeners = new Map<string, Set<ProcessJobListener>>();
   private readonly serializer: typeof serializeJobs;
   private readonly persistingJobIds = new Set<string>();
   private readonly pendingLaunches = new Set<Promise<void>>();
@@ -209,7 +214,7 @@ export class ProcessRuntime {
         };
       }
       this.active.set(record.id, active);
-      this.onChange?.();
+      this.notifyChange(record.id);
       try {
         await artifacts.checkpoint(this.metadata(record));
       } catch (error) {
@@ -255,13 +260,37 @@ export class ProcessRuntime {
   get(jobId: string): JobRecord | undefined {
     const active = this.active.get(jobId);
     if (active) {
-      return this.copyRecord(active.record);
+      return this.copyRecord({ ...active.record, terminalTail: active.tail.snapshot() });
     }
-    return this.jobs.get(jobId);
+    return this.copyRecord(this.jobs.get(jobId));
   }
 
   list(): JobRecord[] {
-    return this.jobs.list();
+    return this.jobs.list().map((job) => this.get(job.id)!);
+  }
+
+  subscribe(listener: ProcessRuntimeListener): () => void {
+    this.listeners.add(listener);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      this.listeners.delete(listener);
+    };
+  }
+
+  subscribeJob(jobId: string, listener: ProcessJobListener): () => void {
+    const listeners = this.jobListeners.get(jobId) ?? new Set<ProcessJobListener>();
+    listeners.add(listener);
+    this.jobListeners.set(jobId, listeners);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      const current = this.jobListeners.get(jobId);
+      current?.delete(listener);
+      if (current?.size === 0) this.jobListeners.delete(jobId);
+    };
   }
 
   tail(jobId: string): JobRecord["terminalTail"] | undefined {
@@ -439,7 +468,7 @@ export class ProcessRuntime {
       })(),
     );
     await delivery;
-    this.onChange?.();
+    this.notifyChange();
     return true;
   }
 
@@ -560,7 +589,7 @@ export class ProcessRuntime {
     this.active.delete(job.record.id);
     this.monitorPersistence.delete(job.record.id);
     this.evictCompletedRecords();
-    this.onChange?.();
+    this.notifyChange(job.record.id);
     if (!this.shuttingDown) {
       void this.cleanupArtifacts().catch(() => undefined);
       this.onTerminal?.();
@@ -599,6 +628,7 @@ export class ProcessRuntime {
       this.jobs.update(job.record.id, this.generation, { outputBytes: job.record.outputBytes });
       job.tail.append(persisted.toString("utf8"));
       job.monitor?.pipeline.write(persisted);
+      this.notifyChange(job.record.id);
     }
     if (writeError) {
       const message = `output log write failed: ${errorMessage(writeError)}`;
@@ -695,6 +725,7 @@ export class ProcessRuntime {
       requestedTerminalCause: cause,
       error,
     });
+    this.notifyChange(job.record.id);
     if (!job.monitor)
       void job.artifacts.checkpoint(this.metadata(job.record)).catch(() => undefined);
     return true;
@@ -727,7 +758,7 @@ export class ProcessRuntime {
     await this.persistTerminal(record, artifacts, terminalTail, true);
     this.active.delete(record.id);
     this.evictCompletedRecords();
-    this.onChange?.();
+    this.notifyChange(record.id);
   }
 
   private async performShutdown(): Promise<void> {
@@ -815,6 +846,7 @@ export class ProcessRuntime {
     this.active.delete(job.record.id);
     this.jobs.delete(job.record.id);
     this.launchTransferred.delete(job.record.id);
+    this.notifyChange(job.record.id);
   }
 
   private async persistTerminal(
@@ -905,7 +937,7 @@ export class ProcessRuntime {
     for (const record of consumed) this.launchTransferred.delete(record.id);
     if (consumed.length > 0) {
       await this.cleanupArtifacts().catch(() => undefined);
-      this.onChange?.();
+      this.notifyChange();
     }
   }
 
@@ -1195,7 +1227,35 @@ export class ProcessRuntime {
         })
         .catch(() => undefined);
     }
+    this.notifyChange(job.record.id);
+  }
+
+  private notifyChange(jobId?: string): void {
     this.onChange?.();
+    if (this.listeners.size > 0) {
+      const jobs = this.list();
+      for (const listener of this.listeners) {
+        try {
+          listener(jobs.map((job) => this.copyRecord(job)!));
+        } catch {
+          // Subscribers are observers and must not interrupt process management.
+        }
+      }
+    }
+    const entries = jobId
+      ? ([[jobId, this.jobListeners.get(jobId)]] as const)
+      : [...this.jobListeners.entries()];
+    for (const [id, listeners] of entries) {
+      if (!listeners) continue;
+      const job = this.get(id);
+      for (const listener of listeners) {
+        try {
+          listener(this.copyRecord(job));
+        } catch {
+          // Subscribers are observers and must not interrupt process management.
+        }
+      }
+    }
   }
 
   private async drainMonitorPersistence(job: ActiveJob, state: MonitorPersistence): Promise<void> {

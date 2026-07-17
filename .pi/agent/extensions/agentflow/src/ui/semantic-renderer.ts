@@ -1,12 +1,23 @@
-import type { Theme } from "@earendil-works/pi-coding-agent";
+import { keyHint, type Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
 import type { NodeSnapshot, RunSnapshot, SemanticRole, ToolCallSnapshot } from "../types.ts";
-import { formatTokens, formatUsd } from "../utils.ts";
+import {
+  boundedLines,
+  formatCost,
+  formatElapsed,
+  formatPrompt,
+  formatStatus,
+  formatTokens,
+  formatToolCall,
+  sanitizeRenderedValue,
+} from "./formatters.ts";
 
-const statusIcon = (status: ToolCallSnapshot["status"] | NodeSnapshot["status"]): string => {
-  if (status === "completed") return "✓";
-  if (status === "failed" || status === "aborted") return "✗";
-  return "◆";
+const expandHint = (): string | undefined => {
+  try {
+    return keyHint("app.tools.expand", "to expand");
+  } catch {
+    return undefined;
+  }
 };
 
 const colorStatus = (
@@ -15,8 +26,10 @@ const colorStatus = (
   text: string,
 ): string => {
   if (status === "completed") return theme.fg("success", text);
-  if (status === "failed" || status === "aborted") return theme.fg("error", text);
-  return theme.fg("accent", text);
+  if (status === "failed") return theme.fg("error", text);
+  if (status === "aborted") return theme.fg("muted", text);
+  if (status === "running") return theme.fg("accent", text);
+  return theme.fg("dim", text);
 };
 
 export function semanticResultSummary(
@@ -26,7 +39,7 @@ export function semanticResultSummary(
   tokens: number,
   cost: number,
 ): string {
-  const usage = `${tools} tools · ${formatTokens(tokens)} tokens · ${formatUsd(cost)}`;
+  const usage = `${tools} tools · ${formatTokens(tokens)} tokens · ${formatCost(cost)}`;
   if (preview) {
     try {
       const value = JSON.parse(preview) as Record<string, unknown>;
@@ -48,48 +61,101 @@ export function semanticResultSummary(
 }
 
 export interface SemanticRenderOptions {
-  role?: SemanticRole;
+  role?: SemanticRole | "agent";
   expanded?: boolean;
+  collapsedPrompt?: boolean;
   maxCollapsedCalls?: number;
 }
 
-/** Shared compact renderer used by all semantic profile tools. */
+const wrapPlainLine = (line: string, width: number): string[] => {
+  if (!line) return [""];
+  const chunks: string[] = [];
+  for (let offset = 0; offset < line.length; offset += width)
+    chunks.push(line.slice(offset, offset + width));
+  return chunks;
+};
+
+const wrapPlain = (lines: string[], width: number, maxLines: number): string[] => {
+  const wrapped = lines.flatMap((line) => wrapPlainLine(line, Math.max(1, width)));
+  if (wrapped.length <= maxLines) return wrapped;
+  return [...wrapped.slice(0, maxLines - 1), "…"];
+};
+
+/** Shared bounded renderer used by raw agents and all semantic profile tools. */
 export function renderSemanticSnapshot(
   snapshot: RunSnapshot,
   options: SemanticRenderOptions,
   theme: Theme,
 ): Component {
-  const node = snapshot.nodes[0];
-  const role = options.role ?? snapshot.semanticRole ?? node?.semanticRole ?? "agent";
-  const expanded = options.expanded ?? false;
-  const calls = node?.toolCalls ?? [];
-  const visibleCalls = expanded ? calls : calls.slice(-Math.max(1, options.maxCollapsedCalls ?? 8));
-  const omitted = calls.length - visibleCalls.length;
-  const lines: string[] = [];
-  const status = node?.status ?? snapshot.status;
-  if (omitted > 0) lines.push(theme.fg("dim", `  … ${omitted} earlier tool calls`));
-  for (const call of visibleCalls) {
-    lines.push(
-      `  ${colorStatus(theme, call.status, statusIcon(call.status))} ${theme.fg("toolTitle", call.name.padEnd(10))} ${theme.fg("dim", call.argumentSummary)}`,
-    );
-    if (expanded && call.argumentsPreview)
-      lines.push(`    ${theme.fg("dim", `args: ${call.argumentsPreview.replaceAll("\n", " ")}`)}`);
-    if (expanded && call.error) lines.push(`    ${theme.fg("error", call.error)}`);
-    else if (expanded && call.resultPreview)
-      lines.push(`    ${theme.fg("muted", call.resultPreview.replaceAll("\n", " "))}`);
-  }
-  const tokens = node?.usage.total ?? 0;
-  const cost = node?.usage.cost ?? 0;
-  const summary = semanticResultSummary(role, node?.resultPreview, node?.tools ?? 0, tokens, cost);
-  lines.push(`${colorStatus(theme, status, statusIcon(status))} ${theme.fg("dim", summary)}`);
-  if (expanded && node?.error) lines.push(theme.fg("error", node.error));
-  if (expanded && node?.sessionFile) lines.push(theme.fg("dim", `Session: ${node.sessionFile}`));
-  if (expanded && snapshot.artifactDir)
-    lines.push(theme.fg("dim", `Artifacts: ${snapshot.artifactDir}`));
-
   return {
     render(width: number): string[] {
       if (width <= 0) return [];
+      const node = snapshot.nodes[0];
+      const role = options.role ?? snapshot.semanticRole ?? node?.semanticRole ?? "agent";
+      const status = node?.status ?? snapshot.status;
+      const usage = node?.usage ?? {
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheWrite: 0,
+        total: 0,
+        cost: 0,
+      };
+      const summary = semanticResultSummary(
+        role,
+        node?.resultPreview,
+        node?.tools ?? 0,
+        usage.total,
+        usage.cost,
+      );
+      if (!options.expanded) {
+        const prompt = options.collapsedPrompt ? ` · ${formatPrompt(node?.prompt)}` : "";
+        const configuredHint = expandHint();
+        const hint = configuredHint ? theme.fg("dim", ` · ${configuredHint}`) : "";
+        return [
+          truncateToWidth(
+            `${colorStatus(theme, status, formatStatus(status))}${prompt} · ${summary}${hint}`,
+            width,
+            "…",
+          ),
+        ];
+      }
+
+      const lines: string[] = [theme.fg("toolTitle", theme.bold("Prompt"))];
+      lines.push(
+        ...wrapPlain(boundedLines(formatPrompt(node?.prompt), 24), width, 24).map((line) =>
+          theme.fg("muted", line),
+        ),
+      );
+      const elapsed = formatElapsed(
+        node?.startedAt ?? node?.queuedAt ?? snapshot.createdAt,
+        node?.completedAt ?? snapshot.completedAt,
+      );
+      lines.push(
+        "",
+        `${colorStatus(theme, status, formatStatus(status))} · ${theme.fg("dim", `${elapsed} · ${formatTokens(usage.total)} tokens · ${formatCost(usage.cost)}`)}`,
+        "",
+        theme.fg("toolTitle", theme.bold("Tool calls")),
+      );
+      const calls = node?.toolCalls ?? [];
+      if (!calls.length) lines.push(theme.fg("dim", "(none)"));
+      for (const call of calls) {
+        const callLines = formatToolCall(call, true);
+        lines.push(colorStatus(theme, call.status, callLines[0]));
+        lines.push(...callLines.slice(1).map((line) => theme.fg("dim", `  ${line}`)));
+      }
+      lines.push("", theme.fg("toolTitle", theme.bold("Output")));
+      const output = node?.error ? `Error: ${node.error}` : node?.resultPreview;
+      lines.push(
+        ...wrapPlain(boundedLines(output, 24), width, 24).map((line) => theme.fg("muted", line)),
+      );
+      lines.push("", theme.fg("toolTitle", theme.bold("Metadata")));
+      lines.push(theme.fg("dim", `Cwd: ${sanitizeRenderedValue(node?.cwd ?? "(unknown)")}`));
+      if (node?.sessionFile)
+        lines.push(theme.fg("dim", `Session: ${sanitizeRenderedValue(node.sessionFile)}`));
+      if (snapshot.artifactDir)
+        lines.push(theme.fg("dim", `Artifacts: ${sanitizeRenderedValue(snapshot.artifactDir)}`));
+      if (!node?.sessionFile && !snapshot.artifactDir) lines.push(theme.fg("dim", "(none)"));
       return lines.map((line) => truncateToWidth(line, width, "…"));
     },
     invalidate() {},

@@ -21,8 +21,9 @@ export interface JobSnapshot {
   jobId: string;
   kind: JobRecord["kind"];
   status: JobRecord["status"];
+  command: string;
   description?: string;
-  cwd?: string;
+  cwd: string;
   createdAt?: string;
   completedAt?: string;
   durationMs?: number;
@@ -104,7 +105,7 @@ function truncatePersistenceError(value: string | undefined, maxBytes: number): 
   const normalized = safeLine(value);
   if (normalized === undefined) return undefined;
   const retry = normalized.indexOf("after retry");
-  return truncateError(retry < 0 ? normalized : normalized.slice(retry), maxBytes);
+  return truncate(retry < 0 ? normalized : normalized.slice(retry), maxBytes);
 }
 
 function durationMs(record: JobRecord, now: number): number {
@@ -113,30 +114,34 @@ function durationMs(record: JobRecord, now: number): number {
   return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0;
 }
 
-export function compactSnapshot(record: JobRecord, now = Date.now()): JobSnapshot {
+export function compactSnapshot(
+  record: JobRecord,
+  now = Date.now(),
+  fieldLimits: { command: number; cwd: number } = { command: 512, cwd: 240 },
+): JobSnapshot {
   const monitor = record.kind === "background_event_stream";
   return {
     jobId: safeLine(record.id)!,
     kind: record.kind,
     status: record.status,
+    command: truncate(record.command, fieldLimits.command)!,
     description: monitor ? undefined : truncate(record.description, 12),
-    cwd: monitor ? undefined : boundedPath(record.cwd, 12)!,
+    cwd: boundedPath(record.cwd, fieldLimits.cwd)!,
     createdAt: monitor ? undefined : truncate(record.createdAt, 12)!,
     completedAt: monitor ? undefined : truncate(record.completedAt, 12),
-    durationMs: monitor ? undefined : durationMs(record, now),
+    durationMs: durationMs(record, now),
     exitCode: record.exitCode,
-    error: truncateError(record.error, 24),
-    requestedTerminalCause: monitor ? undefined : record.requestedTerminalCause,
-    outputBytes: monitor ? undefined : record.outputBytes,
+    error: truncateError(record.error, 12),
+    requestedTerminalCause: record.requestedTerminalCause,
+    outputBytes: record.outputBytes,
     outputPath: record.outputPath,
     metadataPath: record.metadataPath,
     deliveryState: record.deliveryState,
-    deliveryAttemptedAt: truncate(record.deliveryAttemptedAt, 24),
-    deliveryError: truncateError(record.deliveryError, 24),
-    deliveryPersistenceError: truncatePersistenceError(record.deliveryPersistenceError, 24),
+    deliveryError: truncateError(record.deliveryError, 12),
+    deliveryPersistenceError: truncatePersistenceError(record.deliveryPersistenceError, 12),
     monitorDeliveryPersistenceError: truncatePersistenceError(
       record.monitorDeliveryPersistenceError,
-      32,
+      16,
     ),
     monitor: record.monitor
       ? {
@@ -145,7 +150,7 @@ export function compactSnapshot(record: JobRecord, now = Date.now()): JobSnapsho
           droppedBytes: record.monitor.droppedBytes,
           splitLines: record.monitor.splitLines,
           captureOnly: record.monitor.captureOnly,
-          deliveryError: truncateError(record.monitor.deliveryError, 12),
+          deliveryError: truncateError(record.monitor.deliveryError, 8),
           completionOutput: record.monitor.completionOutput,
         }
       : undefined,
@@ -186,38 +191,42 @@ function largestCompactSnapshot(kind: JobRecord["kind"], pathBytes: number): Job
     jobId: kind === "background_event_stream" ? MAX_GENERATED_JOB_ID : `bg_${MAX_JOB_NUMBER}`,
     kind,
     status: "cleanup_failed",
+    command: "x".repeat(12),
+    cwd: "x".repeat(12),
     exitCode: Number.MIN_SAFE_INTEGER,
-    error: "x".repeat(24),
+    error: "x".repeat(12),
     outputPath: "x".repeat(pathBytes),
     metadataPath: "x".repeat(pathBytes),
     deliveryState: "sending",
-    deliveryAttemptedAt: "x".repeat(24),
-    deliveryError: "x".repeat(24),
-    deliveryPersistenceError: "x".repeat(24),
-    monitorDeliveryPersistenceError: "x".repeat(32),
+    deliveryError: "x".repeat(12),
+    deliveryPersistenceError: "x".repeat(12),
+    monitorDeliveryPersistenceError: "x".repeat(16),
     tailTruncated: true,
+  };
+  const runtimeDetail = {
+    durationMs: MAX_JOB_NUMBER,
+    requestedTerminalCause: "output_error" as const,
+    outputBytes: MAX_JOB_NUMBER,
   };
   if (kind === "background_run") {
     return {
       ...common,
+      ...runtimeDetail,
       description: "x".repeat(12),
-      cwd: "x".repeat(12),
       createdAt: "x".repeat(12),
       completedAt: "x".repeat(12),
-      durationMs: MAX_JOB_NUMBER,
-      requestedTerminalCause: "output_error",
-      outputBytes: MAX_JOB_NUMBER,
     };
   }
   return {
     ...common,
+    ...runtimeDetail,
     monitor: {
       deliveries: MAX_JOB_NUMBER,
       droppedLines: MAX_JOB_NUMBER,
       droppedBytes: MAX_JOB_NUMBER,
       splitLines: MAX_JOB_NUMBER,
       captureOnly: true,
-      deliveryError: "x".repeat(12),
+      deliveryError: "x".repeat(8),
       completionOutput: "remaining",
     },
   };
@@ -261,8 +270,10 @@ export function serializeJobs(
 ): SerializedJobs {
   const limit = Math.max(0, Math.min(options.maxJobs ?? MAX_RESULT_JOBS, MAX_RESULT_JOBS));
   const jobs: JobSnapshot[] = [];
+  const serializationNow = Date.now();
+  const fieldLimits = records.length >= 25 ? { command: 12, cwd: 12 } : { command: 256, cwd: 160 };
   for (const record of records.slice(0, limit)) {
-    const snapshot = compactSnapshot(record);
+    const snapshot = compactSnapshot(record, serializationNow, fieldLimits);
     const candidate = [...jobs, snapshot];
     const omission = omittedJobs(records, candidate.length);
     if (!isBounded(stringify(candidate, Boolean(omission), omission))) break;

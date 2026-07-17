@@ -15,6 +15,8 @@ const node = (): NodeSnapshot => ({
   id: "finder",
   label: "Locate authentication state transitions",
   semanticRole: "finder",
+  prompt: "Locate authentication state transitions",
+  cwd: "/workspace/project",
   status: "running",
   tools: 0,
   toolCalls: [],
@@ -82,7 +84,7 @@ describe("semantic snapshot renderer", () => {
     ).toBe("3 observations · 2 tools · 1.3M tokens · $1.25");
   });
 
-  it("renders a compact tail and never exceeds narrow terminal width", () => {
+  it("keeps collapsed summaries concise and never exceeds narrow terminal width", () => {
     const task = node();
     for (let index = 0; index < 12; index++)
       startToolCallSnapshot(task, {
@@ -103,12 +105,44 @@ describe("semantic snapshot renderer", () => {
     };
 
     const lines = renderSemanticSnapshot(snapshot, { maxCollapsedCalls: 3 }, theme).render(40);
-    expect(lines.some((line) => line.includes("9 earlier"))).toBe(true);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("◆ running · 12 tools · 42 tokens · $0");
     expect(lines.some((line) => line.includes("call-0"))).toBe(false);
-    expect(lines.filter((line) => line.startsWith("◆ "))).toEqual([
-      "◆ 12 tools · 42 tokens · $0.0123",
-    ]);
     expect(lines.join("\n")).not.toContain("finder");
     expect(lines.every((line) => visibleWidth(line) <= 40)).toBe(true);
+  });
+
+  it("renders expanded snapshots in the shared bounded hierarchy", () => {
+    const task = node();
+    task.startedAt = new Date(0).toISOString();
+    task.completedAt = new Date(65_000).toISOString();
+    task.status = "completed";
+    task.resultPreview = "Authentication state map";
+    startToolCallSnapshot(task, {
+      id: "call-read",
+      name: "read",
+      args: { path: "src/auth.ts", offset: 1, limit: 20 },
+      at: new Date(1_000).toISOString(),
+    });
+    const snapshot: RunSnapshot = {
+      runId: "af_test",
+      kind: "agent",
+      semanticRole: "finder",
+      status: "completed",
+      createdAt: new Date(0).toISOString(),
+      completedAt: new Date(65_000).toISOString(),
+      phases: [],
+      nodes: [task],
+      logs: [],
+      artifactDir: "/tmp/artifacts/af_test",
+    };
+
+    const text = renderSemanticSnapshot(snapshot, { expanded: true }, theme).render(100).join("\n");
+    expect(text.indexOf("Prompt")).toBeLessThan(text.indexOf("1m05s"));
+    expect(text.indexOf("1m05s")).toBeLessThan(text.indexOf("Tool calls"));
+    expect(text.indexOf("Tool calls")).toBeLessThan(text.indexOf("Output"));
+    expect(text.indexOf("Output")).toBeLessThan(text.indexOf("Metadata"));
+    expect(text).toContain("Cwd: /workspace/project");
+    expect(text).toContain("Artifacts: /tmp/artifacts/af_test");
   });
 });

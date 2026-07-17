@@ -11,6 +11,7 @@ import {
   ReviewInputSchema,
 } from "../semantic/profiles.ts";
 import type { SemanticRole } from "../types.ts";
+import { formatPrompt } from "../ui/formatters.ts";
 import { renderSemanticSnapshot } from "../ui/semantic-renderer.ts";
 import { runCostDetails, truncateToolText } from "../utils.ts";
 
@@ -126,7 +127,7 @@ export function registerSemanticTools(pi: ExtensionAPI, service: SemanticAgentSe
         }
         const task = args.task ?? args.question ?? "Review integrated diff";
         return new Text(
-          `${theme.fg("toolTitle", theme.bold(`${definition.role} `))}${theme.fg("dim", String(task).slice(0, 120))}`,
+          `${theme.fg("toolTitle", theme.bold(`${definition.role} `))}${theme.fg("dim", formatPrompt(String(task)).slice(0, 120))}`,
           0,
           0,
         );
