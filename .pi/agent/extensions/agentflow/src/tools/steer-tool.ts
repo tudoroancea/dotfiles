@@ -21,21 +21,4 @@ export function registerSteerTool(pi: ExtensionAPI, engine: RunEngine): void {
       };
     },
   });
-
-  pi.registerCommand("agentflow-steer", {
-    description: "Steer a child: /agentflow-steer <runId> [nodeId] -- <message>",
-    handler: async (args, ctx) => {
-      const match = args.match(/^\s*(\S+)(?:\s+(\S+))?\s+--\s+([\s\S]+)$/);
-      if (!match) {
-        ctx.ui.notify("Usage: /agentflow-steer <runId> [nodeId] -- <message>", "error");
-        return;
-      }
-      try {
-        const result = await engine.steer(match[1], match[2], match[3]);
-        ctx.ui.notify(`Steering accepted for ${result.nodeId}.`, "info");
-      } catch (error) {
-        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-      }
-    },
-  });
 }

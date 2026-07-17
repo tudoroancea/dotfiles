@@ -9,18 +9,15 @@ const plainText = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 
 const statuses = new Map([
   ["warnings", "◇ warnings 2 · /reviews"],
-  ["background-processes", "■ processes 1 · /background-tasks"],
-  ["agentflow", "◆ agents 2 · 3/5 tasks · /agentflow"],
+  ["background-processes", "■ /background-tasks 1"],
+  ["agentflow", "◆ /agentflow 2 · 3/5 tasks"],
 ]);
 
 describe("boxed editor activity footer", () => {
   it.each([
-    [40, "  ◆ agents 2 · 3/5 tasks · /agentflow  …"],
-    [80, "  ◆ agents 2 · 3/5 tasks · /agentflow  ■ processes 1 · /background-tasks  ◇ war…"],
-    [
-      120,
-      "  ◆ agents 2 · 3/5 tasks · /agentflow  ■ processes 1 · /background-tasks  ◇ warnings 2 · /reviews",
-    ],
+    [40, "  ◆ /agentflow 2 · 3/5 tasks  ■ /backgr…"],
+    [80, "  ◆ /agentflow 2 · 3/5 tasks  ■ /background-tasks 1  ◇ warnings 2 · /reviews"],
+    [120, "  ◆ /agentflow 2 · 3/5 tasks  ■ /background-tasks 1  ◇ warnings 2 · /reviews"],
   ])("composes one predictably bounded line at %i columns", (width, expected) => {
     const lines = composeActivityFooter(statuses, width);
 
@@ -29,9 +26,9 @@ describe("boxed editor activity footer", () => {
   });
 
   it("sanitizes statuses and omits the line when there is no activity", () => {
-    expect(composeActivityFooter(new Map([["agentflow", "  ◆ agents\n2\tactive  "]]), 40)).toEqual([
-      "  ◆ agents 2 active",
-    ]);
+    expect(
+      composeActivityFooter(new Map([["agentflow", "  ◆ /agentflow\n2\tactive  "]]), 40),
+    ).toEqual(["  ◆ /agentflow 2 active"]);
     expect(composeActivityFooter(new Map(), 80)).toEqual([]);
   });
 

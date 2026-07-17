@@ -64,7 +64,7 @@ The boxed editor remains the sole persistent chrome:
 ╭─ 42% of 200k · $1.18 ───────────── (openai) model · medium ─╮
 │ Ask the parent agent…                                        │
 ╰────────────────────────────────────────────── ~/project ─────╯
-  ◆ agents 2 · 3/5 tasks · /agentflow   ■ processes 1 · /background-tasks
+  ◆ /agentflow 2 · 3/5 tasks   ■ /background-tasks 1
 ```
 
 The activity footer is intentionally terse. Elapsed time, prompts, commands, cwd, tokens, and costs belong in dashboards and expanded rows where there is enough space.
@@ -193,7 +193,7 @@ Dashboard and expanded tool rows must use the same formatting helpers and orderi
 - Add bounded `prompt` and effective `cwd` fields to `NodeSnapshot`; the prompt is required for dashboards and expanded result rendering.
 - Preserve the initial user/task prompt, not the child system prompt.
 - Derive elapsed time from `startedAt`/`completedAt` and render it consistently.
-- For raw `agentflow_agent`, collapsed rendering remains one concise prompt line plus status/metrics; expanded rendering shows the full bounded prompt, timing, tokens/cost, tool calls, output, and artifacts.
+- For raw `agentflow_agent`, collapsed rendering keeps the prompt/status/metrics and recent tool-call previews; expanded rendering shows the full bounded prompt, timing, tokens/cost, tool calls, output, and artifacts.
 - For semantic tools, normalize `task`, `question`, `objective`, review scope, and similar role-specific inputs into the stored initial task prompt. Expanded rendering must not depend only on transient tool arguments because dashboard recovery also needs the prompt.
 - Keep role-specific summaries such as findings/sources/files changed in collapsed results.
 
@@ -268,13 +268,13 @@ Agentflow and Background Processes can be implemented in parallel.
 
 Agentflow:
 
-- [x] Publish only aggregate active-run/task progress and `/agentflow` through `setStatus("agentflow", ...)`.
+- [x] Publish only aggregate active-run/task progress, titled by `/agentflow`, through `setStatus("agentflow", ...)`.
 - [x] Do not put prompts, tokens, costs, elapsed times, or run IDs in the passive footer.
 
 Background Processes:
 
 - [x] Replace the multi-line widget with `setStatus("background-processes", ...)`.
-- [x] Show active count, unresolved warning count when needed, and `/background-tasks`.
+- [x] Show `/background-tasks` as the section title, followed by active count and unresolved warning count when needed.
 - [x] Remove widget timers and widget lifecycle tests.
 
 Acceptance:
@@ -291,7 +291,9 @@ Agentflow:
 
 - [x] Implement the specified run list using initial prompt, elapsed time, tokens, and cost.
 - [x] Implement the single read-only detail hierarchy using the shared Phase 2 formatters.
+- [x] Enclose Agentflow list and detail dashboards in a visible border so overlays remain distinct from the transcript.
 - [x] Add direct `x` cancellation and remove cancel/steer/refresh action menus from the dashboard UI.
+- [x] Remove redundant user-facing `/agentflow-status` and `/agentflow-steer` commands; `/agentflow` owns status inspection and dashboard actions.
 - [x] Keep steering backend/tool support unchanged, but expose no steering affordance anywhere in the dashboard or persistent chrome.
 - [x] Do not add a takeover input.
 

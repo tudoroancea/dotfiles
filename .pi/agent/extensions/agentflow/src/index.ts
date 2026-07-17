@@ -41,7 +41,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
     lastContext.ui.setStatus(
       "agentflow",
       active.length
-        ? `◆ agents ${active.length} · ${completedTasks}/${totalTasks} tasks · /agentflow`
+        ? `◆ /agentflow ${active.length} · ${completedTasks}/${totalTasks} tasks`
         : undefined,
     );
   };

@@ -119,8 +119,8 @@ async function verifyInstalledConfiguration(raw) {
   const verifyCommands = async (stage) => {
     const response = await request({ type: "get_commands" });
     if (!response.success) throw new Error(`${stage} get_commands failed: ${response.error}`);
-    const command = response.data?.commands?.find((item) => item.name === "agentflow-status");
-    if (!command) throw new Error(`${stage}: installed agentflow commands are unavailable`);
+    const command = response.data?.commands?.find((item) => item.name === "agentflow");
+    if (!command) throw new Error(`${stage}: installed agentflow dashboard command is unavailable`);
     const actualPath = await realpath(command.sourceInfo?.path ?? "");
     if (actualPath !== expectedExtensionPath)
       throw new Error(`${stage}: expected ${expectedExtensionPath}, loaded ${actualPath}`);

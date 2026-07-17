@@ -1,4 +1,4 @@
-import { KeybindingsManager, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
+import { KeybindingsManager, TUI_KEYBINDINGS, visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import type { RunSnapshot } from "../src/types.ts";
 import { AgentflowDashboard, renderRunDetail, renderRunList } from "../src/ui/dashboard.ts";
@@ -144,12 +144,20 @@ describe("Agentflow dashboard interaction", () => {
     });
 
     dashboard.handleInput("d");
-    expect(dashboard.render(120).join("\n")).toContain("> ◆ running · review · Second");
+    const list = dashboard.render(120);
+    expect(list.join("\n")).toContain("> ◆ running · review · Second");
+    expect(list[0]).toContain("╭─ Agentflow runs · 2");
+    expect(list.at(-1)).toContain("╰─");
+    expect(list.every((line) => visibleWidth(line) === 120)).toBe(true);
     dashboard.replaceSnapshot({ ...first, status: "completed" });
     expect(dashboard.render(120).join("\n")).toContain("> ◆ running · review · Second");
 
     dashboard.handleInput("c");
-    const detail = dashboard.render(120).join("\n");
+    const detailLines = dashboard.render(120);
+    const detail = detailLines.join("\n");
+    expect(detailLines[0]).toContain("╭─ Agentflow · Second");
+    expect(detailLines.at(-1)).toContain("╰─");
+    expect(detailLines.every((line) => visibleWidth(line) === 120)).toBe(true);
     expect(detail).toContain("Agentflow · Second");
     expect(detail).not.toMatch(/steer|refresh|takeover/i);
     expect(detail).toContain("b back");

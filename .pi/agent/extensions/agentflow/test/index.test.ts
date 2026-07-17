@@ -31,8 +31,9 @@ vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => ({
 
 import agentflowExtension from "../src/index.ts";
 
-function load(raw: boolean): { beforeStart: string[]; afterStart: string[] } {
+function load(raw: boolean): { beforeStart: string[]; afterStart: string[]; commands: string[] } {
   const tools: string[] = [];
+  const commands: string[] = [];
   const flags = new Map<string, unknown>();
   let start: (() => void) | undefined;
   const pi = {
@@ -45,7 +46,7 @@ function load(raw: boolean): { beforeStart: string[]; afterStart: string[] } {
     registerTool(tool: { name: string }) {
       tools.push(tool.name);
     },
-    registerCommand: vi.fn(),
+    registerCommand: vi.fn((name: string) => commands.push(name)),
     registerMessageRenderer: vi.fn(),
     on: vi.fn((event: string, handler: () => void) => {
       if (event === "session_start" && !start) start = handler;
@@ -58,7 +59,7 @@ function load(raw: boolean): { beforeStart: string[]; afterStart: string[] } {
   agentflowExtension(pi as never);
   const beforeStart = [...tools];
   start?.();
-  return { beforeStart, afterStart: tools };
+  return { beforeStart, afterStart: tools, commands };
 }
 
 describe("extension tool registration", () => {
@@ -79,6 +80,10 @@ describe("extension tool registration", () => {
       "agentflow_cancel",
       "agentflow_steer",
     ]);
+  });
+
+  it("keeps status and steering model-only while exposing the unified dashboard command", () => {
+    expect(load(false).commands).toEqual(["agentflow"]);
   });
 
   it("registers raw launch tools at session start only behind --agentflow-raw", () => {
@@ -247,7 +252,7 @@ describe("extension tool registration", () => {
     for (const handler of handlers.get("session_start") ?? [])
       await handler({} as never, ctx as never);
 
-    expect(setStatus).toHaveBeenLastCalledWith("agentflow", "◆ agents 2 · 2/5 tasks · /agentflow");
+    expect(setStatus).toHaveBeenLastCalledWith("agentflow", "◆ /agentflow 2 · 2/5 tasks");
     const status = setStatus.mock.calls.at(-1)?.[1] as string;
     expect(status).not.toMatch(/secret|prompt|token|cost|elapsed|other-id/);
 

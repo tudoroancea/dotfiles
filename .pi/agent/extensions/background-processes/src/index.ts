@@ -152,9 +152,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     const warnings = warningCount ? ` · warnings ${warningCount}` : "";
     sessionContext.ui.setStatus?.(
       STATUS_KEY,
-      activeCount || warningCount
-        ? `■ processes ${activeCount}${warnings} · /background-tasks`
-        : undefined,
+      activeCount || warningCount ? `■ /background-tasks ${activeCount}${warnings}` : undefined,
     );
   };
 

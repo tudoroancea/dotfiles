@@ -2,6 +2,7 @@ import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-wor
 import {
   matchesKey,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
   type KeybindingsManager,
 } from "@earendil-works/pi-tui";
@@ -308,7 +309,7 @@ export class AgentflowDashboard {
   }
 
   render(width: number): string[] {
-    const contentWidth = Math.max(1, width - 2);
+    const contentWidth = Math.max(1, width - 4);
     const snapshot = this.snapshots.find((run) => run.runId === this.detailRunId);
     const title = snapshot
       ? `Agentflow · ${snapshot.name ?? snapshot.kind}`
@@ -348,11 +349,30 @@ export class AgentflowDashboard {
     const help = snapshot
       ? `${key("tui.select.up")}/${key("tui.select.down")} scroll · ${this.keybindings.getKeys("tui.select.pageUp").join("/") || "unbound"}/${this.keybindings.getKeys("tui.select.pageDown").join("/") || "unbound"} page · g/G ends · ${key("tui.select.cancel")} back · x cancel run`
       : `${key("tui.select.up")}/${key("tui.select.down")} navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x cancel run`;
-    return [
-      truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
-      ...content.map((line) => truncateToWidth(` ${line}`, width)),
-      truncateToWidth(this.theme.fg("dim", ` ${help}`), width),
+    if (width < 6) {
+      return [
+        truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
+        ...content.map((line) => truncateToWidth(line, width)),
+        truncateToWidth(this.theme.fg("dim", help), width),
+      ];
+    }
+
+    const topLabel = truncateToWidth(` ${title} `, width - 4, "…");
+    const topFill = "─".repeat(Math.max(0, width - visibleWidth(topLabel) - 4));
+    const helpLabel = truncateToWidth(` ${help} `, width - 4, "…");
+    const helpFill = "─".repeat(Math.max(0, width - visibleWidth(helpLabel) - 4));
+    const lines = [
+      `${this.theme.fg("dim", "╭─")}${this.theme.fg("accent", this.theme.bold(topLabel))}${this.theme.fg("dim", `${topFill}─╮`)}`,
     ];
+    for (const line of content) {
+      const bounded = truncateToWidth(line, contentWidth, "…");
+      const padding = " ".repeat(Math.max(0, contentWidth - visibleWidth(bounded)));
+      lines.push(`${this.theme.fg("dim", "│ ")}${bounded}${padding}${this.theme.fg("dim", " │")}`);
+    }
+    lines.push(
+      `${this.theme.fg("dim", `╰─${helpFill}`)}${this.theme.fg("dim", helpLabel)}${this.theme.fg("dim", "─╯")}`,
+    );
+    return lines;
   }
 
   invalidate(): void {

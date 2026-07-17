@@ -358,7 +358,7 @@ describe("background processes extension", () => {
 
     expect(ctx.ui.setStatus).toHaveBeenLastCalledWith(
       "background-processes",
-      "■ processes 2 · warnings 1 · /background-tasks",
+      "■ /background-tasks 2 · warnings 1",
     );
     expect(ctx.ui.setStatus.mock.calls.flat().join(" ")).not.toContain("sleep 1");
     expect("setWidget" in ctx.ui).toBe(false);
@@ -367,7 +367,7 @@ describe("background processes extension", () => {
     options.onChange();
     expect(ctx.ui.setStatus).toHaveBeenLastCalledWith(
       "background-processes",
-      "■ processes 1 · /background-tasks",
+      "■ /background-tasks 1",
     );
 
     mocks.runtime.list.mockReturnValue([]);

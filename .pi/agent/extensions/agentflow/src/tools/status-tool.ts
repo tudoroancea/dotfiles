@@ -2,21 +2,6 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import type { RunEngine } from "../runtime/run-engine.ts";
 import { runCostRecords, truncateToolText } from "../utils.ts";
-function compactStatus(snapshot: ReturnType<RunEngine["getSnapshot"]>): string {
-  const runs = Array.isArray(snapshot) ? snapshot : [snapshot];
-  if (runs.length === 0) return "No Agentflow runs yet.";
-  return runs
-    .slice(0, 10)
-    .map((run) => {
-      const completed = run.nodes.filter((node) => node.status === "completed").length;
-      const active = run.nodes.filter(
-        (node) => node.status === "running" || node.status === "queued",
-      );
-      const activeLabels = active.map((node) => node.label).join(", ");
-      return `${run.status === "completed" ? "✓" : run.status === "failed" || run.status === "aborted" ? "✗" : "◆"} ${run.runId} · ${run.name ?? run.kind} · ${completed}/${run.nodes.length}${activeLabels ? ` · ${activeLabels}` : ""}${run.artifactDir ? `\n  ${run.artifactDir}` : ""}`;
-    })
-    .join("\n");
-}
 
 export function registerStatusTool(pi: ExtensionAPI, engine: RunEngine): void {
   pi.registerTool({
@@ -36,18 +21,6 @@ export function registerStatusTool(pi: ExtensionAPI, engine: RunEngine): void {
       };
     },
   });
-  pi.registerCommand("agentflow-status", {
-    description: "List recent Agentflow runs or inspect one: /agentflow-status [runId]",
-    handler: async (args, ctx) => {
-      try {
-        const runId = args.trim() || undefined;
-        ctx.ui.notify(compactStatus(engine.getSnapshot(runId)), "info");
-      } catch (error) {
-        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-      }
-    },
-  });
-
   pi.registerTool({
     name: "agentflow_wait",
     label: "Agentflow Wait",

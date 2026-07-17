@@ -84,7 +84,7 @@ describe("semantic snapshot renderer", () => {
     ).toBe("3 observations · 2 tools · 1.3M tokens · $1.25");
   });
 
-  it("keeps collapsed summaries concise and never exceeds narrow terminal width", () => {
+  it("previews recent tool calls with their statuses when collapsed", () => {
     const task = node();
     for (let index = 0; index < 12; index++)
       startToolCallSnapshot(task, {
@@ -92,6 +92,16 @@ describe("semantic snapshot renderer", () => {
         name: index % 2 ? "read" : "search_text",
         args: { path: `src/a-very-long-path-${index}.ts`, query: "refreshToken" },
       });
+    finishToolCallSnapshot(task, {
+      id: "call-9",
+      result: { content: [{ type: "text", text: "ok" }] },
+      isError: false,
+    });
+    finishToolCallSnapshot(task, {
+      id: "call-10",
+      result: { content: [{ type: "text", text: "failed" }] },
+      isError: true,
+    });
     const snapshot: RunSnapshot = {
       runId: "af_test",
       kind: "agent",
@@ -105,9 +115,12 @@ describe("semantic snapshot renderer", () => {
     };
 
     const lines = renderSemanticSnapshot(snapshot, { maxCollapsedCalls: 3 }, theme).render(40);
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("◆ running · 12 tools · 42 tokens · $0");
-    expect(lines.some((line) => line.includes("call-0"))).toBe(false);
+    expect(lines).toHaveLength(5);
+    expect(lines[0]).toContain("9 earlier tool calls");
+    expect(lines.some((line) => line.includes("✓ read"))).toBe(true);
+    expect(lines.some((line) => line.includes("✗ search_text"))).toBe(true);
+    expect(lines.some((line) => line.includes("◆ read"))).toBe(true);
+    expect(lines.at(-1)).toContain("◆ running · 12 tools · 42 tokens · $0");
     expect(lines.join("\n")).not.toContain("finder");
     expect(lines.every((line) => visibleWidth(line) <= 40)).toBe(true);
   });

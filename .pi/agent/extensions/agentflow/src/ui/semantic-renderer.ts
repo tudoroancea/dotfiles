@@ -10,6 +10,7 @@ import {
   formatTokens,
   formatToolCall,
   sanitizeRenderedValue,
+  statusIcon,
 } from "./formatters.ts";
 
 const expandHint = (): string | undefined => {
@@ -109,16 +110,23 @@ export function renderSemanticSnapshot(
         usage.cost,
       );
       if (!options.expanded) {
+        const calls = node?.toolCalls ?? [];
+        const visibleCalls = calls.slice(-Math.max(1, options.maxCollapsedCalls ?? 8));
+        const omitted = calls.length - visibleCalls.length;
+        const lines: string[] = [];
+        if (omitted > 0) lines.push(theme.fg("dim", `  … ${omitted} earlier tool calls`));
+        for (const call of visibleCalls) {
+          lines.push(
+            `  ${colorStatus(theme, call.status, statusIcon(call.status))} ${theme.fg("toolTitle", call.name.padEnd(10))} ${theme.fg("dim", sanitizeRenderedValue(call.argumentSummary).replaceAll(/\s+/g, " ").trim())}`,
+          );
+        }
         const prompt = options.collapsedPrompt ? ` · ${formatPrompt(node?.prompt)}` : "";
         const configuredHint = expandHint();
         const hint = configuredHint ? theme.fg("dim", ` · ${configuredHint}`) : "";
-        return [
-          truncateToWidth(
-            `${colorStatus(theme, status, formatStatus(status))}${prompt} · ${summary}${hint}`,
-            width,
-            "…",
-          ),
-        ];
+        lines.push(
+          `${colorStatus(theme, status, formatStatus(status))}${prompt} · ${summary}${hint}`,
+        );
+        return lines.map((line) => truncateToWidth(line, width, "…"));
       }
 
       const lines: string[] = [theme.fg("toolTitle", theme.bold("Prompt"))];
