@@ -469,13 +469,51 @@ describe("background processes extension", () => {
       ["failed", "error", "✗"],
     ] as const) {
       fg.mockClear();
-      render(
+      const component = render(
         { details: { jobs: [{ ...base, status }], text: "", truncated: false, omittedCount: 0 } },
         { expanded: false },
         { fg },
-      );
+      ) as { render(width: number): string[] };
+      component.render(200);
       expect(fg).toHaveBeenCalledWith(color, expect.stringContaining(icon));
     }
+  });
+
+  it("renders mixed statuses separately and surfaces omitted or truncated results", () => {
+    const { tools } = harness();
+    const theme = {
+      fg: (color: string, text: string) => `[${color}]${text}`,
+    };
+    const component = (
+      tools.get("background_status")!.renderResult as (...args: unknown[]) => {
+        render(width: number): string[];
+      }
+    )(
+      {
+        details: {
+          jobs: [
+            { jobId: "bg_ok", status: "completed", durationMs: 1_000 },
+            { jobId: "bg_bad", status: "failed", durationMs: 2_000 },
+          ],
+          text: "",
+          truncated: true,
+          omittedCount: 4,
+          omittedJobs: {
+            count: 4,
+            firstJobId: "bg_old_1",
+            lastJobId: "bg_old_4",
+            guidance: "Inspect a specific job with background_status.",
+          },
+        },
+      },
+      { expanded: false },
+      theme,
+    );
+    const text = component.render(200).join("\n");
+    expect(text).toContain("[success]✓ bg_ok");
+    expect(text).toContain("[error]✗ bg_bad");
+    expect(text).toContain("4 jobs omitted");
+    expect(text).toContain("Result payload truncated");
   });
 
   it("renders pending launch cwd and command, then persisted details in priority order", () => {
@@ -559,8 +597,12 @@ describe("background processes extension", () => {
       omittedCount: 0,
     };
     const toolCollapsed = (
-      tools.get("background_status")!.renderResult as (...args: unknown[]) => { text: string }
-    )({ details: payload }, { expanded: false }, theme).text;
+      tools.get("background_status")!.renderResult as (...args: unknown[]) => {
+        render(width: number): string[];
+      }
+    )({ details: payload }, { expanded: false }, theme)
+      .render(200)
+      .join("\n");
     expect(toolCollapsed).toContain("expand");
 
     const completion = renderers.get("background-process-completion") as (...args: unknown[]) => {

@@ -66,6 +66,7 @@ export interface SemanticRenderOptions {
   expanded?: boolean;
   collapsedPrompt?: boolean;
   maxCollapsedCalls?: number;
+  observedAt?: number;
 }
 
 const wrapPlainLine = (line: string, width: number): string[] => {
@@ -138,6 +139,7 @@ export function renderSemanticSnapshot(
       const elapsed = formatElapsed(
         node?.startedAt ?? node?.queuedAt ?? snapshot.createdAt,
         node?.completedAt ?? snapshot.completedAt,
+        options.observedAt ?? Date.now(),
       );
       lines.push(
         "",

@@ -1,5 +1,5 @@
 import { keyHint, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Text, truncateToWidth, type Component } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import { formatMonitorEvent, type MonitorEvent } from "./runtime/monitor.ts";
 import { ProcessRuntime } from "./runtime/process-runtime.ts";
@@ -7,7 +7,7 @@ import { compactSnapshot, serializeJobs, type SerializedJobs } from "./runtime/r
 import type { JobRecord } from "./runtime/types.ts";
 import { showBackgroundTasks } from "./ui/dashboard.ts";
 import { formatCommand, formatCwd, formatStatus, sanitizeRenderedValue } from "./ui/formatters.ts";
-import { formatCompactJobs, formatJobDetails, formatJobDetailsList } from "./ui/job-formatters.ts";
+import { formatCompactJob, formatJobDetails, formatJobDetailsList } from "./ui/job-formatters.ts";
 
 const STATUS_KEY = "background-processes";
 const COMPLETION_TYPE = "background-process-completion";
@@ -111,26 +111,52 @@ function formatJobIds(jobIds: string[]): string {
   return jobIds.length > 3 ? `${shown}, +${jobIds.length - 3} more` : shown;
 }
 
+function resultNotices(details: SerializedJobs | undefined): string[] {
+  if (!details) return [];
+  const notices: string[] = [];
+  if (details.omittedCount > 0) {
+    const range = details.omittedJobs
+      ? ` (${details.omittedJobs.firstJobId}…${details.omittedJobs.lastJobId})`
+      : "";
+    notices.push(`${details.omittedCount} jobs omitted${range}`);
+    if (details.omittedJobs?.guidance) notices.push(details.omittedJobs.guidance);
+  }
+  if (details.truncated) notices.push("Result payload truncated; inspect the artifact paths above");
+  return notices.map(sanitizeRenderedValue);
+}
+
 function renderToolResult(
   result: { details?: unknown; content?: Array<{ type: string; text?: string }> },
   options: { expanded: boolean },
   theme: {
     fg: (color: "success" | "warning" | "error" | "dim" | "muted", text: string) => string;
   },
-) {
+): Component {
   const details = result.details as SerializedJobs | undefined;
   const jobs = details?.jobs ?? [];
-  if (options.expanded) return new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0);
-  const hint = expandHint();
-  const compact = `${formatCompactJobs(jobs)}${hint ? ` · ${hint}` : ""}`;
-  const aggregate = jobs.some((job) => formatStatus(job.status).tone === "error")
-    ? "error"
-    : jobs.some((job) => formatStatus(job.status).tone === "warning")
-      ? "warning"
-      : jobs.some((job) => formatStatus(job.status).tone === "muted")
-        ? "muted"
-        : "success";
-  return new Text(theme.fg(aggregate, compact), 0, 0);
+  const notices = resultNotices(details);
+  if (options.expanded) {
+    const text = [formatJobDetailsList(jobs), ...notices.map((notice) => `\n${notice}`)].join("\n");
+    return new Text(theme.fg("dim", text), 0, 0);
+  }
+
+  return {
+    render(width) {
+      if (width <= 0) return [];
+      const lines = jobs.length
+        ? jobs.slice(0, 3).map((job) => {
+            const status = formatStatus(job.status);
+            return theme.fg(status.tone, formatCompactJob(job));
+          })
+        : [theme.fg("muted", "No jobs")];
+      if (jobs.length > 3) lines.push(theme.fg("dim", `… ${jobs.length - 3} more jobs`));
+      lines.push(...notices.map((notice) => theme.fg("warning", notice)));
+      const hint = expandHint();
+      if (hint) lines.push(theme.fg("dim", hint));
+      return lines.map((line) => truncateToWidth(line, width, "…"));
+    },
+    invalidate() {},
+  };
 }
 
 export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
@@ -360,9 +386,14 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
         }),
       );
     },
-    renderCall(args, theme) {
+    renderCall(args, theme, context) {
+      const title = theme.fg("toolTitle", theme.bold("background_status"));
+      const target = args.jobId ? sanitizeRenderedValue(args.jobId) : "recent jobs";
+      const tail = args.tailLines === undefined ? "" : ` · tail ${args.tailLines} lines`;
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_status"))}${args.jobId ? ` ${theme.fg("muted", sanitizeRenderedValue(args.jobId))}` : ""}`,
+        context?.expanded
+          ? `${title}\n${theme.fg("dim", `Target: ${target}${tail}`)}`
+          : `${title}${args.jobId ? ` ${theme.fg("muted", target)}` : ""}`,
         0,
         0,
       );
@@ -389,12 +420,17 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       });
       return toolResult(payload);
     },
-    renderCall(args, theme) {
-      return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_wait"))} ${theme.fg("muted", formatJobIds(args.jobIds))}`,
-        0,
-        0,
-      );
+    renderCall(args, theme, context) {
+      const title = theme.fg("toolTitle", theme.bold("background_wait"));
+      if (context?.expanded) {
+        const timeout = args.timeout === undefined ? "none" : `${args.timeout}s`;
+        return new Text(
+          `${title}\n${theme.fg("dim", `Jobs: ${formatJobIds(args.jobIds)}\nWait timeout: ${timeout}`)}`,
+          0,
+          0,
+        );
+      }
+      return new Text(`${title} ${theme.fg("muted", formatJobIds(args.jobIds))}`, 0, 0);
     },
     renderResult: renderToolResult,
   });
@@ -414,9 +450,12 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
       requireNotAborted(signal);
       return toolResult(await requireRuntime(runtime).stopManyResult(params.jobIds));
     },
-    renderCall(args, theme) {
+    renderCall(args, theme, context) {
+      const title = theme.fg("toolTitle", theme.bold("background_stop"));
       return new Text(
-        `${theme.fg("toolTitle", theme.bold("background_stop"))} ${theme.fg("muted", formatJobIds(args.jobIds))}`,
+        context?.expanded
+          ? `${title}\n${theme.fg("dim", args.jobIds.map((id) => sanitizeRenderedValue(id)).join("\n"))}`
+          : `${title} ${theme.fg("muted", formatJobIds(args.jobIds))}`,
         0,
         0,
       );
