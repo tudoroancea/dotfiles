@@ -18,6 +18,17 @@ describe("workflow parser", () => {
     expect(validateWorkflowScript(script).name).toBe("semantic");
   });
 
+  it("explains the required header and bare helper syntax", () => {
+    expect(() => validateWorkflowScript(`return await delegate({ task: "work" })`)).toThrow(
+      "export const meta",
+    );
+    expect(() =>
+      validateWorkflowScript(
+        `export const meta = { name: "semantic", description: "Semantic" }\nreturn await agent.delegate({ task: "work" })`,
+      ),
+    ).toThrow("use delegate(...) instead of agent.delegate(...)");
+  });
+
   it("only transforms the parsed meta export, not matching strings or comments", async () => {
     const script = `const example = "export const meta = string content"
 // export const meta = comment content

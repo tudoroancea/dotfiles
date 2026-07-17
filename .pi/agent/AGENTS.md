@@ -38,6 +38,12 @@ These guidelines apply to the main agent and all child agents. Follow only the s
 - Do not mark autonomous foreground/background computation as blocked. Verify that foreground agent/tool work remains working, parent-idle background work remains idle/done until it triggers a follow-up turn, and completion/follow-up delivery produces the normal working-to-idle lifecycle.
 - Re-audit TUI versus RPC/print/JSON behavior because `ctx.hasUI` does not imply `ctx.ui.custom()` is interactive. Add lifecycle tests for normal completion and exceptional cleanup, and preserve Herdr's derivation of done from an unseen idle report rather than reporting done directly.
 
+## Agentflow feedback
+
+- When a top-level agent encounters unexpected behavior in the new Agentflow extension, continue the user's task with a reasonable fallback and append a concise reproducible report to `~/.pi/agent/extensions/agentflow/ERRORS.md`.
+- Report extension defects such as misleading validation/runtime errors, unexplained aborts, lost artifacts, scheduler failures, or lifecycle inconsistencies. Do not log ordinary child-task failures, explicit cancellations, or correctly diagnosed invalid requests.
+- Include the date, tool, run ID and artifact/session paths when available, expected versus actual behavior, minimal reproduction, fallback, and status. Never include secrets or unnecessary full prompts.
+
 ## Longer tasks planning 
 
 - When the user asks you to either perform/elaborate/think about/brainstorm/plan a long task or set of tasks, always create a plan in a `PLAN.md` file in the project root (unless the user explicitly asks for a different location or file name). This simplifies both the review process, the iteration on the plan and the usability by implementers.

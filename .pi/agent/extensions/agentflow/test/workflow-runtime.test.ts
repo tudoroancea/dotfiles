@@ -110,6 +110,78 @@ return { readOnly, mutation, piped, raw, cwd, budget }`;
     });
   });
 
+  it("preserves an explicit token-budget error instead of reporting an IPC symptom", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agentflow-workflow-budget-"));
+    try {
+      const engine = new RunEngine(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          run: async () => ({
+            text: "large result",
+            usage: { ...usage, total: 2 },
+          }),
+        },
+        undefined,
+        () => true,
+        new ArtifactStore(root),
+      );
+      const result = await executeWorkflow({
+        script: `export const meta = { name: "budget_failure", description: "Preserve the cause" }
+const child = await agent("work")
+return { child }`,
+        limits: { tokenBudget: 1 },
+        ctx: { cwd: "/tmp/project" } as never,
+        engine,
+        semanticService: {} as never,
+      });
+
+      expect(result).toMatchObject({
+        status: "aborted",
+        error: "Token budget exceeded (2/1)",
+        snapshot: {
+          error: "Token budget exceeded (2/1)",
+          nodes: [{ error: "Token budget exceeded (2/1)" }],
+        },
+      });
+      expect((result as any).error).not.toMatch(/IPC|EPIPE|disconnected/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves a checked child failure as the top-level workflow error", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agentflow-workflow-child-failure-"));
+    try {
+      const engine = new RunEngine(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { run: async () => Promise.reject(new Error("Provider disconnected")) },
+        undefined,
+        () => true,
+        new ArtifactStore(root),
+      );
+      const result = await executeWorkflow({
+        script: `export const meta = { name: "child_failure", description: "Preserve the cause" }
+const child = await agent("work")
+if (!child.ok) throw new Error(child.error ?? "Child failed")
+return { child }`,
+        ctx: { cwd: "/tmp/project" } as never,
+        engine,
+        semanticService: {} as never,
+      });
+
+      expect(result).toMatchObject({ status: "failed", error: "Provider disconnected" });
+      expect((result as any).error).not.toMatch(/Workflow sandbox IPC|EPIPE/i);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("persists provenance from real semantic workflow scheduling through artifacts", async () => {
     const root = await mkdtemp(join(tmpdir(), "agentflow-workflow-"));
     try {

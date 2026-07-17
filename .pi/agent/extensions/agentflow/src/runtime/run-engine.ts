@@ -32,7 +32,7 @@ interface Runtime {
   active: number;
   queue: Array<() => void>;
   tasks: Set<Promise<unknown>>;
-  limits: Required<Pick<RunLimits, "maxAgents" | "concurrency">> & RunLimits;
+  limits: RunLimits;
   deadline?: NodeJS.Timeout;
 }
 export interface ChildRunner {
@@ -63,11 +63,14 @@ export class RunEngine {
     getThinking: () => import("@earendil-works/pi-agent-core").ThinkingLevel | undefined = () =>
       undefined,
     runner?: ChildRunner,
-    private readonly globalConcurrency = 4,
+    private readonly globalConcurrency?: number,
     private readonly isParentIdle: () => boolean = () => true,
     private readonly artifacts = new ArtifactStore(),
   ) {
-    if (!Number.isInteger(globalConcurrency) || globalConcurrency < 1)
+    if (
+      globalConcurrency !== undefined &&
+      (!Number.isInteger(globalConcurrency) || globalConcurrency < 1)
+    )
       throw new Error("globalConcurrency must be a positive integer");
     this.runner = runner ?? new SubagentRunner(this.store, getTools, getThinking);
   }
@@ -130,11 +133,7 @@ export class RunEngine {
       },
     };
     this.store.add(live);
-    const limits = {
-      maxAgents: spec.limits?.maxAgents ?? (spec.kind === "workflow" ? 16 : 1),
-      concurrency: spec.limits?.concurrency ?? (spec.kind === "workflow" ? 4 : 1),
-      ...spec.limits,
-    };
+    const limits = { ...spec.limits };
     const state: Runtime = { scheduled: 0, active: 0, queue: [], tasks: new Set(), limits };
     this.runtime.set(runId, state);
     if (limits.timeoutMs)
@@ -155,7 +154,7 @@ export class RunEngine {
   }
   private async reserveGlobal(signal: AbortSignal): Promise<() => void> {
     if (signal.aborted) throw new DOMException("Run aborted", "AbortError");
-    if (this.globalActive >= this.globalConcurrency)
+    if (this.globalConcurrency !== undefined && this.globalActive >= this.globalConcurrency)
       await new Promise<void>((resolve, reject) => {
         const entry = {
           start: resolve,
@@ -195,16 +194,18 @@ export class RunEngine {
     if (!state || !live) throw new Error(`Unknown active run: ${runId}`);
     if (live.controller.signal.aborted) throw new DOMException("Run aborted", "AbortError");
     state.scheduled++;
-    if (state.scheduled > state.limits.maxAgents) {
-      live.controller.abort();
-      throw new Error(`Maximum agent count exceeded (${state.limits.maxAgents})`);
+    if (state.limits.maxAgents !== undefined && state.scheduled > state.limits.maxAgents) {
+      const error = new Error(`Maximum agent count exceeded (${state.limits.maxAgents})`);
+      live.controller.abort(error);
+      throw error;
     }
     const spent = live.snapshot.nodes.reduce((sum, n) => sum + n.usage.total, 0);
     if (state.limits.tokenBudget !== undefined && spent >= state.limits.tokenBudget) {
-      live.controller.abort();
-      throw new Error(`Token budget exhausted (${spent}/${state.limits.tokenBudget})`);
+      const error = new Error(`Token budget exhausted (${spent}/${state.limits.tokenBudget})`);
+      live.controller.abort(error);
+      throw error;
     }
-    if (state.active >= state.limits.concurrency)
+    if (state.limits.concurrency !== undefined && state.active >= state.limits.concurrency)
       await new Promise<void>((resolve, reject) => {
         const start = () =>
           live.controller.signal.aborted
@@ -326,8 +327,9 @@ export class RunEngine {
       if (!state) throw new DOMException("Run already settled", "AbortError");
       const spent = snap.nodes.reduce((sum, n) => sum + n.usage.total, 0);
       if (state.limits.tokenBudget !== undefined && spent > state.limits.tokenBudget) {
-        live.controller.abort();
-        throw new Error(`Token budget exceeded (${spent}/${state.limits.tokenBudget})`);
+        const error = new Error(`Token budget exceeded (${spent}/${state.limits.tokenBudget})`);
+        live.controller.abort(error);
+        throw error;
       }
       this.emit("agentflow:task.completed", {
         runId,

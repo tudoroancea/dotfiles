@@ -39,6 +39,60 @@ describe("semantic tool registration", () => {
     );
   });
 
+  it("includes run and artifact context in foreground errors", async () => {
+    const tools: any[] = [];
+    registerSemanticTools(
+      { registerTool: (tool: unknown) => tools.push(tool) } as never,
+      {
+        launch: vi.fn(async () => ({
+          runId: "af_failed",
+          status: "aborted",
+          error: "Subagent aborted",
+          snapshot: {
+            runId: "af_failed",
+            kind: "agent",
+            status: "aborted",
+            createdAt: new Date(0).toISOString(),
+            phases: [],
+            logs: [],
+            artifactDir: "/tmp/agentflow/af_failed",
+            nodes: [
+              {
+                id: "oracle_1",
+                label: "oracle",
+                status: "aborted",
+                error: "Provider disconnected",
+                tools: 0,
+                toolCalls: [],
+                usage: {
+                  input: 0,
+                  output: 0,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                  total: 0,
+                  cost: 0,
+                },
+              },
+            ],
+          },
+        })),
+      } as never,
+    );
+    const oracle = tools.find((tool) => tool.name === "agentflow_oracle");
+
+    await expect(
+      oracle.execute(
+        "tool-call",
+        { question: "advise" },
+        new AbortController().signal,
+        undefined,
+        {},
+      ),
+    ).rejects.toThrow(
+      "Subagent aborted\nNode oracle: Provider disconnected\nRun: af_failed\nArtifacts: /tmp/agentflow/af_failed",
+    );
+  });
+
   it("publishes ordered foreground snapshots that update stable tool-call ids", async () => {
     const tools: any[] = [];
     const base = {

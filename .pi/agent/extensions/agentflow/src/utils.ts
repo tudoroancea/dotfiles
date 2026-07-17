@@ -3,7 +3,7 @@ import {
   DEFAULT_MAX_LINES,
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
-import type { RunSnapshot } from "./types.ts";
+import type { RunResult, RunSnapshot } from "./types.ts";
 
 export interface RunCostDetails {
   costId: string;
@@ -34,6 +34,21 @@ export function runCostRecords(snapshots: readonly RunSnapshot[]): RunCostDetail
   return snapshots
     .map(runCostDetails)
     .filter((details): details is RunCostDetails => details !== undefined);
+}
+
+export function formatRunFailure(result: RunResult, fallback: string): string {
+  const primary = result.error ?? fallback;
+  const node = result.snapshot.nodes.find(
+    (candidate) => candidate.error && candidate.error !== primary,
+  );
+  return [
+    primary,
+    node ? `Node ${node.label}: ${node.error}` : undefined,
+    `Run: ${result.runId}`,
+    result.snapshot.artifactDir ? `Artifacts: ${result.snapshot.artifactDir}` : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function truncateToolText(text: string): string {

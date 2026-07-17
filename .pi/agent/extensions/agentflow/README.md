@@ -53,6 +53,30 @@ pi --agentflow-raw
 
 Raw workflows execute JavaScript in a Node permission-restricted child process. Their `agent()`, `finder()`, `oracle()`, `librarian()`, `look_at()`, `delegate()`, and `review()` requests pass through the shared scheduler and child runner. Semantic helpers expose strict role inputs and cannot override trusted model, prompt, tool, extension, or mutation policy. Project trust controls whether project resources are loaded; it is not a filesystem sandbox.
 
+Workflow scripts use a static metadata header and bare helper calls:
+
+```js
+export const meta = {
+  name: "inspect_project",
+  description: "Inspect independent parts of the project.",
+  phases: [{ title: "Inspect" }],
+};
+
+phase("Inspect");
+const results = await parallel([
+  () => finder({ task: "Map the implementation." }),
+  () => oracle({ question: "Recommend the smallest safe design." }),
+]);
+for (const result of results) {
+  if (!result.ok) throw new Error(result.error ?? "Inspection failed");
+}
+return { results };
+```
+
+Use `delegate({...})`, never `agent.delegate({...})`. Helpers return normalized envelopes, so workflows should throw a child's error when later phases require that child to succeed. Workflow agent count, concurrency, and token usage are unlimited by default. Omit the `limits` input unless the user explicitly requests `maxAgents`, `concurrency`, `timeoutMs`, or `tokenBudget`. The `agentflow-workflows` skill contains the complete authoring contract and a larger copyable template.
+
+Foreground failures report the causal error, run ID, relevant node error, and artifact directory when available. Detailed snapshots remain under `~/.pi/agent/agentflow/<runId>`. Top-level agents record reproducible extension defects—not ordinary child-task failures—in [`ERRORS.md`](ERRORS.md).
+
 `agentflow_look_at` performs objective-focused analysis of a local image or other file. It requires `path` and `objective`, accepts optional `context`, `referenceFiles`, and foreground/background `mode`, and uses an image-capable Luna child with low thinking. The child has an in-memory session, no skills or extensions, and only the read and structured-output tools. Reference files are read and compared systematically; uncertain or unavailable evidence is reported rather than guessed.
 
 ## Dotfiles integration policy

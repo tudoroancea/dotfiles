@@ -82,7 +82,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
       ),
     () => pi.getThinkingLevel(),
     undefined,
-    4,
+    undefined,
     () => lastContext?.isIdle() ?? true,
   );
   const semanticService = new SemanticAgentService(engine, () => pi.getAllTools());

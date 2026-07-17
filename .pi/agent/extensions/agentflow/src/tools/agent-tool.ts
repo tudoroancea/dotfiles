@@ -6,7 +6,7 @@ import type { RunEngine } from "../runtime/run-engine.ts";
 import type { AgentNodeSpec, RunSnapshot } from "../types.ts";
 import { formatPrompt } from "../ui/formatters.ts";
 import { renderSemanticSnapshot } from "../ui/semantic-renderer.ts";
-import { runCostDetails, truncateToolText } from "../utils.ts";
+import { formatRunFailure, runCostDetails, truncateToolText } from "../utils.ts";
 const Thinking = StringEnum(["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const);
 const SessionMode = StringEnum(["memory", "file", "existing"] as const);
 const Mode = StringEnum(["foreground", "background"] as const);
@@ -89,7 +89,7 @@ export function registerAgentTool(pi: ExtensionAPI, engine: RunEngine): void {
           details: result,
         };
       if ("status" in result && result.status !== "completed")
-        throw new Error(result.error ?? `Run ${result.status}`);
+        throw new Error(formatRunFailure(result, `Run ${result.status}`));
       const value = "result" in result ? result.result : undefined;
       return {
         content: [

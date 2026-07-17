@@ -74,6 +74,10 @@ process.on("message", async (message) => {
     structuredClone(result);
     send({ type: "done", result });
   } catch (error) {
-    send({ type: "failed", error: error instanceof Error ? error.message : String(error) });
+    const message =
+      error && typeof error === "object" && typeof error.message === "string"
+        ? error.message
+        : String(error);
+    send({ type: "failed", error: message });
   }
 });

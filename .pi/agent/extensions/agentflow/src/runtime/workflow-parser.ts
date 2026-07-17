@@ -56,6 +56,17 @@ export function validateWorkflowScript(script: string): WorkflowMeta {
     },
     CallExpression(node: any) {
       if (
+        node.callee?.type === "MemberExpression" &&
+        !node.callee.computed &&
+        node.callee.object?.name === "agent" &&
+        ["finder", "oracle", "librarian", "look_at", "delegate", "review"].includes(
+          node.callee.property?.name,
+        )
+      )
+        throw new Error(
+          `Workflow helpers are bare functions; use ${node.callee.property.name}(...) instead of agent.${node.callee.property.name}(...)`,
+        );
+      if (
         node.callee?.type === "Identifier" &&
         ["agent", "finder", "oracle", "librarian", "look_at", "delegate", "review"].includes(
           node.callee.name,
@@ -82,7 +93,11 @@ export function validateWorkflowScript(script: string): WorkflowMeta {
         throw new Error("new Date() is not allowed");
     },
   } as any);
-  if (!meta || typeof meta.name !== "string" || !/^[a-z][a-z0-9_]*$/.test(meta.name))
+  if (!meta)
+    throw new Error(
+      'Workflow must declare a static `export const meta = { name: "snake_case_name", description: "..." }` header',
+    );
+  if (typeof meta.name !== "string" || !/^[a-z][a-z0-9_]*$/.test(meta.name))
     throw new Error("meta.name must be a non-empty snake_case name");
   if (typeof meta.description !== "string" || !meta.description.trim())
     throw new Error("meta.description is required");
@@ -92,7 +107,10 @@ export function validateWorkflowScript(script: string): WorkflowMeta {
       meta.phases.some((phase) => !phase || typeof phase.title !== "string" || !phase.title.trim()))
   )
     throw new Error("meta.phases must contain titled phase objects");
-  if (childCalls === 0) throw new Error("Workflow must call at least one child helper");
+  if (childCalls === 0)
+    throw new Error(
+      "Workflow must call at least one bare child helper: agent(...), finder(...), oracle(...), librarian(...), look_at(...), delegate(...), or review(...)",
+    );
   return { ...meta, phases: meta.phases ?? [] };
 }
 

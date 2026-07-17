@@ -165,7 +165,106 @@ describe("RunEngine settlement", () => {
     });
   });
 
-  it("layers process-wide concurrency over independent runs", async () => {
+  it("starts workflow tasks without default per-run or process-wide concurrency caps", async () => {
+    let active = 0;
+    let peak = 0;
+    const releases: Array<() => void> = [];
+    const engine = engineWith(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      active--;
+      return childResult("done");
+    });
+    const runId = engine.startRun({ kind: "workflow" }, context);
+    const tasks = Array.from({ length: 20 }, (_, index) =>
+      engine.runTask(runId, { id: `n${index}`, label: `n${index}`, prompt: "work" }),
+    );
+
+    await vi.waitFor(() => expect(releases).toHaveLength(20));
+    releases.splice(0).forEach((release) => release());
+    await Promise.all(tasks);
+
+    expect(peak).toBe(20);
+    expect(engine.getLimits(runId)).toEqual({});
+  });
+
+  it("enforces an explicitly configured per-run concurrency cap", async () => {
+    let active = 0;
+    let peak = 0;
+    const releases: Array<() => void> = [];
+    const engine = engineWith(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      active--;
+      return childResult("done");
+    });
+    const runId = engine.startRun({ kind: "workflow", limits: { concurrency: 2 } }, context);
+    const tasks = Array.from({ length: 3 }, (_, index) =>
+      engine.runTask(runId, { id: `n${index}`, label: `n${index}`, prompt: "work" }),
+    );
+
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+    releases.shift()!();
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+    releases.splice(0).forEach((release) => release());
+    await Promise.all(tasks);
+
+    expect(peak).toBe(2);
+  });
+
+  it("enforces an explicitly configured maximum agent count", async () => {
+    const engine = engineWith(async () => childResult("done"));
+    const runId = engine.startRun({ kind: "workflow", limits: { maxAgents: 1 } }, context);
+
+    await expect(
+      engine.runTask(runId, { id: "first", label: "first", prompt: "work" }),
+    ).resolves.toMatchObject({ ok: true });
+    await expect(
+      engine.runTask(runId, { id: "second", label: "second", prompt: "work" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      aborted: true,
+      error: "Maximum agent count exceeded (1)",
+    });
+  });
+
+  it("enforces an explicitly configured run timeout for running and queued tasks", async () => {
+    vi.useFakeTimers();
+    try {
+      const engine = engineWith(
+        async (_runId, _node, _ctx, signal) =>
+          new Promise((_, reject) =>
+            signal.addEventListener(
+              "abort",
+              () => reject(new DOMException("aborted", "AbortError")),
+              { once: true },
+            ),
+          ),
+      );
+      const runId = engine.startRun(
+        { kind: "workflow", limits: { concurrency: 1, timeoutMs: 10 } },
+        context,
+      );
+      const running = engine.runTask(runId, { id: "running", label: "running", prompt: "work" });
+      const queued = engine.runTask(runId, { id: "queued", label: "queued", prompt: "work" });
+
+      await vi.advanceTimersByTimeAsync(11);
+      await expect(Promise.all([running, queued])).resolves.toEqual([
+        expect.objectContaining({ ok: false, aborted: true }),
+        expect.objectContaining({ ok: false, aborted: true }),
+      ]);
+      await expect(engine.observeCompletion(runId)).resolves.toMatchObject({
+        status: "aborted",
+        error: "Cancelled",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("layers explicitly configured process-wide concurrency over independent runs", async () => {
     let active = 0;
     let peak = 0;
     const releases: Array<() => void> = [];

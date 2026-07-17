@@ -13,7 +13,7 @@ import {
 import type { SemanticRole } from "../types.ts";
 import { formatPrompt } from "../ui/formatters.ts";
 import { renderSemanticSnapshot } from "../ui/semantic-renderer.ts";
-import { runCostDetails, truncateToolText } from "../utils.ts";
+import { formatRunFailure, runCostDetails, truncateToolText } from "../utils.ts";
 
 const definitions: Array<{
   role: SemanticRole;
@@ -104,7 +104,7 @@ export function registerSemanticTools(pi: ExtensionAPI, service: SemanticAgentSe
             details: result,
           };
         if ("status" in result && result.status !== "completed")
-          throw new Error(result.error ?? `${definition.role} ${result.status}`);
+          throw new Error(formatRunFailure(result, `${definition.role} ${result.status}`));
         const value = "result" in result ? result.result : undefined;
         return {
           content: [

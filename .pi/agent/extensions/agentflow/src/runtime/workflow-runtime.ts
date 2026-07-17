@@ -124,7 +124,6 @@ async function runSandbox(
       }, 1000).unref();
     }
   };
-  runSignal.addEventListener("abort", terminate, { once: true });
   return new Promise((resolve, reject) => {
     const fail = (e: unknown) => {
       if (settled) return;
@@ -133,6 +132,12 @@ async function runSandbox(
       terminate();
       reject(e);
     };
+    const abortWithCause = () => {
+      const reason = runSignal.reason;
+      fail(reason instanceof Error ? reason : new DOMException("Workflow aborted", "AbortError"));
+    };
+    runSignal.addEventListener("abort", abortWithCause, { once: true });
+    if (runSignal.aborted) return abortWithCause();
     const send = (message: Serializable) => {
       if (settled) return;
       if (!child.connected) return fail(new Error("Workflow sandbox IPC disconnected"));
