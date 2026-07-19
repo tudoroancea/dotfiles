@@ -106,6 +106,7 @@ describe("Agentflow dashboard formatting", () => {
     const lines = renderRunDetail(
       snapshot({ error: "run error" }),
       120,
+      plainTheme as never,
       {
         runId: "run-visible-only-wide",
         status: "failed",
@@ -132,6 +133,20 @@ describe("Agentflow dashboard formatting", () => {
     expect(text).toContain("run error");
     expect(text).toContain("/tmp/session.jsonl");
     expect(text).toContain("/tmp/artifacts/run");
+  });
+
+  it("uses the subagent tool-row colors and lets the status icon stand alone", () => {
+    const taggedTheme = {
+      fg: (color: string, text: string) => `<${color}>${text}</${color}>`,
+      bold: (text: string) => text,
+    };
+    const text = renderRunDetail(snapshot(), 240, taggedTheme as never, undefined, 10_000).join(
+      "\n",
+    );
+
+    expect(text).toContain("<success>✓</success> <toolTitle>read      </toolTitle>");
+    expect(text).toContain('<muted>args:</muted> <dim>{"path":"src/main.ts"}</dim>');
+    expect(text).not.toContain("completed read");
   });
 });
 

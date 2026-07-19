@@ -137,6 +137,12 @@ describe("semantic snapshot renderer", () => {
       args: { path: "src/auth.ts", offset: 1, limit: 20 },
       at: new Date(1_000).toISOString(),
     });
+    finishToolCallSnapshot(task, {
+      id: "call-read",
+      result: { content: [{ type: "text", text: "source text" }] },
+      isError: false,
+      at: new Date(2_000).toISOString(),
+    });
     const snapshot: RunSnapshot = {
       runId: "af_test",
       kind: "agent",
@@ -157,5 +163,16 @@ describe("semantic snapshot renderer", () => {
     expect(text.indexOf("Output")).toBeLessThan(text.indexOf("Metadata"));
     expect(text).toContain("Cwd: /workspace/project");
     expect(text).toContain("Artifacts: /tmp/artifacts/af_test");
+
+    const taggedTheme = {
+      fg: (color: string, value: string) => `<${color}>${value}</${color}>`,
+      bold: (value: string) => value,
+    } as Theme;
+    const styled = renderSemanticSnapshot(snapshot, { expanded: true }, taggedTheme)
+      .render(200)
+      .join("\n");
+    expect(styled).toContain("<success>✓</success> <toolTitle>read      </toolTitle>");
+    expect(styled).toContain('<muted>args:</muted> <dim>{"path":"src/auth.ts"');
+    expect(styled).not.toContain("completed read");
   });
 });

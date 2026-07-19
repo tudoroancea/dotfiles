@@ -14,7 +14,7 @@ import {
   formatElapsed,
   formatPrompt,
   formatStatus,
-  formatToolCall,
+  formatStyledToolCall,
   formatUsage,
   MAX_DETAIL_OUTPUT_LINES,
   MAX_DETAIL_PROMPT_LINES,
@@ -103,10 +103,11 @@ export function renderRunList(
   return lines;
 }
 
-/** Plain detail view in information priority order. */
+/** Dashboard detail view in information priority order. */
 export function renderRunDetail(
   snapshot: RunSnapshot,
   width: number,
+  theme: Theme,
   result?: RunResult,
   now = Date.now(),
 ): string[] {
@@ -125,7 +126,7 @@ export function renderRunDetail(
   if (snapshot.kind === "workflow") {
     lines.push(
       "Workflow",
-      `${completedNodes(snapshot)}/${snapshot.nodes.length} completed${snapshot.currentPhase ? ` · phase ${snapshot.currentPhase}` : ""}`,
+      `${completedNodes(snapshot)}/${snapshot.nodes.length} completed${snapshot.currentPhase ? ` · phase ${sanitizedLine(snapshot.currentPhase)}` : ""}`,
       ...(snapshot.description ? boundedWrapped(snapshot.description, 4, width) : []),
       "",
     );
@@ -134,14 +135,15 @@ export function renderRunDetail(
   lines.push("Nodes");
   if (!snapshot.nodes.length) lines.push("(none)");
   for (const node of snapshot.nodes) {
-    const role = node.semanticRole ? ` · ${node.semanticRole}` : "";
+    const role = node.semanticRole ? ` · ${sanitizedLine(node.semanticRole)}` : "";
     lines.push(
-      `${formatStatus(node.status)} ${node.label}${role} · ${formatElapsed(node.startedAt ?? node.queuedAt, node.completedAt, now)} · ${formatUsage(node.usage)}`,
+      `${formatStatus(node.status)} ${sanitizedLine(node.label)}${role} · ${formatElapsed(node.startedAt ?? node.queuedAt, node.completedAt, now)} · ${formatUsage(node.usage)}`,
     );
-    if (node.phase) lines.push(`  phase: ${node.phase}`);
-    if (node.dependsOn?.length) lines.push(`  depends on: ${node.dependsOn.join(", ")}`);
+    if (node.phase) lines.push(`  phase: ${sanitizedLine(node.phase)}`);
+    if (node.dependsOn?.length)
+      lines.push(`  depends on: ${sanitizedLine(node.dependsOn.join(", "))}`);
     for (const call of node.toolCalls)
-      lines.push(...formatToolCall(call, true).map((line) => `  ${line}`));
+      lines.push(...formatStyledToolCall(call, theme, true).map((line) => `  ${line}`));
   }
 
   const output = valueText(result?.result) ?? snapshot.resultPreview;
@@ -152,9 +154,11 @@ export function renderRunDetail(
     result?.error,
     ...snapshot.nodes.map((node) => node.error),
     ...snapshot.nodes.flatMap((node) => node.toolCalls.map((call) => call.error)),
-  ].filter((error): error is string => Boolean(error));
+  ]
+    .filter((error): error is string => Boolean(error))
+    .map(sanitizedLine);
   const sessions = snapshot.nodes.flatMap((node) =>
-    node.sessionFile ? [`${node.label}: ${node.sessionFile}`] : [],
+    node.sessionFile ? [`${sanitizedLine(node.label)}: ${sanitizedLine(node.sessionFile)}`] : [],
   );
   lines.push(
     "",
@@ -165,9 +169,9 @@ export function renderRunDetail(
     ...(sessions.length ? sessions : ["(none)"]),
     "",
     "Artifacts",
-    snapshot.artifactDir ?? "(none)",
+    snapshot.artifactDir ? sanitizedLine(snapshot.artifactDir) : "(none)",
   );
-  return lines.map((line) => truncateToWidth(sanitizedLine(line), width));
+  return lines.map((line) => truncateToWidth(line, width));
 }
 
 interface DashboardOptions {
@@ -331,7 +335,7 @@ export class AgentflowDashboard {
           result,
           width: contentWidth,
           second,
-          lines: renderRunDetail(snapshot, contentWidth, result),
+          lines: renderRunDetail(snapshot, contentWidth, this.theme, result),
         };
       }
       const maximumOffset = Math.max(0, this.detailCache.lines.length - DETAIL_VIEWPORT_HEIGHT);

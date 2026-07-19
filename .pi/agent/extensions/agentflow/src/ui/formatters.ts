@@ -1,3 +1,4 @@
+import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { NodeStatus, ToolCallSnapshot, UsageSnapshot } from "../types.ts";
 import { boundInitialPrompt } from "../runtime/snapshot-fields.ts";
 
@@ -89,6 +90,34 @@ export function formatToolCall(call: ToolCallSnapshot, expanded = false): string
   if (call.argumentsPreview) lines.push(`args: ${oneLine(call.argumentsPreview)}`);
   if (call.error) lines.push(`error: ${oneLine(call.error)}`);
   else if (call.resultPreview) lines.push(`result: ${oneLine(call.resultPreview)}`);
+  return lines;
+}
+
+const colorStatus = (theme: Theme, status: ToolCallSnapshot["status"], text: string): string => {
+  if (status === "completed") return theme.fg("success", text);
+  if (status === "failed") return theme.fg("error", text);
+  if (status === "running") return theme.fg("accent", text);
+  return theme.fg("dim", text);
+};
+
+/** Theme-aware tool row shared by subagent messages and the Agentflow dashboard. */
+export function formatStyledToolCall(
+  call: ToolCallSnapshot,
+  theme: Theme,
+  expanded = false,
+): string[] {
+  const lines = [
+    `${colorStatus(theme, call.status, statusIcon(call.status))} ${theme.fg("toolTitle", call.name.padEnd(10))} ${theme.fg("dim", oneLine(call.argumentSummary))}`,
+  ];
+  if (!expanded) return lines;
+  if (call.argumentsPreview)
+    lines.push(
+      `  ${theme.fg("muted", "args:")} ${theme.fg("dim", oneLine(call.argumentsPreview))}`,
+    );
+  if (call.error)
+    lines.push(`  ${theme.fg("error", "error:")} ${theme.fg("dim", oneLine(call.error))}`);
+  else if (call.resultPreview)
+    lines.push(`  ${theme.fg("muted", "result:")} ${theme.fg("dim", oneLine(call.resultPreview))}`);
   return lines;
 }
 

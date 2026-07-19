@@ -117,10 +117,10 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   pi.on("session_start", () => {
     if (!rawToolsRegistered && pi.getFlag("agentflow-raw")) {
       registerAgentTool(pi, engine);
-      registerWorkflowTool(pi, engine, semanticService);
       rawToolsRegistered = true;
     }
   });
+  registerWorkflowTool(pi, engine, semanticService);
   registerStatusTool(pi, engine);
   registerSteerTool(pi, engine);
   registerDashboard(pi, engine);

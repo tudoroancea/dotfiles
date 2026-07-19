@@ -4,3 +4,7 @@ cache
 bin
 pi-acp
 workflows
+agentflow
+!extensions/agentflow
+background-processes
+!extensions/background-processes

@@ -7,10 +7,9 @@ import {
   formatElapsed,
   formatPrompt,
   formatStatus,
+  formatStyledToolCall,
   formatTokens,
-  formatToolCall,
   sanitizeRenderedValue,
-  statusIcon,
 } from "./formatters.ts";
 
 const expandHint = (): string | undefined => {
@@ -116,11 +115,8 @@ export function renderSemanticSnapshot(
         const omitted = calls.length - visibleCalls.length;
         const lines: string[] = [];
         if (omitted > 0) lines.push(theme.fg("dim", `  … ${omitted} earlier tool calls`));
-        for (const call of visibleCalls) {
-          lines.push(
-            `  ${colorStatus(theme, call.status, statusIcon(call.status))} ${theme.fg("toolTitle", call.name.padEnd(10))} ${theme.fg("dim", sanitizeRenderedValue(call.argumentSummary).replaceAll(/\s+/g, " ").trim())}`,
-          );
-        }
+        for (const call of visibleCalls)
+          lines.push(...formatStyledToolCall(call, theme).map((line) => `  ${line}`));
         const prompt = options.collapsedPrompt ? ` · ${formatPrompt(node?.prompt)}` : "";
         const configuredHint = expandHint();
         const hint = configuredHint ? theme.fg("dim", ` · ${configuredHint}`) : "";
@@ -149,11 +145,7 @@ export function renderSemanticSnapshot(
       );
       const calls = node?.toolCalls ?? [];
       if (!calls.length) lines.push(theme.fg("dim", "(none)"));
-      for (const call of calls) {
-        const callLines = formatToolCall(call, true);
-        lines.push(colorStatus(theme, call.status, callLines[0]));
-        lines.push(...callLines.slice(1).map((line) => theme.fg("dim", `  ${line}`)));
-      }
+      for (const call of calls) lines.push(...formatStyledToolCall(call, theme, true));
       lines.push("", theme.fg("toolTitle", theme.bold("Output")));
       const output = node?.error ? `Error: ${node.error}` : node?.resultPreview;
       lines.push(
