@@ -67,7 +67,7 @@ describe("extension tool registration", () => {
     vi.clearAllMocks();
     mocks.engine.snapshots = [];
   });
-  it("hides raw launch tools by default", () => {
+  it("hides the raw agent launch tool by default", () => {
     expect(load(false).afterStart).toEqual([
       "agentflow_finder",
       "agentflow_oracle",
@@ -75,6 +75,7 @@ describe("extension tool registration", () => {
       "agentflow_look_at",
       "agentflow_delegate",
       "agentflow_review",
+      "agentflow_workflow",
       "agentflow_status",
       "agentflow_wait",
       "agentflow_cancel",
@@ -86,10 +87,10 @@ describe("extension tool registration", () => {
     expect(load(false).commands).toEqual(["agentflow"]);
   });
 
-  it("registers raw launch tools at session start only behind --agentflow-raw", () => {
+  it("registers the raw agent launch tool at session start only behind --agentflow-raw", () => {
     const tools = load(true);
     expect(tools.beforeStart).not.toContain("agentflow_agent");
-    expect(tools.beforeStart).not.toContain("agentflow_workflow");
+    expect(tools.beforeStart).toContain("agentflow_workflow");
     expect(tools.afterStart).toEqual([
       "agentflow_finder",
       "agentflow_oracle",
@@ -97,12 +98,12 @@ describe("extension tool registration", () => {
       "agentflow_look_at",
       "agentflow_delegate",
       "agentflow_review",
+      "agentflow_workflow",
       "agentflow_status",
       "agentflow_wait",
       "agentflow_cancel",
       "agentflow_steer",
       "agentflow_agent",
-      "agentflow_workflow",
     ]);
   });
 

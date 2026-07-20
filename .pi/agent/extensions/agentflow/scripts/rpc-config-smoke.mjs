@@ -18,6 +18,7 @@ const defaultTools = [
   "agentflow_status",
   "agentflow_steer",
   "agentflow_wait",
+  "agentflow_workflow",
 ];
 
 async function stopChild(child) {
@@ -136,9 +137,7 @@ async function verifyInstalledConfiguration(raw) {
     if (!response.success) throw new Error(`${stage} diagnostic command failed: ${response.error}`);
     const event = await notification;
     const report = JSON.parse(event.message.slice("AGENTFLOW_CONFIG_SMOKE ".length));
-    const expected = raw
-      ? [...defaultTools, "agentflow_agent", "agentflow_workflow"].sort()
-      : defaultTools;
+    const expected = raw ? [...defaultTools, "agentflow_agent"].sort() : defaultTools;
     if (JSON.stringify(report.all) !== JSON.stringify(expected))
       throw new Error(`${stage}: unexpected tools ${JSON.stringify(report.all)}`);
     const missingActive = expected.filter((name) => !report.active.includes(name));

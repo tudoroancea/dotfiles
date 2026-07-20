@@ -15,9 +15,9 @@
   "scripts": {
     "test": "vitest run test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "format": "oxfmt .",
-    "format:check": "oxfmt --check .",
-    "lint": "oxlint .",
+    "format": "cd ../.. && extensions/agentflow/node_modules/.bin/oxfmt extensions/agentflow/src extensions/agentflow/test extensions/agentflow/scripts extensions/agentflow/package.json extensions/agentflow/tsconfig.json extensions/markdown-context-imports.ts lib instructions AGENTS.md",
+    "format:check": "cd ../.. && extensions/agentflow/node_modules/.bin/oxfmt --check extensions/agentflow/src extensions/agentflow/test extensions/agentflow/scripts extensions/agentflow/package.json extensions/agentflow/tsconfig.json extensions/markdown-context-imports.ts lib instructions AGENTS.md",
+    "lint": "cd ../.. && extensions/agentflow/node_modules/.bin/oxlint extensions/agentflow/src extensions/agentflow/test extensions/markdown-context-imports.ts lib",
     "dev:rpc": "pi --mode rpc --no-session",
     "dev:rpc:raw": "pi --mode rpc --no-session --agentflow-raw",
     "dev:tui": "pi",

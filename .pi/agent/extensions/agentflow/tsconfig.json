@@ -6,8 +6,13 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "paths": {
+      "@earendil-works/pi-coding-agent": [
+        "./node_modules/@earendil-works/pi-coding-agent/dist/index.d.ts"
+      ]
+    },
     "types": ["node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "../markdown-context-imports.ts", "../../lib/**/*.ts"]
 }

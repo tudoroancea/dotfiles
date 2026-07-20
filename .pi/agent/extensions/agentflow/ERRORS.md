@@ -46,3 +46,13 @@ Each report should include the date, tool, run ID when available, expected and a
 - Evidence: run snapshots and session paths under `~/.pi/agent/agentflow/<runId>/`.
 - Fallback: continue from partial mutations, run verification directly, and perform focused top-level review.
 - Status: open.
+
+## 2026-07-20 — Foreground advisory tools returned unexplained generic aborts
+
+- Tools: `agentflow_oracle`, `agentflow_review`
+- Runs: `af_mrtcgs6b_2`, `af_mrtd1lfw_3`
+- Expected: a focused Phase 1 resolver design recommendation and an integrated diff review, or actionable failures with artifact context.
+- Actual: both tools returned only `Subagent aborted` plus the run ID.
+- Reproduction: ask the oracle to assess the Phase 1 design, then ask review to inspect the stable implementation diff against `PLAN.md`.
+- Fallback: continue from direct source and Pi API inspection, run model-free tests, and perform a top-level diff review.
+- Status: open.
