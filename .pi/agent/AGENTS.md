@@ -50,6 +50,7 @@ These guidelines apply to the main agent and all child agents. Follow only the s
 - In such plans always include the necessary context for the task, files and resources within the current dir or elsewhere that drove the decision making, and a fairly detailed set of _implementation phases_ that can ideally be implemented by one agent at a time.
 - When creating the plan, analyze the cross-dependencies between the phases and what can be done in parallel or sequentially.
 - Once created, consider this plan file as the place to also track the progress made on the task (which can look as simple as a checkmark next to each completed phase).
+- Delete `PLAN.md` once the plan has been entirely carried out.
 
 ## Following conventions
 
