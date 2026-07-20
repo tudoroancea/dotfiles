@@ -127,7 +127,19 @@ later(function()
 end)
 
 -- mini.pick ==================================================================
-later(function() require('mini.pick').setup() end)
+later(function()
+  local pick = require('mini.pick')
+  pick.setup()
+
+  pick.registry.files = function()
+    local show_with_icons = function(buf_id, items, query)
+      pick.default_show(buf_id, items, query, { show_icons = true })
+    end
+    local command = { 'rg', '--files', '--hidden', '--glob=!.git', '--color=never' }
+    local source = { name = 'Files (rg, hidden)', show = show_with_icons }
+    return pick.builtin.cli({ command = command }, { source = source })
+  end
+end)
 
 -- render-markdown.nvim =======================================================
 later(function() require('render-markdown').setup() end)
