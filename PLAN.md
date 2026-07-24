@@ -187,18 +187,18 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 5 — Agentflow dashboard (depends on provider bridge and stable protocol)
 
-- [ ] Add Agentflow's provider bridge without exposing `RunEngine` directly.
-- [ ] Render run list/detail, nodes, phases, tool calls, output, errors, usage/cost, sessions, and artifacts.
-- [ ] Stream coalesced snapshot updates.
-- [ ] Support cancel and steer with explicit confirmation/targeting where needed.
-- [ ] Verify dashboard state survives browser reconnect via a fresh provider snapshot.
+- [x] Add Agentflow's provider bridge without exposing `RunEngine` directly.
+- [x] Render run list/detail, nodes, phases, tool calls, output, errors, usage/cost, sessions, and artifacts.
+- [x] Stream coalesced snapshot updates.
+- [x] Support cancel and steer with explicit confirmation/targeting where needed.
+- [x] Verify dashboard state survives browser reconnect via a fresh provider snapshot.
 
 ### Phase 6 — background dashboard (can parallelize with Phase 5 after bridge stabilization)
 
-- [ ] Add background provider bridge using bounded serialized job DTOs.
-- [ ] Render running/recent jobs, elapsed time, output tail, terminal cause, delivery health, monitor counters, and artifact paths.
-- [ ] Support stop and bounded tail refresh.
-- [ ] Preserve existing completion/event delivery semantics and avoid consuming results merely by viewing them.
+- [x] Add background provider bridge using bounded serialized job DTOs.
+- [x] Render running/recent jobs, elapsed time, output tail, terminal cause, delivery health, monitor counters, and artifact paths.
+- [x] Support stop and bounded tail refresh.
+- [x] Preserve existing completion/event delivery semantics and avoid consuming results merely by viewing them.
 
 ### Phase 7 — remote hardening and release verification (depends on integrated UI)
 
