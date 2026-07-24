@@ -158,14 +158,14 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 3 — custom-tool-first web rendering (can run in parallel with late Phase 2 using fixtures)
 
-- [ ] Implement timeline shell and generic safe renderer.
-- [ ] Match compact `bash`, `edit`, and `write` information behavior first.
-- [ ] Add Agentflow tool adapters and semantic snapshot presentation.
-- [ ] Add background tool adapters and job status/detail presentation.
-- [ ] Add questionnaire result rendering.
-- [ ] Add remaining stock built-in renderers.
-- [ ] Add Markdown, selective syntax highlighting, images, expansion controls, and responsive phone layout.
-- [ ] Port relevant exporter and local renderer security/truncation fixtures.
+- [x] Implement timeline shell and generic safe renderer.
+- [x] Match compact `bash`, `edit`, and `write` information behavior first.
+- [x] Add Agentflow tool adapters and semantic snapshot presentation.
+- [x] Add background tool adapters and job status/detail presentation.
+- [x] Add questionnaire result rendering.
+- [x] Add remaining stock built-in renderers.
+- [x] Add Markdown, selective syntax highlighting, images, expansion controls, and responsive phone layout.
+- [x] Port relevant exporter and local renderer security/truncation fixtures.
 
 ### Phase 4 — boxed composer, controls, and session polish (depends on Phases 2–3)
 

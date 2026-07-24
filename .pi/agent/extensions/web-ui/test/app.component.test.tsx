@@ -6,9 +6,9 @@ import { App } from "../src/web/app.js";
 
 afterEach(cleanup);
 
-describe("web skeleton", () => {
-  it("mounts the session placeholder", () => {
+describe("web shell", () => {
+  it("mounts the session timeline shell", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Pi Web UI" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Session timeline" })).toBeTruthy();
   });
 });
