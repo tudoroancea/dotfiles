@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { ServerMessage } from "../shared/wire.js";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import type { CompletionItem, ServerMessage } from "../shared/wire.js";
 import { Composer, type ComposerMode } from "./components/Composer.js";
 import { Timeline } from "./components/Timeline.js";
 import { BrowserSessionStore, useBrowserSession } from "./session-store.js";
@@ -28,6 +28,7 @@ export function App() {
   const [message, setMessage] = useState("Authenticate with /copy-remote-url in Pi.");
   const [content, setContent] = useState("");
   const [mode, setMode] = useState<ComposerMode>("prompt");
+  const completionRequests = useRef(new Map<string, (items: CompletionItem[]) => void>());
 
   useEffect(() => {
     let active = true;
@@ -39,6 +40,12 @@ export function App() {
           (event) => {
             if (!active || typeof event !== "object" || event === null) return;
             const record = event as Record<string, unknown>;
+            if (record.type === "completion_result" && typeof record.commandId === "string") {
+              const resolve = completionRequests.current.get(record.commandId);
+              completionRequests.current.delete(record.commandId);
+              resolve?.(Array.isArray(record.items) ? (record.items as CompletionItem[]) : []);
+              return;
+            }
             if (record.type === "command_response") {
               setMessage(record.accepted ? "Command accepted" : String(record.error));
               return;
@@ -87,6 +94,26 @@ export function App() {
     setContent("");
     setMessage("Sending…");
   };
+
+  const requestCompletion = useCallback(
+    (completionKind: "slash" | "mention", query: string) => {
+      if (!session.generation || transport.current?.socket.readyState !== WebSocket.OPEN) {
+        return Promise.resolve([]);
+      }
+      return new Promise<CompletionItem[]>((resolve) => {
+        const id = transport.current!.send("complete", {
+          generation: session.generation,
+          completionKind,
+          query,
+        });
+        completionRequests.current.set(id, resolve);
+        window.setTimeout(() => {
+          if (completionRequests.current.delete(id)) resolve([]);
+        }, 5_000);
+      });
+    },
+    [session.generation, session.state?.metadata.cwd],
+  );
 
   const metadata = session.state?.metadata;
   const ready = connection === "open" && Boolean(session.generation);
@@ -142,6 +169,7 @@ export function App() {
         onContent={setContent}
         onMode={setMode}
         onSend={submit}
+        requestCompletion={requestCompletion}
         onAbort={() => {
           if (session.generation) {
             transport.current?.send("abort", { generation: session.generation });

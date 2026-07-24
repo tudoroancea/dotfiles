@@ -3,12 +3,14 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import { extname, resolve, sep } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteProvider } from "@earendil-works/pi-tui";
 import { WebSocket, WebSocketServer } from "ws";
 import { LIMITS } from "../shared/limits.js";
 import {
   PROTOCOL_VERSION,
   type ClientCommand,
   type CommandResponseMessage,
+  type CompletionResultMessage,
   type PongMessage,
   type ReadyMessage,
   type ServerMessage,
@@ -16,6 +18,7 @@ import {
 } from "../shared/wire.js";
 import { bearerCredential, StandaloneAuthentication, type StandalonePrincipal } from "./auth.js";
 import { ClientQueue } from "./client-queue.js";
+import { mentionCompletions, slashCompletions } from "./completion.js";
 import type { WebUiConfig } from "./config.js";
 import { parseClientCommand } from "./protocol.js";
 import { mergeStateUpdates, SessionStateStore } from "./state.js";
@@ -41,11 +44,12 @@ export interface WebUiRuntime {
 }
 
 export interface StartWebUiServerOptions {
-  pi: Pick<ExtensionAPI, "sendUserMessage" | "getActiveTools">;
+  pi: Pick<ExtensionAPI, "sendUserMessage" | "getActiveTools" | "getCommands">;
   context: ExtensionContext;
   config: WebUiConfig;
   assetRoot: string;
   generation: string;
+  autocompleteProvider?: AutocompleteProvider;
 }
 
 function contentSecurityPolicy(config: WebUiConfig): string {
@@ -104,7 +108,7 @@ function serialize(message: ServerMessage): string {
 }
 
 export async function startWebUiServer(options: StartWebUiServerOptions): Promise<WebUiRuntime> {
-  const { pi, context, config, assetRoot, generation } = options;
+  const { pi, context, config, assetRoot, generation, autocompleteProvider } = options;
   const store = new SessionStateStore(context, generation, pi.getActiveTools());
   const clients = new Map<WebSocket, ClientQueue>();
   let closed = false;
@@ -319,6 +323,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
     channel: ClientQueue,
     principal: StandalonePrincipal,
     command: ClientCommand,
+    startCompletion: (command: Extract<ClientCommand, { type: "complete" }>) => void,
   ): void {
     requireCurrentGeneration(command);
     if (!authentication.authorize(principal, command)) throw new Error("Command not authorized");
@@ -358,6 +363,10 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
         channel.enqueueSnapshot(snapshotSerialized(command.commandId));
         return;
       }
+      case "complete":
+        accepted(channel, command);
+        startCompletion(command);
+        return;
       case "ping": {
         accepted(channel, command);
         const pong: PongMessage = {
@@ -377,6 +386,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       websocket.terminate();
       return;
     }
+    let completionController: AbortController | undefined;
     const update = reconcile();
     if (update) scheduleUpdate(update);
     flushUpdate();
@@ -398,7 +408,32 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       let command: ClientCommand | undefined;
       try {
         command = parseClientCommand(data.toString());
-        handleCommand(channel, principal, command);
+        handleCommand(channel, principal, command, (completion) => {
+          completionController?.abort();
+          const controller = new AbortController();
+          completionController = controller;
+          void (async () => {
+            const items =
+              completion.completionKind === "slash"
+                ? slashCompletions(pi.getCommands(), completion.query)
+                : await mentionCompletions(
+                    autocompleteProvider,
+                    completion.query,
+                    controller.signal,
+                  );
+            if (controller.signal.aborted) return;
+            const response: CompletionResultMessage = {
+              type: "completion_result",
+              protocolVersion: PROTOCOL_VERSION,
+              generation,
+              commandId: completion.commandId,
+              completionKind: completion.completionKind,
+              query: completion.query,
+              items,
+            };
+            sendControl(channel, response);
+          })();
+        });
       } catch (error) {
         rejected(
           channel,
@@ -412,7 +447,10 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       clients.delete(websocket);
       channel.terminate();
     });
-    websocket.once("close", () => clients.delete(websocket));
+    websocket.once("close", () => {
+      completionController?.abort();
+      clients.delete(websocket);
+    });
   });
 
   await new Promise<void>((resolvePromise, rejectPromise) => {

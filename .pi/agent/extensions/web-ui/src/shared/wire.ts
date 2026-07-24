@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import { LIMITS } from "./limits.js";
 
-export const PROTOCOL_VERSION = 3 as const;
+export const PROTOCOL_VERSION = 4 as const;
 
 const RevisionSchema = Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
 const GenerationSchema = Type.String({ minLength: 1, maxLength: 128 });
@@ -159,6 +159,16 @@ export const ClientCommandSchema = Type.Union([
     { type: Type.Literal("ping"), commandId: CommandIdSchema },
     { additionalProperties: false },
   ),
+  Type.Object(
+    {
+      type: Type.Literal("complete"),
+      commandId: CommandIdSchema,
+      generation: GenerationSchema,
+      completionKind: Type.Union([Type.Literal("slash"), Type.Literal("mention")]),
+      query: Type.String({ maxLength: 512 }),
+    },
+    { additionalProperties: false },
+  ),
 ]);
 
 export const ReadyMessageSchema = Type.Object(
@@ -218,6 +228,29 @@ export const PongMessageSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const CompletionItemSchema = Type.Object(
+  {
+    value: Type.String({ maxLength: 1024 }),
+    label: Type.String({ maxLength: 512 }),
+    description: Type.Optional(Type.String({ maxLength: 1024 })),
+    source: Type.Optional(Type.String({ maxLength: 32 })),
+  },
+  { additionalProperties: false },
+);
+
+export const CompletionResultMessageSchema = Type.Object(
+  {
+    type: Type.Literal("completion_result"),
+    protocolVersion: ProtocolVersionSchema,
+    generation: GenerationSchema,
+    commandId: CommandIdSchema,
+    completionKind: Type.Union([Type.Literal("slash"), Type.Literal("mention")]),
+    query: Type.String({ maxLength: 512 }),
+    items: Type.Array(CompletionItemSchema, { maxItems: 20 }),
+  },
+  { additionalProperties: false },
+);
+
 export const ResyncRequiredMessageSchema = Type.Object(
   {
     type: Type.Literal("resync_required"),
@@ -235,6 +268,7 @@ export const ServerMessageSchema = Type.Union([
   StateUpdateMessageSchema,
   CommandResponseMessageSchema,
   PongMessageSchema,
+  CompletionResultMessageSchema,
   ResyncRequiredMessageSchema,
 ]);
 
@@ -252,5 +286,7 @@ export type SnapshotMessage = Static<typeof SnapshotMessageSchema>;
 export type StateUpdateMessage = Static<typeof StateUpdateMessageSchema>;
 export type CommandResponseMessage = Static<typeof CommandResponseMessageSchema>;
 export type PongMessage = Static<typeof PongMessageSchema>;
+export type CompletionItem = Static<typeof CompletionItemSchema>;
+export type CompletionResultMessage = Static<typeof CompletionResultMessageSchema>;
 export type ResyncRequiredMessage = Static<typeof ResyncRequiredMessageSchema>;
 export type ServerMessage = Static<typeof ServerMessageSchema>;

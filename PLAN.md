@@ -177,13 +177,13 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 4b — composer completion (separate milestone after core composer)
 
-- [ ] Add `/` completion from `pi.getCommands()` for extension commands, prompt templates, and skills that are actually invokable through web prompting; do not suggest TUI-only built-in commands.
-- [ ] Add `@` completion through the installed `@ff-labs/pi-fff` provider so web results retain FFF indexing, fuzzy/frecency/git-aware ranking, directory results, 20-result cap, and quoted-path insertion semantics; do not build a competing `node:fs` scanner.
-- [ ] Establish the smallest stable integration seam with pi-fff. Prefer a public/event-bus completion broker or exported singleton service that reuses its existing finder; the installed 0.10.1 package currently keeps `getMentionItems` and `createFffMentionProvider` private, so do not create a second native finder that could duplicate indexing or contend for FFF database locks.
-- [ ] Preserve cancellation/debouncing, authenticated request bounds, cwd/session-generation invalidation, and FFF's existing fallback behavior when its lookup is unavailable.
-- [ ] Implement keyboard and touch navigation, selection replacement, escape dismissal, active-descendant accessibility, and mobile popup positioning.
-- [ ] Refresh command candidates after reload/session replacement and invalidate path candidates when cwd/generation changes.
-- [ ] Keep completion as a lightweight custom popover around the native textarea; adopt a full editor dependency only if selection/replacement behavior proves insufficient.
+- [x] Add `/` completion from `pi.getCommands()` for extension commands, prompt templates, and skills that are actually invokable through web prompting; do not suggest TUI-only built-in commands.
+- [x] Add `@` completion through the installed `@ff-labs/pi-fff` provider so web results retain FFF indexing, fuzzy/frecency/git-aware ranking, directory results, 20-result cap, and quoted-path insertion semantics; do not build a competing `node:fs` scanner.
+- [x] Establish the smallest stable integration seam with pi-fff. Prefer a public/event-bus completion broker or exported singleton service that reuses its existing finder; the installed 0.10.1 package currently keeps `getMentionItems` and `createFffMentionProvider` private, so do not create a second native finder that could duplicate indexing or contend for FFF database locks.
+- [x] Preserve cancellation/debouncing, authenticated request bounds, cwd/session-generation invalidation, and FFF's existing fallback behavior when its lookup is unavailable.
+- [x] Implement keyboard and touch navigation, selection replacement, escape dismissal, active-descendant accessibility, and mobile popup positioning.
+- [x] Refresh command candidates after reload/session replacement and invalidate path candidates when cwd/generation changes.
+- [x] Keep completion as a lightweight custom popover around the native textarea; adopt a full editor dependency only if selection/replacement behavior proves insufficient.
 
 ### Phase 5 — Agentflow dashboard (depends on provider bridge and stable protocol)
 

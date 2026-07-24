@@ -31,6 +31,7 @@ describe("boxed composer", () => {
         onMode={vi.fn()}
         onSend={vi.fn()}
         onAbort={vi.fn()}
+        requestCompletion={async () => []}
       />,
     );
     expect(screen.getByText(/12,000 tok · 12%/)).toBeTruthy();
@@ -62,6 +63,7 @@ describe("boxed composer", () => {
         onMode={onMode}
         onSend={onSend}
         onAbort={onAbort}
+        requestCompletion={async () => []}
       />,
     );
     const select = screen.getByLabelText("Deliver as") as HTMLSelectElement;

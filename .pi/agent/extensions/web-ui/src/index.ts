@@ -5,7 +5,7 @@ import {
   type ExtensionAPI,
   type ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Text, type AutocompleteProvider } from "@earendil-works/pi-tui";
 import { readWebUiConfig } from "./server/config.js";
 import {
   startWebUiServer,
@@ -79,12 +79,18 @@ export function createWebUiExtension(
     pi.on("session_start", async (_event, context) => {
       if (context.mode !== "tui" && context.mode !== "rpc") return;
       if (runtime) await runtime.close();
+      let autocompleteProvider: AutocompleteProvider | undefined;
+      context.ui.addAutocompleteProvider?.((current) => {
+        autocompleteProvider = current;
+        return current;
+      });
       const started = await dependencies.startServer({
         pi,
         context,
         config: readWebUiConfig(),
         assetRoot: dependencies.assetRoot,
         generation: randomUUID(),
+        ...(autocompleteProvider ? { autocompleteProvider } : {}),
       });
       runtime = started;
       if (context.mode === "tui") {

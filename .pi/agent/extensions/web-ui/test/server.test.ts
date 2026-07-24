@@ -11,7 +11,11 @@ import { startWebUiServer, type WebUiRuntime } from "../src/server/server.js";
 const temporaryDirectories: string[] = [];
 const runtimes: WebUiRuntime[] = [];
 
-const controller = () => ({ sendUserMessage: vi.fn(), getActiveTools: () => [] });
+const controller = () => ({
+  sendUserMessage: vi.fn(),
+  getActiveTools: () => [],
+  getCommands: () => [],
+});
 const configuration = (port = 0) => ({ ...readWebUiConfig({}), port });
 
 afterEach(async () => {
@@ -87,7 +91,7 @@ describe("web UI server", () => {
     const health = await fetch(new URL("health", runtime.diagnosticUrl));
     expect(await health.json()).toEqual({
       status: "ok",
-      protocolVersion: 3,
+      protocolVersion: 4,
       generation: "generation-1",
       isIdle: true,
     });
@@ -123,7 +127,7 @@ describe("web UI server", () => {
     const session = context();
     const sendUserMessage = vi.fn();
     const runtime = await startWebUiServer({
-      pi: { sendUserMessage, getActiveTools: () => [] },
+      pi: { sendUserMessage, getActiveTools: () => [], getCommands: () => [] },
       context: session.value,
       config: configuration(),
       assetRoot: await assets(),

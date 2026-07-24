@@ -1,4 +1,7 @@
-import type { SessionMetadata } from "../../shared/wire.js";
+import { useEffect, useRef, useState } from "preact/hooks";
+import type { CompletionItem, SessionMetadata } from "../../shared/wire.js";
+import { applyCompletion, detectCompletion, type CompletionTarget } from "../completion.js";
+import { CompletionPopover } from "./CompletionPopover.js";
 import { shortenPath } from "../lib/text.js";
 
 export type ComposerMode = "prompt" | "steer" | "follow_up";
@@ -23,6 +26,7 @@ export function Composer({
   onMode,
   onSend,
   onAbort,
+  requestCompletion,
 }: {
   metadata?: SessionMetadata;
   sessionId?: string;
@@ -35,8 +39,68 @@ export function Composer({
   onMode: (mode: ComposerMode) => void;
   onSend: () => void;
   onAbort: () => void;
+  requestCompletion: (kind: "slash" | "mention", query: string) => Promise<CompletionItem[]>;
 }) {
   const model = metadata?.model;
+  const textarea = useRef<HTMLTextAreaElement | null>(null);
+  const [target, setTarget] = useState<CompletionTarget>();
+  const [items, setItems] = useState<CompletionItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [itemsTarget, setItemsTarget] = useState("");
+  const requestSequence = useRef(0);
+
+  const targetKey = (value: CompletionTarget | undefined) =>
+    value ? `${value.kind}:${value.start}:${value.end}:${value.query}` : "";
+
+  useEffect(() => {
+    const current = target;
+    const key = targetKey(current);
+    const sequence = ++requestSequence.current;
+    setItems([]);
+    setItemsTarget("");
+    if (!current || !connected) return;
+    const timer = window.setTimeout(() => {
+      void requestCompletion(current.kind, current.query)
+        .then((next) => {
+          if (requestSequence.current !== sequence) return;
+          setItems(next.slice(0, 20));
+          setItemsTarget(key);
+          setActiveIndex(0);
+        })
+        .catch(() => undefined);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [
+    target?.kind,
+    target?.query,
+    target?.start,
+    target?.end,
+    metadata?.cwd,
+    sessionId,
+    connected,
+    requestCompletion,
+  ]);
+
+  const refreshTarget = (value: string, cursor: number) => {
+    const next = detectCompletion(value, cursor);
+    if (targetKey(next) !== targetKey(target)) {
+      setItems([]);
+      setItemsTarget("");
+    }
+    setTarget(next);
+  };
+  const select = (item: CompletionItem) => {
+    if (!target || itemsTarget !== targetKey(target)) return;
+    const applied = applyCompletion(content, target, item);
+    onContent(applied.value);
+    setTarget(undefined);
+    setItems([]);
+    setItemsTarget("");
+    requestAnimationFrame(() => {
+      textarea.current?.focus();
+      textarea.current?.setSelectionRange(applied.cursor, applied.cursor);
+    });
+  };
   return (
     <footer class="composer">
       <p class="composer__notice" aria-live="polite">
@@ -66,14 +130,48 @@ export function Composer({
             </span>
           ) : null}
         </div>
-        <textarea
-          class="composer__input"
-          aria-label="Message"
-          rows={3}
-          value={content}
-          placeholder={running ? "Steer the running turn…" : "Send a prompt…"}
-          onInput={(event) => onContent(event.currentTarget.value)}
-        />
+        <div class="composer__editor">
+          <textarea
+            ref={textarea}
+            class="composer__input"
+            aria-label="Message"
+            aria-autocomplete="list"
+            aria-controls={items.length > 0 ? "composer-completions" : undefined}
+            aria-activedescendant={items.length > 0 ? `completion-${activeIndex}` : undefined}
+            rows={3}
+            value={content}
+            placeholder={running ? "Steer the running turn…" : "Send a prompt…"}
+            onClick={(event) =>
+              refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart)
+            }
+            onInput={(event) => {
+              onContent(event.currentTarget.value);
+              refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart);
+            }}
+            onKeyDown={(event) => {
+              if (items.length === 0) return;
+              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                const delta = event.key === "ArrowDown" ? 1 : -1;
+                setActiveIndex((activeIndex + delta + items.length) % items.length);
+              } else if (event.key === "Enter" || event.key === "Tab") {
+                event.preventDefault();
+                select(items[activeIndex]!);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                setTarget(undefined);
+                setItems([]);
+                setItemsTarget("");
+              }
+            }}
+          />
+          <CompletionPopover
+            items={items}
+            activeIndex={activeIndex}
+            onActive={setActiveIndex}
+            onSelect={select}
+          />
+        </div>
         <div class="composer__controls">
           <div class="composer__meta composer__meta--bottom">
             {metadata?.cwd ? (
