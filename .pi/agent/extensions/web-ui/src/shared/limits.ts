@@ -11,6 +11,8 @@ export const LIMITS = Object.freeze({
   connectedClients: 4,
   outboundMessagesPerClient: 256,
   outboundBytesPerClient: 16 * 1024 * 1024,
+  outboundSlowClientMs: 10_000,
+  stateCoalesceMs: 16,
   bootstrapCredentialTtlMs: 60_000,
 });
 

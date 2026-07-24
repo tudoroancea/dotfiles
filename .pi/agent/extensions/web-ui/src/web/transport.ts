@@ -1,3 +1,6 @@
+import { Check } from "typebox/value";
+import { ServerMessageSchema } from "../shared/wire.js";
+
 export type ConnectionState = "connecting" | "open" | "closed" | "unauthorized";
 
 export interface WebTransport {
@@ -9,6 +12,12 @@ export interface WebTransport {
 const RECONNECT_INITIAL_MS = 250;
 const RECONNECT_MAX_MS = 5_000;
 
+export function webSocketEndpoint(base: string | URL): URL {
+  const url = new URL("ws", base);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url;
+}
+
 function commandId(): string {
   return crypto.randomUUID();
 }
@@ -18,7 +27,7 @@ export async function exchangeBootstrapCredential(): Promise<boolean> {
   const credential = fragment.get("bootstrap");
   if (!credential) return false;
   history.replaceState(null, "", `${location.pathname}${location.search}`);
-  const response = await fetch("/api/bootstrap", {
+  const response = await fetch(new URL("api/bootstrap", document.baseURI), {
     method: "POST",
     credentials: "same-origin",
     headers: { Authorization: `Bearer ${credential}` },
@@ -31,8 +40,7 @@ export function connectWebSocket(
   onMessage: (message: unknown) => void,
   onState: (state: ConnectionState) => void,
 ): WebTransport {
-  const url = new URL("/ws", location.href);
-  url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const url = webSocketEndpoint(document.baseURI);
   let socket: WebSocket;
   let reconnectTimer: number | undefined;
   let reconnectAttempts = 0;
@@ -54,9 +62,11 @@ export function connectWebSocket(
     });
     socket.addEventListener("message", (event) => {
       try {
-        onMessage(JSON.parse(String(event.data)));
+        const message: unknown = JSON.parse(String(event.data));
+        if (!Check(ServerMessageSchema, message)) throw new Error("Invalid server message");
+        onMessage(message);
       } catch {
-        onMessage({ type: "transport_error", error: "Server sent invalid JSON" });
+        onMessage({ type: "transport_error", error: "Server sent an invalid message" });
       }
     });
   };

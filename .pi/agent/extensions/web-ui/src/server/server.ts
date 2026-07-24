@@ -5,21 +5,20 @@ import { extname, resolve, sep } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { WebSocket, WebSocketServer } from "ws";
 import { LIMITS } from "../shared/limits.js";
-import { bearerCredential, RunAuthentication } from "./auth.js";
+import {
+  PROTOCOL_VERSION,
+  type ClientCommand,
+  type CommandResponseMessage,
+  type PongMessage,
+  type ReadyMessage,
+  type ServerMessage,
+  type StateUpdateMessage,
+} from "../shared/wire.js";
+import { bearerCredential, StandaloneAuthentication, type StandalonePrincipal } from "./auth.js";
+import { ClientQueue } from "./client-queue.js";
 import type { WebUiConfig } from "./config.js";
-import { parseClientCommand, type ClientCommand } from "./protocol.js";
-
-const CSP = [
-  "default-src 'none'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data: blob:",
-  "connect-src 'self'",
-  "font-src 'self'",
-  "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'",
-].join("; ");
+import { parseClientCommand } from "./protocol.js";
+import { mergeStateUpdates, SessionStateStore } from "./state.js";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -37,31 +36,51 @@ export interface WebUiRuntime {
   readonly generation: string;
   createBootstrapUrl(): string;
   broadcast(type: string, payload: unknown): void;
+  reconcile(settled?: boolean): void;
   close(): Promise<void>;
 }
 
 export interface StartWebUiServerOptions {
-  pi: Pick<ExtensionAPI, "sendUserMessage">;
+  pi: Pick<ExtensionAPI, "sendUserMessage" | "getActiveTools">;
   context: ExtensionContext;
   config: WebUiConfig;
   assetRoot: string;
   generation: string;
 }
 
-function securityHeaders(response: ServerResponse): void {
+function contentSecurityPolicy(config: WebUiConfig): string {
+  return [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "font-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    `frame-ancestors ${config.framing.frameAncestors.join(" ")}`,
+  ].join("; ");
+}
+
+function securityHeaders(response: ServerResponse, config: WebUiConfig): void {
   response.setHeader("Cache-Control", "no-store");
-  response.setHeader("Content-Security-Policy", CSP);
+  response.setHeader("Content-Security-Policy", contentSecurityPolicy(config));
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("X-Frame-Options", "DENY");
+  const frameAncestors = config.framing.frameAncestors;
+  if (frameAncestors.length === 1 && frameAncestors[0] === "'none'") {
+    response.setHeader("X-Frame-Options", "DENY");
+  } else if (frameAncestors.length === 1 && frameAncestors[0] === "'self'") {
+    response.setHeader("X-Frame-Options", "SAMEORIGIN");
+  }
 }
 
-function json(response: ServerResponse, status: number, value: unknown): void {
-  securityHeaders(response);
+function json(response: ServerResponse, config: WebUiConfig, status: number, value: unknown): void {
+  securityHeaders(response, config);
   response.statusCode = status;
   response.setHeader("Content-Type", CONTENT_TYPES[".json"]!);
-  response.end(JSON.stringify(value));
+  response.end(value === undefined ? undefined : JSON.stringify(value));
 }
 
 function originAllowed(request: IncomingMessage, origins: ReadonlySet<string>): boolean {
@@ -69,49 +88,74 @@ function originAllowed(request: IncomingMessage, origins: ReadonlySet<string>): 
   return origin !== undefined && origins.has(origin);
 }
 
-function loopbackUrl(host: string, port: number): URL {
-  const displayHost = host === "::1" ? "[::1]" : host === "127.0.0.1" ? host : "127.0.0.1";
+export function listenerOrigin(host: string, port: number): URL {
+  const usableHost = host === "0.0.0.0" ? "127.0.0.1" : host === "::" ? "::1" : host;
+  const displayHost = usableHost.includes(":") ? `[${usableHost}]` : usableHost;
   return new URL(`http://${displayHost}:${port}/`);
 }
 
-function snapshot(context: ExtensionContext, generation: string) {
-  const usage = context.getContextUsage();
-  return {
-    protocolVersion: 1,
-    generation,
-    sessionId: context.sessionManager.getSessionId(),
-    cwd: context.cwd,
-    isIdle: context.isIdle(),
-    model: context.model
-      ? { provider: context.model.provider, id: context.model.id, name: context.model.name }
-      : undefined,
-    thinkingLevel: context.thinkingLevel,
-    contextUsage: usage
-      ? { tokens: usage.tokens, contextWindow: usage.contextWindow, percent: usage.percent }
-      : undefined,
-  };
+function routeWithinBase(pathname: string, basePath: string): string | undefined {
+  if (!pathname.startsWith(basePath)) return undefined;
+  return pathname.slice(basePath.length);
 }
 
-function commandName(command: ClientCommand): string {
-  return command.type;
+function serialize(message: ServerMessage): string {
+  return JSON.stringify(message);
 }
 
 export async function startWebUiServer(options: StartWebUiServerOptions): Promise<WebUiRuntime> {
   const { pi, context, config, assetRoot, generation } = options;
-  const authentication = new RunAuthentication();
-  const clients = new Set<WebSocket>();
+  const store = new SessionStateStore(context, generation, pi.getActiveTools());
+  const clients = new Map<WebSocket, ClientQueue>();
   let closed = false;
   let closePromise: Promise<void> | undefined;
-  let diagnosticUrl = new URL("http://127.0.0.1/");
+  let coalesceTimer: NodeJS.Timeout | undefined;
+  let pendingUpdate: StateUpdateMessage | undefined;
+  let promptAdmission = false;
+  let diagnosticUrl = new URL(config.basePath, "http://127.0.0.1/");
   let canonicalUrl = new URL(diagnosticUrl);
   let allowedOrigins = new Set<string>();
+  let authentication: StandaloneAuthentication;
+
+  const snapshotSerialized = (commandId?: string) => serialize(store.snapshot(commandId));
+
+  function flushUpdate(): void {
+    if (coalesceTimer) clearTimeout(coalesceTimer);
+    coalesceTimer = undefined;
+    const update = pendingUpdate;
+    pendingUpdate = undefined;
+    if (!update || closed) return;
+    const serialized = serialize(update);
+    for (const channel of clients.values()) channel.enqueueState(serialized);
+  }
+
+  function scheduleUpdate(update: StateUpdateMessage | undefined): void {
+    if (!update || closed) return;
+    pendingUpdate = pendingUpdate ? mergeStateUpdates(pendingUpdate, update) : update;
+    if (coalesceTimer) return;
+    coalesceTimer = setTimeout(flushUpdate, LIMITS.stateCoalesceMs);
+    coalesceTimer.unref?.();
+  }
+
+  function snapshotBarrier(): void {
+    if (coalesceTimer) clearTimeout(coalesceTimer);
+    coalesceTimer = undefined;
+    pendingUpdate = undefined;
+    const serialized = snapshotSerialized();
+    for (const channel of clients.values()) channel.enqueueSnapshot(serialized);
+  }
+
+  function reconcile(settled = false): StateUpdateMessage | undefined {
+    return store.reconcile(context, { settled, activeTools: pi.getActiveTools() });
+  }
 
   const server = createServer({ maxHeaderSize: LIMITS.httpHeaderBytes }, (request, response) => {
     void handleRequest(request, response).catch(() => {
-      if (!response.headersSent) json(response, 500, { error: "Internal server error" });
+      if (!response.headersSent) json(response, config, 500, { error: "Internal server error" });
       else response.destroy();
     });
   });
+  const websocketPrincipals = new WeakMap<WebSocket, StandalonePrincipal>();
   const websocketServer = new WebSocketServer({
     noServer: true,
     maxPayload: LIMITS.incomingWebSocketBytes,
@@ -119,49 +163,68 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
   });
 
   async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    const url = new URL(request.url ?? "/", diagnosticUrl);
-    if (request.method === "GET" && url.pathname === "/health") {
-      json(response, 200, { status: "ok", protocolVersion: 1 });
+    const url = new URL(request.url ?? config.basePath, diagnosticUrl);
+    const route = routeWithinBase(url.pathname, config.basePath);
+    if (route === undefined) {
+      json(response, config, 404, { error: "Not found" });
       return;
     }
-    if (request.method === "POST" && url.pathname === "/api/bootstrap") {
+    if (request.method === "GET" && route === "health") {
+      json(response, config, 200, {
+        status: "ok",
+        protocolVersion: PROTOCOL_VERSION,
+        generation,
+        isIdle: context.isIdle(),
+      });
+      return;
+    }
+    if (request.method === "POST" && route === "api/bootstrap") {
       if (!originAllowed(request, allowedOrigins)) {
-        json(response, 403, { error: "Origin rejected" });
+        json(response, config, 403, { error: "Origin rejected" });
         return;
       }
       const credential = bearerCredential(request);
       if (!credential || !authentication.exchangeBootstrap(credential)) {
-        json(response, 401, { error: "Invalid or expired bootstrap credential" });
+        json(response, config, 401, { error: "Invalid or expired bootstrap credential" });
         return;
       }
-      authentication.setSessionCookie(response, canonicalUrl.protocol === "https:");
-      json(response, 204, undefined);
+      authentication.setSessionCookie(response);
+      json(response, config, 204, undefined);
       return;
     }
-    if (request.method === "GET" && url.pathname === "/api/snapshot") {
-      if (!authentication.authenticate(request)) {
-        json(response, 401, { error: "Authentication required" });
+    if (request.method === "GET" && route === "api/snapshot") {
+      const auth = authentication.authenticateHttp(request);
+      if (!auth.ok) {
+        json(response, config, auth.status, { error: auth.message });
         return;
       }
-      json(response, 200, snapshot(context, generation));
+      const update = reconcile();
+      if (update) scheduleUpdate(update);
+      flushUpdate();
+      json(response, config, 200, store.snapshot());
       return;
     }
     if (request.method !== "GET") {
-      json(response, 405, { error: "Method not allowed" });
+      json(response, config, 405, { error: "Method not allowed" });
       return;
     }
 
-    const relativePath =
-      url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname.slice(1));
+    let relativePath: string;
+    try {
+      relativePath = route === "" ? "index.html" : decodeURIComponent(route);
+    } catch {
+      json(response, config, 404, { error: "Not found" });
+      return;
+    }
     const root = resolve(assetRoot);
     const filePath = resolve(root, relativePath);
     if (filePath !== root && !filePath.startsWith(`${root}${sep}`)) {
-      json(response, 404, { error: "Not found" });
+      json(response, config, 404, { error: "Not found" });
       return;
     }
     try {
       const content = await readFile(filePath);
-      securityHeaders(response);
+      securityHeaders(response, config);
       response.statusCode = 200;
       response.setHeader(
         "Content-Type",
@@ -169,7 +232,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       );
       response.end(content);
     } catch {
-      json(response, 404, { error: "Not found" });
+      json(response, config, 404, { error: "Not found" });
     }
   }
 
@@ -184,8 +247,8 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
   }
 
   server.on("upgrade", (request, socket, head) => {
-    const url = new URL(request.url ?? "/", diagnosticUrl);
-    if (url.pathname !== "/ws") {
+    const url = new URL(request.url ?? config.basePath, diagnosticUrl);
+    if (routeWithinBase(url.pathname, config.basePath) !== "ws") {
       rejectUpgrade(socket, 404, "Not Found");
       return;
     }
@@ -193,8 +256,9 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       rejectUpgrade(socket, 403, "Forbidden");
       return;
     }
-    if (!authentication.authenticate(request)) {
-      rejectUpgrade(socket, 401, "Unauthorized");
+    const auth = authentication.authenticateWebSocket(request);
+    if (!auth.ok) {
+      rejectUpgrade(socket, auth.status, auth.message);
       return;
     }
     if (clients.size >= LIMITS.connectedClients) {
@@ -202,102 +266,142 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       return;
     }
     websocketServer.handleUpgrade(request, socket, head, (websocket) => {
+      websocketPrincipals.set(websocket, auth.principal);
       websocketServer.emit("connection", websocket, request);
     });
   });
 
-  function send(websocket: WebSocket, value: unknown): void {
-    if (websocket.readyState !== WebSocket.OPEN) return;
-    const serialized = JSON.stringify(value);
-    if (
-      Buffer.byteLength(serialized) > LIMITS.outboundMessageBytes ||
-      websocket.bufferedAmount + Buffer.byteLength(serialized) > LIMITS.outboundBytesPerClient
-    ) {
-      websocket.close(1013, "Client is too slow");
-      return;
-    }
-    websocket.send(serialized);
+  function sendControl(channel: ClientQueue, message: ServerMessage): void {
+    channel.enqueueControl(serialize(message));
   }
 
-  function sendSnapshot(websocket: WebSocket, commandId?: string): void {
-    send(websocket, {
-      type: "snapshot",
-      ...(commandId ? { commandId } : {}),
-      snapshot: snapshot(context, generation),
-    });
-  }
-
-  function accepted(websocket: WebSocket, command: ClientCommand): void {
-    send(websocket, {
+  function accepted(channel: ClientQueue, command: ClientCommand): void {
+    const message: CommandResponseMessage = {
       type: "command_response",
+      protocolVersion: PROTOCOL_VERSION,
+      generation,
       commandId: command.commandId,
-      command: commandName(command),
+      command: command.type,
       accepted: true,
-    });
+    };
+    sendControl(channel, message);
   }
 
   function rejected(
-    websocket: WebSocket,
+    channel: ClientQueue,
     commandId: string | undefined,
     command: string | undefined,
     error: string,
   ): void {
-    send(websocket, {
+    const message: CommandResponseMessage = {
       type: "command_response",
+      protocolVersion: PROTOCOL_VERSION,
+      generation,
       ...(commandId ? { commandId } : {}),
       ...(command ? { command } : {}),
       accepted: false,
       error,
-    });
+    };
+    sendControl(channel, message);
   }
 
-  function handleCommand(websocket: WebSocket, command: ClientCommand): void {
+  function requireCurrentGeneration(command: ClientCommand): void {
+    if (
+      "generation" in command &&
+      command.generation !== undefined &&
+      command.generation !== generation
+    ) {
+      throw new Error("Stale session generation; request a fresh snapshot");
+    }
+  }
+
+  function handleCommand(
+    channel: ClientQueue,
+    principal: StandalonePrincipal,
+    command: ClientCommand,
+  ): void {
+    requireCurrentGeneration(command);
+    if (!authentication.authorize(principal, command)) throw new Error("Command not authorized");
     switch (command.type) {
       case "prompt":
-        if (!context.isIdle()) throw new Error("Pi is busy; choose steer or follow-up explicitly");
-        pi.sendUserMessage(command.content);
-        accepted(websocket, command);
+        if (promptAdmission || !context.isIdle()) {
+          throw new Error("Pi is busy; choose steer or follow-up explicitly");
+        }
+        promptAdmission = true;
+        try {
+          pi.sendUserMessage(command.content);
+        } catch (error) {
+          promptAdmission = false;
+          throw error;
+        }
+        accepted(channel, command);
         return;
       case "steer":
         if (context.isIdle()) throw new Error("Pi is idle; send a prompt instead");
         pi.sendUserMessage(command.content, { deliverAs: "steer" });
-        accepted(websocket, command);
+        accepted(channel, command);
         return;
       case "follow_up":
         if (context.isIdle()) throw new Error("Pi is idle; send a prompt instead");
         pi.sendUserMessage(command.content, { deliverAs: "followUp" });
-        accepted(websocket, command);
+        accepted(channel, command);
         return;
       case "abort":
         context.abort();
-        accepted(websocket, command);
+        accepted(channel, command);
         return;
-      case "snapshot":
-        accepted(websocket, command);
-        sendSnapshot(websocket, command.commandId);
+      case "snapshot": {
+        const update = reconcile();
+        if (update) scheduleUpdate(update);
+        flushUpdate();
+        accepted(channel, command);
+        channel.enqueueSnapshot(snapshotSerialized(command.commandId));
         return;
-      case "ping":
-        accepted(websocket, command);
-        send(websocket, { type: "pong", commandId: command.commandId });
+      }
+      case "ping": {
+        accepted(channel, command);
+        const pong: PongMessage = {
+          type: "pong",
+          protocolVersion: PROTOCOL_VERSION,
+          generation,
+          commandId: command.commandId,
+        };
+        sendControl(channel, pong);
+      }
     }
   }
 
   websocketServer.on("connection", (websocket) => {
-    clients.add(websocket);
-    send(websocket, { type: "ready", protocolVersion: 1, generation });
-    sendSnapshot(websocket);
+    const principal = websocketPrincipals.get(websocket);
+    if (!principal) {
+      websocket.terminate();
+      return;
+    }
+    const update = reconcile();
+    if (update) scheduleUpdate(update);
+    flushUpdate();
+    const channel = new ClientQueue(websocket, () => snapshotSerialized());
+    clients.set(websocket, channel);
+    const ready: ReadyMessage = {
+      type: "ready",
+      protocolVersion: PROTOCOL_VERSION,
+      generation,
+      revision: store.revision,
+    };
+    sendControl(channel, ready);
+    channel.enqueueSnapshot();
     websocket.on("message", (data, isBinary) => {
       if (isBinary) {
-        rejected(websocket, undefined, undefined, "Binary commands are not supported");
+        rejected(channel, undefined, undefined, "Binary commands are not supported");
         return;
       }
       let command: ClientCommand | undefined;
       try {
         command = parseClientCommand(data.toString());
-        handleCommand(websocket, command);
+        handleCommand(channel, principal, command);
       } catch (error) {
         rejected(
-          websocket,
+          channel,
           command?.commandId,
           command?.type,
           error instanceof Error ? error.message : "Command failed",
@@ -306,7 +410,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
     });
     websocket.on("error", () => {
       clients.delete(websocket);
-      websocket.terminate();
+      channel.terminate();
     });
     websocket.once("close", () => clients.delete(websocket));
   });
@@ -314,12 +418,18 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
   await new Promise<void>((resolvePromise, rejectPromise) => {
     const onError = (error: Error) => rejectPromise(error);
     server.once("error", onError);
-    server.listen(config.port, config.host, () => {
+    server.listen(config.port, config.bindHost, () => {
       server.off("error", onError);
       const address = server.address() as AddressInfo;
-      diagnosticUrl = loopbackUrl(config.host, address.port);
-      canonicalUrl = config.remoteUrl ? new URL(config.remoteUrl) : new URL(diagnosticUrl);
-      allowedOrigins = new Set([diagnosticUrl.origin, canonicalUrl.origin]);
+      const internalOrigin = listenerOrigin(config.bindHost, address.port);
+      diagnosticUrl = new URL(config.basePath, internalOrigin);
+      canonicalUrl = config.publicUrl ? new URL(config.publicUrl) : new URL(diagnosticUrl);
+      allowedOrigins = new Set(config.allowedOrigins);
+      allowedOrigins.add(canonicalUrl.origin);
+      authentication = new StandaloneAuthentication(
+        config.basePath,
+        canonicalUrl.protocol === "https:",
+      );
       resolvePromise();
     });
   }).catch(async (error) => {
@@ -339,33 +449,74 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
     },
     broadcast(type, payload) {
       if (closed) return;
-      let message: unknown = { type: "event", event: type, payload };
-      try {
-        const bytes = Buffer.byteLength(JSON.stringify(message));
-        if (bytes > LIMITS.outboundMessageBytes) {
-          message = { type: "resync_required", reason: "Event exceeded the transport limit" };
-        }
-      } catch {
-        message = { type: "resync_required", reason: "Event was not serializable" };
+      let update: StateUpdateMessage | undefined;
+      switch (type) {
+        case "agent_start":
+          promptAdmission = false;
+          update = store.agentStart();
+          break;
+        case "message_start":
+          update = store.messageStart((payload as { message?: unknown }).message);
+          break;
+        case "message_update":
+          update = store.messageUpdate((payload as { message?: unknown }).message);
+          break;
+        case "message_end":
+          update = store.messageEnd((payload as { message?: unknown }).message);
+          break;
+        case "tool_execution_start":
+          update = store.toolStart(payload as never);
+          break;
+        case "tool_execution_update":
+          update = store.toolUpdate(payload as never);
+          break;
+        case "tool_execution_end":
+          update = store.toolEnd(payload as never);
+          break;
+        case "model_select":
+        case "thinking_level_select":
+          update = store.updateMetadata(context, pi.getActiveTools());
+          break;
+        case "agent_settled":
+          promptAdmission = false;
+          store.reconcile(context, { settled: true, activeTools: pi.getActiveTools() });
+          snapshotBarrier();
+          return;
+        case "session_tree":
+        case "session_compact":
+        case "session_info_changed":
+          store.reconcile(context, { activeTools: pi.getActiveTools() });
+          snapshotBarrier();
+          return;
+        default:
+          return;
       }
-      for (const client of clients) send(client, message);
+      scheduleUpdate(update);
+    },
+    reconcile(settled = false) {
+      const update = reconcile(settled);
+      if (update) scheduleUpdate(update);
     },
     close() {
       closePromise ??= (async () => {
         closed = true;
+        if (coalesceTimer) clearTimeout(coalesceTimer);
+        coalesceTimer = undefined;
+        pendingUpdate = undefined;
+        const serverClosed = new Promise<void>((resolvePromise) => {
+          server.close(() => resolvePromise());
+          server.closeIdleConnections();
+        });
         authentication.clear();
-        for (const client of clients) {
-          client.close(1001, "Session shutting down");
-          client.terminate();
+        for (const channel of clients.values()) {
+          channel.close(1001, "Session shutting down");
+          channel.websocket.terminate();
         }
         clients.clear();
         await new Promise<void>((resolvePromise) => {
           websocketServer.close(() => resolvePromise());
         });
-        await new Promise<void>((resolvePromise) => {
-          server.close(() => resolvePromise());
-          server.closeIdleConnections();
-        });
+        await serverClosed;
       })();
       return closePromise;
     },

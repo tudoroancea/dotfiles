@@ -1,8 +1,32 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { LIMITS } from "../shared/limits.js";
+import type { ClientCommand } from "../shared/wire.js";
 
 const COOKIE_PREFIX = "pi_web_ui_";
+
+export interface StandalonePrincipal {
+  kind: "standalone-controller";
+}
+
+export interface AuthFailure {
+  ok: false;
+  status: 401 | 403;
+  message: string;
+}
+
+export interface AuthSuccess {
+  ok: true;
+  principal: StandalonePrincipal;
+}
+
+export type AuthResult = AuthSuccess | AuthFailure;
+
+export interface AuthenticationProvider {
+  authenticateHttp(request: IncomingMessage): AuthResult;
+  authenticateWebSocket(request: IncomingMessage): AuthResult;
+  authorize(principal: StandalonePrincipal, command: ClientCommand): boolean;
+}
 
 function token(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
@@ -28,10 +52,15 @@ function parseCookies(header: string | undefined): Map<string, string> {
   return cookies;
 }
 
-export class RunAuthentication {
+export class StandaloneAuthentication implements AuthenticationProvider {
   readonly sessionToken = token();
   readonly cookieName = `${COOKIE_PREFIX}${token(9)}`;
   private readonly bootstrapDigests = new Map<string, number>();
+
+  constructor(
+    private readonly cookiePath: string,
+    private readonly secureCookie: boolean,
+  ) {}
 
   issueBootstrap(now = Date.now()): string {
     this.prune(now);
@@ -52,20 +81,34 @@ export class RunAuthentication {
     return true;
   }
 
-  authenticate(request: IncomingMessage): boolean {
-    const candidate = parseCookies(request.headers.cookie).get(this.cookieName);
-    return candidate !== undefined && equals(candidate, this.sessionToken);
+  authenticateHttp(request: IncomingMessage): AuthResult {
+    return this.authenticate(request);
   }
 
-  setSessionCookie(response: ServerResponse, secure: boolean): void {
+  authenticateWebSocket(request: IncomingMessage): AuthResult {
+    return this.authenticate(request);
+  }
+
+  authorize(_principal: StandalonePrincipal, _command: ClientCommand): boolean {
+    return true;
+  }
+
+  setSessionCookie(response: ServerResponse): void {
     response.setHeader(
       "Set-Cookie",
-      `${this.cookieName}=${this.sessionToken}; HttpOnly; SameSite=Strict; Path=/${secure ? "; Secure" : ""}`,
+      `${this.cookieName}=${this.sessionToken}; HttpOnly; SameSite=Strict; Path=${this.cookiePath}${this.secureCookie ? "; Secure" : ""}`,
     );
   }
 
   clear(): void {
     this.bootstrapDigests.clear();
+  }
+
+  private authenticate(request: IncomingMessage): AuthResult {
+    const candidate = parseCookies(request.headers.cookie).get(this.cookieName);
+    return candidate !== undefined && equals(candidate, this.sessionToken)
+      ? { ok: true, principal: { kind: "standalone-controller" } }
+      : { ok: false, status: 401, message: "Authentication required" };
   }
 
   private prune(now: number): void {

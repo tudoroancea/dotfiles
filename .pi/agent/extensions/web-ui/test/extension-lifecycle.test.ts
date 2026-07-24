@@ -18,6 +18,7 @@ function fakeRuntime(id: string): WebUiRuntime {
     generation: id,
     createBootstrapUrl: () => `https://pi.example/${id}#bootstrap=secret-${id}`,
     broadcast: vi.fn(),
+    reconcile: vi.fn(),
     close: vi.fn(async () => undefined),
   };
 }
@@ -103,6 +104,7 @@ describe("extension lifecycle", () => {
         theme,
       ),
     ).toBeDefined();
+    expect(tuiRuntime.reconcile).toHaveBeenCalledOnce();
     expect(writeStderr).not.toHaveBeenCalled();
 
     await emit(handlers, "session_shutdown", { reason: "reload" }, context("tui"));

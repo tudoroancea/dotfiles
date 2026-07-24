@@ -6,10 +6,22 @@ describe("client command validation", () => {
   it("accepts explicit prompt delivery modes and controls", () => {
     for (const type of ["prompt", "steer", "follow_up"] as const) {
       expect(
-        parseClientCommand(JSON.stringify({ type, commandId: `${type}-1`, content: "hello" })),
+        parseClientCommand(
+          JSON.stringify({
+            type,
+            commandId: `${type}-1`,
+            generation: "generation-1",
+            content: "hello",
+          }),
+        ),
       ).toMatchObject({ type, content: "hello" });
     }
-    for (const type of ["abort", "snapshot", "ping"] as const) {
+    expect(
+      parseClientCommand(
+        JSON.stringify({ type: "abort", commandId: "abort-1", generation: "generation-1" }),
+      ),
+    ).toMatchObject({ type: "abort" });
+    for (const type of ["snapshot", "ping"] as const) {
       expect(parseClientCommand(JSON.stringify({ type, commandId: `${type}-1` }))).toMatchObject({
         type,
       });
@@ -26,9 +38,29 @@ describe("client command validation", () => {
         JSON.stringify({
           type: "prompt",
           commandId: "1",
+          generation: "generation-1",
           content: "é".repeat(LIMITS.promptUtf8Bytes),
         }),
       ),
     ).toThrow("UTF-8 byte limit");
+    expect(() =>
+      parseClientCommand(
+        JSON.stringify({
+          type: "abort",
+          commandId: "é".repeat(LIMITS.commandIdUtf8Bytes),
+          generation: "generation-1",
+        }),
+      ),
+    ).toThrow("Command ID exceeds the UTF-8 byte limit");
+    expect(
+      parseClientCommand(
+        JSON.stringify({
+          type: "prompt",
+          commandId: "é".repeat(LIMITS.commandIdUtf8Bytes / 2),
+          generation: "generation-1",
+          content: "é".repeat(LIMITS.promptUtf8Bytes / 2),
+        }),
+      ),
+    ).toMatchObject({ type: "prompt" });
   });
 });

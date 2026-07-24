@@ -93,12 +93,14 @@ export function createWebUiExtension(
           url: started.canonicalUrl,
           generation: started.generation,
         });
+        started.reconcile();
       } else {
         activeGeneration = started.generation;
         dependencies.writeStderr(`Pi Web UI: ${started.diagnosticUrl}\n`);
       }
     });
 
+    pi.on("message_start", (event) => runtime?.broadcast("message_start", event));
     pi.on("message_update", (event) => runtime?.broadcast("message_update", event));
     pi.on("message_end", (event) => runtime?.broadcast("message_end", event));
     pi.on("tool_execution_start", (event) => runtime?.broadcast("tool_execution_start", event));
@@ -108,6 +110,9 @@ export function createWebUiExtension(
     pi.on("agent_settled", (event) => runtime?.broadcast("agent_settled", event));
     pi.on("model_select", (event) => runtime?.broadcast("model_select", event));
     pi.on("thinking_level_select", (event) => runtime?.broadcast("thinking_level_select", event));
+    pi.on("session_tree", (event) => runtime?.broadcast("session_tree", event));
+    pi.on("session_compact", (event) => runtime?.broadcast("session_compact", event));
+    pi.on("session_info_changed", (event) => runtime?.broadcast("session_info_changed", event));
 
     pi.on("session_shutdown", async () => {
       const active = runtime;

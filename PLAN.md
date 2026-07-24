@@ -9,6 +9,7 @@ The extension must remain compatible with the custom Pi 0.82 setup, TUI and RPC 
 ## Sources and constraints
 
 - `WEB_UI_EXTENSION.md`: target behavior, lifecycle, protocol, security, and reconnection model.
+- `ADDITIONAL_DETAILS.md`: future daemon boundary, base-path/proxy compatibility, centralized runtime configuration, and authentication seams that this session-scoped extension must preserve.
 - Pi extension docs: `/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md`.
 - Pi RPC docs: `/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/rpc.md`.
 - Pi session format: `/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/session-format.md`.
@@ -148,12 +149,12 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 2 — versioned session protocol and state (depends on Phase 1)
 
-- [ ] Define extension-owned TypeBox wire schemas and inferred TypeScript DTOs.
-- [ ] Implement generation/revision sequencing and command IDs.
-- [ ] Keep persisted branch entries separate from partial assistant and running-tool state.
-- [ ] Treat tool updates as accumulated replacement state, correlated by `toolCallId`.
-- [ ] Reconcile from `SessionManager` at `agent_settled` and on reconnect/missed revision.
-- [ ] Add bounded outbound queues, update coalescing, client caps, and slow-client disconnects.
+- [x] Define extension-owned TypeBox wire schemas and inferred TypeScript DTOs.
+- [x] Implement generation/revision sequencing and command IDs.
+- [x] Keep persisted branch entries separate from partial assistant and running-tool state.
+- [x] Treat tool updates as accumulated replacement state, correlated by `toolCallId`.
+- [x] Reconcile from `SessionManager` at `agent_settled` and on reconnect/missed revision.
+- [x] Add bounded outbound queues, update coalescing, client caps, and slow-client disconnects.
 
 ### Phase 3 — custom-tool-first web rendering (can run in parallel with late Phase 2 using fixtures)
 

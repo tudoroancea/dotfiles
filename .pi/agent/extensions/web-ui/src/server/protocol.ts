@@ -1,28 +1,14 @@
-import { Type, type Static } from "typebox";
+import { Buffer } from "node:buffer";
 import { Check } from "typebox/value";
 import { LIMITS } from "../shared/limits.js";
+import { ClientCommandSchema, type ClientCommand } from "../shared/wire.js";
 
-const commandId = Type.String({ minLength: 1, maxLength: LIMITS.commandIdUtf8Bytes });
-const content = Type.String({ minLength: 1, maxLength: LIMITS.promptUtf8Bytes });
-
-export const ClientCommandSchema = Type.Union([
-  Type.Object(
-    { type: Type.Literal("prompt"), commandId, content },
-    { additionalProperties: false },
-  ),
-  Type.Object({ type: Type.Literal("steer"), commandId, content }, { additionalProperties: false }),
-  Type.Object(
-    { type: Type.Literal("follow_up"), commandId, content },
-    { additionalProperties: false },
-  ),
-  Type.Object({ type: Type.Literal("abort"), commandId }, { additionalProperties: false }),
-  Type.Object({ type: Type.Literal("snapshot"), commandId }, { additionalProperties: false }),
-  Type.Object({ type: Type.Literal("ping"), commandId }, { additionalProperties: false }),
-]);
-
-export type ClientCommand = Static<typeof ClientCommandSchema>;
+export { ClientCommandSchema, type ClientCommand } from "../shared/wire.js";
 
 export function parseClientCommand(value: string): ClientCommand {
+  if (Buffer.byteLength(value, "utf8") > LIMITS.incomingWebSocketBytes) {
+    throw new Error("Command exceeds the WebSocket byte limit");
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);

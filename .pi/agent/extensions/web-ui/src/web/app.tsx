@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import type { ServerMessage } from "../shared/wire.js";
+import { BrowserSessionStore, useBrowserSession } from "./session-store.js";
 import {
   connectWebSocket,
   exchangeBootstrapCredential,
@@ -11,6 +13,8 @@ type SendMode = "prompt" | "steer" | "follow_up";
 
 export function App() {
   const transport = useRef<WebTransport>();
+  const sessionStore = useRef(new BrowserSessionStore()).current;
+  const session = useBrowserSession(sessionStore);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [message, setMessage] = useState("Authenticate with /copy-remote-url in Pi.");
   const [content, setContent] = useState("");
@@ -28,9 +32,15 @@ export function App() {
             const record = event as Record<string, unknown>;
             if (record.type === "command_response") {
               setMessage(record.accepted ? "Command accepted" : String(record.error));
-            } else if (record.type === "snapshot") {
-              const snapshot = record.snapshot as { isIdle?: boolean } | undefined;
-              if (snapshot) setMode(snapshot.isIdle ? "prompt" : "steer");
+              return;
+            }
+            const result = sessionStore.apply(event as ServerMessage);
+            if (result === "resync" && record.type !== "ready") {
+              const cursor = sessionStore.getSnapshot();
+              transport.current?.send("snapshot", {
+                ...(cursor.generation ? { generation: cursor.generation } : {}),
+                revision: cursor.revision,
+              });
             }
           },
           (state) => active && setConnection(state),
@@ -47,13 +57,19 @@ export function App() {
       current?.close();
       transport.current = undefined;
     };
-  }, []);
+  }, [sessionStore]);
+
+  const isRunning = session.state?.live.isRunning;
+  useEffect(() => {
+    if (isRunning !== undefined) setMode(isRunning ? "steer" : "prompt");
+  }, [isRunning]);
 
   const submit = (event: Event) => {
     event.preventDefault();
     const value = content.trim();
-    if (!value || transport.current?.socket.readyState !== WebSocket.OPEN) return;
-    transport.current.send(mode, { content: value });
+    if (!value || !session.generation || transport.current?.socket.readyState !== WebSocket.OPEN)
+      return;
+    transport.current.send(mode, { content: value, generation: session.generation });
     setContent("");
     setMessage("Sending…");
   };
@@ -86,13 +102,19 @@ export function App() {
           onInput={(event) => setContent(event.currentTarget.value)}
         />
         <div class="actions">
-          <button type="submit" disabled={connection !== "open" || !content.trim()}>
+          <button
+            type="submit"
+            disabled={connection !== "open" || !session.generation || !content.trim()}
+          >
             Send
           </button>
           <button
             type="button"
-            disabled={connection !== "open"}
-            onClick={() => transport.current?.send("abort")}
+            disabled={connection !== "open" || !session.generation}
+            onClick={() =>
+              session.generation &&
+              transport.current?.send("abort", { generation: session.generation })
+            }
           >
             Abort
           </button>
