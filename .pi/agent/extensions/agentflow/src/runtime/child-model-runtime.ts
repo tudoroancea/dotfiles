@@ -9,6 +9,7 @@ export class ChildModelRuntime {
   private runtimePromise: Promise<ModelRuntime> | undefined;
   private syncChain: Promise<void> = Promise.resolve();
   private registeredProviderIds = new Set<string>();
+  private runtimeApiKeyProviderIds = new Set<string>();
 
   async get(parentRegistry: ModelRegistry): Promise<ModelRuntime> {
     this.runtimePromise ??= ModelRuntime.create({ allowModelNetwork: false }).catch((error) => {
@@ -31,23 +32,35 @@ export class ChildModelRuntime {
     const parentStatus = parentRegistry.getProviderAuthStatus(model.provider);
     if (parentStatus.source === "runtime") {
       const apiKey = await parentRegistry.getApiKeyForProvider(model.provider);
-      if (apiKey) await runtime.setRuntimeApiKey(model.provider, apiKey);
+      if (apiKey) {
+        await runtime.setRuntimeApiKey(model.provider, apiKey, { allowNetwork: false });
+        this.runtimeApiKeyProviderIds.add(model.provider);
+      }
       return;
     }
 
-    await runtime.removeRuntimeApiKey(model.provider);
+    if (this.runtimeApiKeyProviderIds.delete(model.provider)) {
+      await runtime.removeRuntimeApiKey(model.provider);
+    }
     if (await runtime.getAuth(model)) return;
     const apiKey = await parentRegistry.getApiKeyForProvider(model.provider);
-    if (apiKey) await runtime.setRuntimeApiKey(model.provider, apiKey);
+    if (apiKey) {
+      await runtime.setRuntimeApiKey(model.provider, apiKey, { allowNetwork: false });
+      this.runtimeApiKeyProviderIds.add(model.provider);
+    }
   }
 
   private async sync(runtime: ModelRuntime, parentRegistry: ModelRegistry): Promise<void> {
-    await runtime.reloadConfig();
     const currentProviderIds = new Set(parentRegistry.getRegisteredProviderIds());
     for (const providerId of this.registeredProviderIds) {
       if (!currentProviderIds.has(providerId)) runtime.unregisterProvider(providerId);
     }
     for (const providerId of currentProviderIds) {
+      const nativeProvider = parentRegistry.getRegisteredNativeProvider(providerId);
+      if (nativeProvider) {
+        runtime.registerNativeProvider(nativeProvider);
+        continue;
+      }
       const config = parentRegistry.getRegisteredProviderConfig(providerId);
       if (config)
         runtime.registerProvider(

@@ -56,3 +56,14 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: ask the oracle to assess the Phase 1 design, then ask review to inspect the stable implementation diff against `PLAN.md`.
 - Fallback: continue from direct source and Pi API inspection, run model-free tests, and perform a top-level diff review.
 - Status: open.
+
+## 2026-07-24 — Pi migration re-review hit the hidden five-minute abort
+
+- Tool: `agentflow_review`
+- Run: `af_mrys4uuj_3`
+- Expected: remaining actionable findings for a six-file Pi 0.82.0 migration re-review.
+- Actual: the child performed useful inspection but was aborted at exactly five minutes and returned only `Subagent aborted` without findings.
+- Reproduction: request a foreground re-review of the Agentflow and background-processes manifests, locks, and `child-model-runtime` migration without specifying a limit.
+- Evidence: `~/.pi/agent/agentflow/af_mrys4uuj_3/` and the run snapshot.
+- Fallback: rely on the first completed review, direct API/source inspection, typechecks, tests, lint, and RPC smoke checks.
+- Status: open.

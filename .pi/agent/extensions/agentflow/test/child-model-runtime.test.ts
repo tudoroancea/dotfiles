@@ -7,7 +7,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("ChildModelRuntime", () => {
   it("keeps registered providers and models.json synchronized", async () => {
     const runtime = {
-      reloadConfig: vi.fn(async () => undefined),
+      registerNativeProvider: vi.fn(),
       registerProvider: vi.fn(),
       unregisterProvider: vi.fn(),
       refresh: vi.fn(async () => ({ aborted: false, errors: new Map() })),
@@ -19,6 +19,7 @@ describe("ChildModelRuntime", () => {
     ]);
     const registry = {
       getRegisteredProviderIds: () => providers,
+      getRegisteredNativeProvider: () => undefined,
       getRegisteredProviderConfig: (providerId: string) => configs.get(providerId),
       getAll: () =>
         providers.map((provider) => ({
@@ -41,7 +42,6 @@ describe("ChildModelRuntime", () => {
     await owner.get(registry as never);
 
     expect(ModelRuntime.create).toHaveBeenCalledOnce();
-    expect(runtime.reloadConfig).toHaveBeenCalledTimes(2);
     expect(runtime.registerProvider).toHaveBeenCalledWith(
       "second",
       expect.objectContaining({
@@ -51,6 +51,34 @@ describe("ChildModelRuntime", () => {
     );
     expect(runtime.unregisterProvider).toHaveBeenCalledWith("first");
     expect(runtime.refresh).toHaveBeenLastCalledWith({ allowNetwork: false });
+  });
+
+  it("synchronizes native providers and transitions them back to legacy configs", async () => {
+    const runtime = {
+      registerNativeProvider: vi.fn(),
+      registerProvider: vi.fn(),
+      unregisterProvider: vi.fn(),
+      refresh: vi.fn(async () => ({ aborted: false, errors: new Map() })),
+    };
+    vi.spyOn(ModelRuntime, "create").mockResolvedValue(runtime as never);
+    const provider = { id: "custom", name: "Custom" };
+    let nativeProvider: object | undefined = provider;
+    let config: object | undefined;
+    const registry = {
+      getRegisteredProviderIds: () => ["custom"],
+      getRegisteredNativeProvider: () => nativeProvider,
+      getRegisteredProviderConfig: () => config,
+      getAll: () => [],
+    };
+    const owner = new ChildModelRuntime();
+
+    await owner.get(registry as never);
+    expect(runtime.registerNativeProvider).toHaveBeenCalledWith(provider);
+
+    nativeProvider = undefined;
+    config = { baseUrl: "https://custom.test" };
+    await owner.get(registry as never);
+    expect(runtime.registerProvider).toHaveBeenCalledWith("custom", config);
   });
 
   it("copies the parent's effective runtime API key even when child auth exists", async () => {
@@ -70,12 +98,14 @@ describe("ChildModelRuntime", () => {
       { provider: "custom", id: "model" } as never,
     );
 
-    expect(runtime.setRuntimeApiKey).toHaveBeenCalledWith("custom", "parent-runtime-key");
+    expect(runtime.setRuntimeApiKey).toHaveBeenCalledWith("custom", "parent-runtime-key", {
+      allowNetwork: false,
+    });
     expect(runtime.getAuth).not.toHaveBeenCalled();
     expect(runtime.removeRuntimeApiKey).not.toHaveBeenCalled();
   });
 
-  it("uses the child's shared persisted auth when the parent has no runtime override", async () => {
+  it("uses shared persisted auth without repeatedly clearing absent runtime overrides", async () => {
     const runtime = {
       getAuth: vi.fn(async () => ({ apiKey: "shared-stored-key" })),
       removeRuntimeApiKey: vi.fn(async () => undefined),
@@ -92,8 +122,52 @@ describe("ChildModelRuntime", () => {
       { provider: "custom", id: "model" } as never,
     );
 
-    expect(runtime.removeRuntimeApiKey).toHaveBeenCalledWith("custom");
+    expect(runtime.removeRuntimeApiKey).not.toHaveBeenCalled();
     expect(runtime.setRuntimeApiKey).not.toHaveBeenCalled();
     expect(registry.getApiKeyForProvider).not.toHaveBeenCalled();
+  });
+
+  it("copies fallback parent auth without enabling catalog network refresh", async () => {
+    const runtime = {
+      getAuth: vi.fn(async () => undefined),
+      removeRuntimeApiKey: vi.fn(async () => undefined),
+      setRuntimeApiKey: vi.fn(async () => undefined),
+    };
+    const registry = {
+      getProviderAuthStatus: () => ({ configured: true, source: "environment" }),
+      getApiKeyForProvider: vi.fn(async () => "parent-environment-key"),
+    };
+
+    await new ChildModelRuntime().ensureAuth(
+      runtime as never,
+      registry as never,
+      { provider: "custom", id: "model" } as never,
+    );
+
+    expect(runtime.setRuntimeApiKey).toHaveBeenCalledWith("custom", "parent-environment-key", {
+      allowNetwork: false,
+    });
+  });
+
+  it("clears a child runtime override when the parent stops using one", async () => {
+    const runtime = {
+      getAuth: vi.fn(async () => ({ apiKey: "shared-stored-key" })),
+      removeRuntimeApiKey: vi.fn(async () => undefined),
+      setRuntimeApiKey: vi.fn(async () => undefined),
+    };
+    let source = "runtime";
+    const registry = {
+      getProviderAuthStatus: () => ({ configured: true, source }),
+      getApiKeyForProvider: vi.fn(async () => "parent-runtime-key"),
+    };
+    const owner = new ChildModelRuntime();
+    const model = { provider: "custom", id: "model" } as never;
+
+    await owner.ensureAuth(runtime as never, registry as never, model);
+    source = "stored";
+    await owner.ensureAuth(runtime as never, registry as never, model);
+
+    expect(runtime.removeRuntimeApiKey).toHaveBeenCalledOnce();
+    expect(runtime.getAuth).toHaveBeenCalledOnce();
   });
 });
