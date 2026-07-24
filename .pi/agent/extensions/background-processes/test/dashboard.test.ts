@@ -1,3 +1,4 @@
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import type { ProcessRuntime } from "../src/runtime/process-runtime.ts";
 import type { JobRecord } from "../src/runtime/types.ts";
@@ -109,7 +110,7 @@ describe("background task dashboard formatting", () => {
     expect(text).not.toContain("old-line");
   });
 
-  it("uses configured navigation and keeps selection stable by job ID", () => {
+  it("uses j/k navigation, configured actions, and keeps selection stable by job ID", () => {
     const requestRender = vi.fn();
     const dashboard = new BackgroundDashboard(
       [job(), job({ id: "bg_2", command: "second" })],
@@ -129,11 +130,21 @@ describe("background task dashboard formatting", () => {
       },
     );
     dashboard.handleInput("N");
-    expect(dashboard.render(60).join("\n")).toContain("> ◆ running");
+    expect(dashboard.render(60).join("\n")).toContain("> ◆ running · /tmp");
+    dashboard.handleInput("j");
+    const list = dashboard.render(60);
+    expect(list.join("\n")).toContain("> ◆ running");
+    expect(list[0]).toContain("╭─ Background tasks · 2");
+    expect(list.at(-1)).toContain("j/k navigate");
+    expect(list.every((line) => visibleWidth(line) === 60)).toBe(true);
     dashboard.handleInput("O");
     expect(dashboard.render(60).join("\n")).toContain("$ second");
     dashboard.replaceJob(job({ id: "bg_2", command: "updated", status: "completed" }));
-    expect(dashboard.render(60).join("\n")).toContain("$ updated");
+    const detail = dashboard.render(60);
+    expect(detail.join("\n")).toContain("$ updated");
+    expect(detail[0]).toContain("╭─ Background task");
+    expect(detail.at(-1)).toContain("j/k scroll");
+    expect(detail.every((line) => visibleWidth(line) === 60)).toBe(true);
     dashboard.handleInput("B");
     expect(dashboard.render(60).join("\n")).toContain("Background tasks");
   });

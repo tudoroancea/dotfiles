@@ -271,7 +271,7 @@ describe("Agentflow dashboard command blocked state", () => {
 });
 
 describe("Agentflow dashboard interaction", () => {
-  it("uses injected bindings, retains selection by run ID, and has no steering UI", () => {
+  it("uses j/k navigation, injected action bindings, and retains selection by run ID", () => {
     const close = vi.fn();
     const cancel = vi.fn();
     const rerender = vi.fn();
@@ -284,10 +284,12 @@ describe("Agentflow dashboard interaction", () => {
     });
 
     dashboard.handleInput("d");
+    expect(dashboard.render(120).join("\n")).toContain("> ◆ running · review · First");
+    dashboard.handleInput("j");
     const list = dashboard.render(120);
     expect(list.join("\n")).toContain("> ◆ running · review · Second");
     expect(list[0]).toContain("╭─ Agentflow runs · 2");
-    expect(list.at(-1)).toContain("╰─");
+    expect(list.at(-1)).toContain("j/k navigate");
     expect(list.every((line) => visibleWidth(line) === 120)).toBe(true);
     dashboard.replaceSnapshot({ ...first, status: "completed" });
     expect(dashboard.render(120).join("\n")).toContain("> ◆ running · review · Second");
@@ -300,6 +302,7 @@ describe("Agentflow dashboard interaction", () => {
     expect(detailLines.every((line) => visibleWidth(line) === 120)).toBe(true);
     expect(detail).toContain("Agentflow · Second");
     expect(detail).not.toMatch(/steer|refresh|takeover/i);
+    expect(detail).toContain("j/k scroll");
     expect(detail).toContain("b back");
 
     dashboard.handleInput("x");
@@ -320,7 +323,7 @@ describe("Agentflow dashboard interaction", () => {
     });
 
     const initial = dashboard.render(100);
-    dashboard.handleInput("d");
+    dashboard.handleInput("j");
     const down = dashboard.render(100);
     expect(down).toHaveLength(initial.length);
     expect(down[1]).not.toBe(initial[1]);

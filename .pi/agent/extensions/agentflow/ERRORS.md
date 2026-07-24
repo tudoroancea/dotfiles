@@ -112,3 +112,13 @@ Each report should include the date, tool, run ID when available, expected and a
 - Evidence: `~/.pi/agent/agentflow/af_mrys4uuj_3/` and the run snapshot.
 - Fallback: rely on the first completed review, direct API/source inspection, typechecks, tests, lint, and RPC smoke checks.
 - Status: fixed on 2026-07-24 by removing the implicit five-minute review deadline.
+
+## 2026-07-24 — Workflow runtime tests race artifact cleanup
+
+- Tool: local `vitest` via `bash`; no Agentflow run ID.
+- Expected: the full Agentflow test suite completes after workflow subprocesses settle.
+- Actual: `test/workflow-runtime.test.ts` intermittently fails cleanup with `ENOTEMPTY` while removing a workflow artifact directory; consecutive runs failed different cases (`child-failure` and `budget`).
+- Reproduction: run `TMPDIR=/tmp nub run test` in `.pi/agent/extensions/agentflow`.
+- Evidence: parent session `/Users/tudoroancea/.pi/agent/sessions/--Users-tudoroancea-dotfiles--/2026-07-24T12-56-41-036Z_019f9433-0b4c-7300-9a87-912efe93cf69.jsonl`.
+- Fallback: run the focused dashboard suite separately; all 13 dashboard tests pass.
+- Status: open; likely a workflow subprocess/artifact-write cleanup race unrelated to the dashboard changes.

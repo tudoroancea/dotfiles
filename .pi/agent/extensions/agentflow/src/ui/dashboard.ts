@@ -294,9 +294,9 @@ export class AgentflowDashboard {
         this.detailRunId = this.selectedRunId;
         this.detailOffset = 0;
       }
-    } else if (this.keybindings.matches(data, "tui.select.up") || matchesKey(data, "k")) {
+    } else if (matchesKey(data, "k")) {
       this.move(-1);
-    } else if (this.keybindings.matches(data, "tui.select.down") || matchesKey(data, "j")) {
+    } else if (matchesKey(data, "j")) {
       this.move(1);
     } else if (this.detailRunId && this.keybindings.matches(data, "tui.select.pageUp")) {
       this.move(-DETAIL_VIEWPORT_HEIGHT);
@@ -348,12 +348,11 @@ export class AgentflowDashboard {
     } else {
       content = renderRunList(this.snapshots, this.selectedRunId, contentWidth);
     }
-    const key = (
-      binding: "tui.select.up" | "tui.select.down" | "tui.select.confirm" | "tui.select.cancel",
-    ) => this.keybindings.getKeys(binding).join("/") || "unbound";
+    const key = (binding: "tui.select.confirm" | "tui.select.cancel") =>
+      this.keybindings.getKeys(binding).join("/") || "unbound";
     const help = snapshot
-      ? `${key("tui.select.up")}/${key("tui.select.down")} scroll · ${this.keybindings.getKeys("tui.select.pageUp").join("/") || "unbound"}/${this.keybindings.getKeys("tui.select.pageDown").join("/") || "unbound"} page · g/G ends · ${key("tui.select.cancel")} back · x cancel run`
-      : `${key("tui.select.up")}/${key("tui.select.down")} navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x cancel run`;
+      ? `j/k scroll · ${this.keybindings.getKeys("tui.select.pageUp").join("/") || "unbound"}/${this.keybindings.getKeys("tui.select.pageDown").join("/") || "unbound"} page · g/G ends · ${key("tui.select.cancel")} back · x cancel run`
+      : `j/k navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x cancel run`;
     if (width < 6) {
       return [
         truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),

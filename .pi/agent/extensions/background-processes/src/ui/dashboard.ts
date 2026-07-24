@@ -2,6 +2,7 @@ import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-a
 import {
   matchesKey,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
   type KeybindingsManager,
 } from "@earendil-works/pi-tui";
@@ -295,9 +296,9 @@ export class BackgroundDashboard {
         this.detailJobId = this.selectedJobId;
         this.outputOffset = 0;
       }
-    } else if (this.keybindings.matches(data, "tui.select.up") || matchesKey(data, "k")) {
+    } else if (matchesKey(data, "k")) {
       this.move(this.detailJobId ? 1 : -1);
-    } else if (this.keybindings.matches(data, "tui.select.down") || matchesKey(data, "j")) {
+    } else if (matchesKey(data, "j")) {
       this.move(this.detailJobId ? -1 : 1);
     } else if (this.detailJobId && this.keybindings.matches(data, "tui.select.pageUp")) {
       this.move(DETAIL_OUTPUT_HEIGHT - 1);
@@ -315,7 +316,7 @@ export class BackgroundDashboard {
   }
 
   render(width: number): string[] {
-    const contentWidth = Math.max(1, width - 2);
+    const contentWidth = Math.max(1, width - 4);
     const detail = this.jobs.find((job) => job.id === this.detailJobId);
     const title = detail ? "Background task" : `Background tasks · ${this.jobs.length}`;
     let content: string[];
@@ -353,21 +354,38 @@ export class BackgroundDashboard {
     }
     const key = (
       binding:
-        | "tui.select.up"
-        | "tui.select.down"
         | "tui.select.pageUp"
         | "tui.select.pageDown"
         | "tui.select.confirm"
         | "tui.select.cancel",
     ) => this.keybindings.getKeys(binding).join("/") || "unbound";
     const help = detail
-      ? `${key("tui.select.up")}/${key("tui.select.down")} scroll · ${key("tui.select.pageUp")}/${key("tui.select.pageDown")} page · g/G ends · ${key("tui.select.cancel")} back · x stop`
-      : `${key("tui.select.up")}/${key("tui.select.down")} or k/j navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x stop`;
-    return [
-      truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
-      ...content.map((line) => truncateToWidth(` ${line}`, width)),
-      truncateToWidth(this.theme.fg("dim", ` ${help}`), width),
+      ? `j/k scroll · ${key("tui.select.pageUp")}/${key("tui.select.pageDown")} page · g/G ends · ${key("tui.select.cancel")} back · x stop`
+      : `j/k navigate · ${key("tui.select.confirm")} inspect · ${key("tui.select.cancel")} close · x stop`;
+    if (width < 6) {
+      return [
+        truncateToWidth(this.theme.fg("accent", this.theme.bold(title)), width),
+        ...content.map((line) => truncateToWidth(line, width)),
+        truncateToWidth(this.theme.fg("dim", help), width),
+      ];
+    }
+
+    const topLabel = truncateToWidth(` ${title} `, width - 4, "…");
+    const topFill = "─".repeat(Math.max(0, width - visibleWidth(topLabel) - 4));
+    const helpLabel = truncateToWidth(` ${help} `, width - 4, "…");
+    const helpFill = "─".repeat(Math.max(0, width - visibleWidth(helpLabel) - 4));
+    const lines = [
+      `${this.theme.fg("dim", "╭─")}${this.theme.fg("accent", this.theme.bold(topLabel))}${this.theme.fg("dim", `${topFill}─╮`)}`,
     ];
+    for (const line of content) {
+      const bounded = truncateToWidth(line, contentWidth, "…");
+      const padding = " ".repeat(Math.max(0, contentWidth - visibleWidth(bounded)));
+      lines.push(`${this.theme.fg("dim", "│ ")}${bounded}${padding}${this.theme.fg("dim", " │")}`);
+    }
+    lines.push(
+      `${this.theme.fg("dim", `╰─${helpFill}`)}${this.theme.fg("dim", helpLabel)}${this.theme.fg("dim", "─╯")}`,
+    );
+    return lines;
   }
 
   dispose(): void {
