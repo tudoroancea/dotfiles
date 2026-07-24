@@ -57,6 +57,17 @@ Each report should include the date, tool, run ID when available, expected and a
 - Fallback: continue from direct source and Pi API inspection, run model-free tests, and perform a top-level diff review.
 - Status: open.
 
+## 2026-07-24 — Focused foreground review aborted after extensive unrelated inspection
+
+- Tool: `agentflow_review`
+- Run: `af_mryre25i_1`
+- Expected: actionable findings for a two-file Pi upgrade skill review.
+- Actual: the child consumed extensive context while inspecting unrelated paths under `~/.nub`, then returned only `Subagent aborted` without findings.
+- Reproduction: request a foreground review limited to `.pi/agent/skills/pi-upgrade/SKILL.md` and its diagnostic shell script.
+- Evidence: `~/.pi/agent/agentflow/af_mryre25i_1/` and the run snapshot.
+- Fallback: perform direct top-level review and shell validation.
+- Status: open.
+
 ## 2026-07-24 — Pi migration re-review hit the hidden five-minute abort
 
 - Tool: `agentflow_review`
