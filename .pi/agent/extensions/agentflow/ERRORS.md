@@ -34,7 +34,7 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: launch a no-limits workflow whose initial `parallel()` contains finder, oracle, and librarian research broad enough for one child to exceed five minutes.
 - Evidence: `/Users/tudoroancea/.pi/agent/agentflow/af_mrpgmepo_2/{run.json,result.json,transcripts.json}`.
 - Fallback: split the work into shorter workflows/delegates and reuse completed research artifacts.
-- Status: open.
+- Status: fixed on 2026-07-24; semantic helpers no longer carry implicit profile deadlines, and workflows without an explicit `limits.timeoutMs` no longer have a hidden sandbox deadline.
 
 ## 2026-07-18 — Background delegates/reviews are forcibly aborted without usable results
 
@@ -45,17 +45,18 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: launch a background delegate that needs more than ten minutes, or a focused `agentflow_review` of four medium-sized files.
 - Evidence: run snapshots and session paths under `~/.pi/agent/agentflow/<runId>/`.
 - Fallback: continue from partial mutations, run verification directly, and perform focused top-level review.
-- Status: open.
+- Status: fixed on 2026-07-24 for the exact five-/ten-minute aborts by removing implicit semantic deadlines. The isolated missing-`structured_output` result was not reproducible and is an actionable child-compliance failure unless evidence shows the tool call was lost.
 
 ## 2026-07-20 — Foreground advisory tools returned unexplained generic aborts
 
 - Tools: `agentflow_oracle`, `agentflow_review`
-- Runs: `af_mrtcgs6b_2`, `af_mrtd1lfw_3`
+- Runs: `af_mrtcgs6b_2`, `af_mrtd1lfw_3`, `af_mrywskbm_3`
 - Expected: a focused Phase 1 resolver design recommendation and an integrated diff review, or actionable failures with artifact context.
 - Actual: both tools returned only `Subagent aborted` plus the run ID.
 - Reproduction: ask the oracle to assess the Phase 1 design, then ask review to inspect the stable implementation diff against `PLAN.md`.
 - Fallback: continue from direct source and Pi API inspection, run model-free tests, and perform a top-level diff review.
-- Status: open.
+- Fresh reproduction: the pre-reload parent runtime aborted `af_mrywskbm_3` while reviewing this fix; fresh Pi processes exercised the patched runtime in RPC smoke tests.
+- Status: fixed on 2026-07-24 by removing the implicit five-minute oracle/review deadline; explicit user-requested timeouts now preserve their causal timeout message.
 
 ## 2026-07-22 — Foreground integrated review aborted at five minutes
 
@@ -66,7 +67,7 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: request a no-limits review across the local `server`, `shared`, `client`, `scripts`, and `tests` paths against the project brief.
 - Evidence: run snapshot `~/.pi/agent/agentflow/af_mrw663rq_7/`; no child session path was reported.
 - Fallback: continue with direct top-level review, targeted tests, and a narrower follow-up review if time permits.
-- Status: open; appears to match the existing five-minute abort defect.
+- Status: fixed on 2026-07-24 by removing the implicit five-minute review deadline.
 
 ## 2026-07-22 — Background stop left the launched server child listening
 
@@ -77,7 +78,7 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: launch `nub run start 2>&1` as a persistent background event stream, then stop `mon_3` and inspect port 4783.
 - Evidence: output and metadata under `~/.pi/agent/background-processes/019f89cc-8dc6-72bd-888e-d397a4c37723/abe4953c-622a-4780-ad9e-b5a8a620236a/mon_3/`.
 - Fallback: terminate the orphaned wrapper/child PIDs directly, verify the port is free, and continue tests.
-- Status: open.
+- Status: not reproducible on 2026-07-24 with Pi 0.82.0: an exact nested `nub run start` TCP-server reproduction stopped the server PID and closed its listening port. This belongs to the background-process/Pi local-bash process-tree backend rather than Agentflow; no Agentflow change was required.
 
 ## 2026-07-23 — Documentation review aborted after five minutes
 
@@ -88,7 +89,7 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: request a no-limits documentation diff review across `README.md`, `AGENTS.md`, `RULES.md`, and `docs/**/*.md`.
 - Evidence: run snapshot `~/.pi/agent/agentflow/af_mrxiw91k_2/`.
 - Fallback: inspect the partial tool trace, review the diff directly, and run formatting/link checks locally.
-- Status: open; matches the existing five-minute review-abort defect.
+- Status: fixed on 2026-07-24 by removing the implicit five-minute review deadline.
 
 ## 2026-07-24 — Focused foreground review aborted after extensive unrelated inspection
 
@@ -99,7 +100,7 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: request a foreground review limited to `.pi/agent/skills/pi-upgrade/SKILL.md` and its diagnostic shell script.
 - Evidence: `~/.pi/agent/agentflow/af_mryre25i_1/` and the run snapshot.
 - Fallback: perform direct top-level review and shell validation.
-- Status: open.
+- Status: fixed on 2026-07-24 for the abort by removing the implicit five-minute review deadline. Unrelated child inspection remains a task-scoping/model behavior issue rather than a scheduler failure.
 
 ## 2026-07-24 — Pi migration re-review hit the hidden five-minute abort
 
@@ -110,4 +111,4 @@ Each report should include the date, tool, run ID when available, expected and a
 - Reproduction: request a foreground re-review of the Agentflow and background-processes manifests, locks, and `child-model-runtime` migration without specifying a limit.
 - Evidence: `~/.pi/agent/agentflow/af_mrys4uuj_3/` and the run snapshot.
 - Fallback: rely on the first completed review, direct API/source inspection, typechecks, tests, lint, and RPC smoke checks.
-- Status: open.
+- Status: fixed on 2026-07-24 by removing the implicit five-minute review deadline.

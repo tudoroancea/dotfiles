@@ -107,6 +107,7 @@ describe("semantic profiles", () => {
       session: { mode: "memory" },
     });
     expect(node.config?.outputSchema).toBeDefined();
+    expect(node.config?.timeoutMs).toBeUndefined();
     expect(node.config?.appendSystemPrompt).toContain("Never guess");
     expect(node.config?.appendSystemPrompt).toContain("every reference");
   });

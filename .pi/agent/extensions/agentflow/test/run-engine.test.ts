@@ -257,8 +257,35 @@ describe("RunEngine settlement", () => {
       ]);
       await expect(engine.observeCompletion(runId)).resolves.toMatchObject({
         status: "aborted",
-        error: "Cancelled",
+        error: "Run timeout exceeded after 10ms",
       });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("leaves an explicit child deadline to the child runner without a competing run timer", async () => {
+    vi.useFakeTimers();
+    try {
+      let release!: () => void;
+      let childSignal!: AbortSignal;
+      const engine = engineWith(async (_runId, _node, _ctx, signal) => {
+        childSignal = signal;
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return childResult("done");
+      });
+      const launched = engine.launchAgent(
+        { id: "agent", label: "agent", prompt: "work", config: { timeoutMs: 10 } },
+        context,
+        { background: false },
+      );
+
+      await vi.advanceTimersByTimeAsync(11);
+      expect(childSignal.aborted).toBe(false);
+      release();
+      await expect(launched).resolves.toMatchObject({ status: "completed", result: "done" });
     } finally {
       vi.useRealTimers();
     }

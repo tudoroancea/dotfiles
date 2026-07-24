@@ -138,7 +138,11 @@ export class RunEngine {
     this.runtime.set(runId, state);
     if (limits.timeoutMs)
       state.deadline = setTimeout(() => {
-        void this.cancel([runId], false);
+        const error = new Error(`Run timeout exceeded after ${limits.timeoutMs}ms`);
+        controller.abort(error);
+        void this.abortAndWait(runId).then(() => {
+          if (!this.store.getResult(runId)) this.finish(runId, "aborted", undefined, error.message);
+        });
       }, limits.timeoutMs);
     this.publish(snapshot);
     this.emit("agentflow:run.started", structuredClone(snapshot));
@@ -455,7 +459,7 @@ export class RunEngine {
         name: node.label,
         originTool: node.originTool,
         semanticRole: node.semanticRole,
-        limits: { maxAgents: 1, concurrency: 1, timeoutMs: node.config?.timeoutMs },
+        limits: { maxAgents: 1, concurrency: 1 },
         background: options.background,
       },
       ctx,

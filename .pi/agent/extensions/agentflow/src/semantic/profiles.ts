@@ -181,7 +181,6 @@ export interface SemanticProfile {
   thinking: ThinkingLevel;
   promptAsset: string;
   mutates: boolean;
-  timeoutMs: number;
 }
 
 export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
@@ -194,7 +193,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "low",
     promptAsset: "finder.md",
     mutates: false,
-    timeoutMs: 120_000,
   },
   oracle: {
     role: "oracle",
@@ -205,7 +203,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "xhigh",
     promptAsset: "oracle.md",
     mutates: false,
-    timeoutMs: 300_000,
   },
   librarian: {
     role: "librarian",
@@ -216,7 +213,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "low",
     promptAsset: "librarian.md",
     mutates: false,
-    timeoutMs: 300_000,
   },
   look_at: {
     role: "look_at",
@@ -227,7 +223,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "low",
     promptAsset: "look_at.md",
     mutates: false,
-    timeoutMs: 120_000,
   },
   delegate: {
     role: "delegate",
@@ -237,7 +232,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "medium",
     promptAsset: "delegate.md",
     mutates: true,
-    timeoutMs: 600_000,
   },
   review: {
     role: "review",
@@ -248,7 +242,6 @@ export const semanticProfiles: Record<SemanticRole, SemanticProfile> = {
     thinking: "xhigh",
     promptAsset: "review.md",
     mutates: false,
-    timeoutMs: 300_000,
   },
 };
 

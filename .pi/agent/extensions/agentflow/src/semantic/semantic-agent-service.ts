@@ -175,7 +175,6 @@ export class SemanticAgentService {
         extensionMode: backgroundExtension ? "rpc" : "print",
         session,
         outputSchema: profile.outputSchema,
-        timeoutMs: profile.timeoutMs,
       },
     };
   }

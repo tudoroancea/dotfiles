@@ -113,9 +113,6 @@ async function runSandbox(
   let sequence = 0;
   let settled = false;
   const pendingTasks = new Set<Promise<unknown>>();
-  const sandboxTimer = setTimeout(() => {
-    void input.engine.cancel([runId], false);
-  }, input.limits?.timeoutMs ?? 600_000);
   const terminate = () => {
     if (child.exitCode === null) {
       child.kill("SIGTERM");
@@ -128,7 +125,6 @@ async function runSandbox(
     const fail = (e: unknown) => {
       if (settled) return;
       settled = true;
-      clearTimeout(sandboxTimer);
       terminate();
       reject(e);
     };
@@ -278,7 +274,6 @@ async function runSandbox(
           if (size(raw.result) > MAX_MESSAGE)
             return fail(new Error("Workflow result exceeds size limit"));
           settled = true;
-          clearTimeout(sandboxTimer);
           terminate();
           resolve(raw.result);
         } else if (raw.type === "failed") fail(new Error(String(raw.error)));

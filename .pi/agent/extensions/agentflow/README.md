@@ -73,7 +73,7 @@ for (const result of results) {
 return { results };
 ```
 
-Use `delegate({...})`, never `agent.delegate({...})`. Helpers return normalized envelopes, so workflows should throw a child's error when later phases require that child to succeed. Workflow agent count, concurrency, and token usage are unlimited by default. Omit the `limits` input unless the user explicitly requests `maxAgents`, `concurrency`, `timeoutMs`, or `tokenBudget`. The `agentflow-workflows` skill contains the complete authoring contract and a larger copyable template.
+Use `delegate({...})`, never `agent.delegate({...})`. Helpers return normalized envelopes, so workflows should throw a child's error when later phases require that child to succeed. Workflow duration, agent count, concurrency, and token usage are unlimited by default. Omit the `limits` input unless the user explicitly requests `maxAgents`, `concurrency`, `timeoutMs`, or `tokenBudget`. The `agentflow-workflows` skill contains the complete authoring contract and a larger copyable template.
 
 Foreground failures report the causal error, run ID, relevant node error, and artifact directory when available. Detailed snapshots remain under `~/.pi/agent/agentflow/<runId>`. Top-level agents record reproducible extension defects—not ordinary child-task failures—in [`ERRORS.md`](ERRORS.md).
 
