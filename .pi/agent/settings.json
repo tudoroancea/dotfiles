@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.10",
+  "lastChangelogVersion": "0.82.0",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
   "defaultProvider": "openai-codex",

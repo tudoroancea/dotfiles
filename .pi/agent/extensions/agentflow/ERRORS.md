@@ -57,6 +57,39 @@ Each report should include the date, tool, run ID when available, expected and a
 - Fallback: continue from direct source and Pi API inspection, run model-free tests, and perform a top-level diff review.
 - Status: open.
 
+## 2026-07-22 — Foreground integrated review aborted at five minutes
+
+- Tool: `agentflow_review`
+- Run: `af_mrw663rq_7`
+- Expected: prioritized findings from a read-only review of the completed local web UI.
+- Actual: the reviewer performed useful reads for exactly five minutes, then returned only `Subagent aborted` with no review result.
+- Reproduction: request a no-limits review across the local `server`, `shared`, `client`, `scripts`, and `tests` paths against the project brief.
+- Evidence: run snapshot `~/.pi/agent/agentflow/af_mrw663rq_7/`; no child session path was reported.
+- Fallback: continue with direct top-level review, targeted tests, and a narrower follow-up review if time permits.
+- Status: open; appears to match the existing five-minute abort defect.
+
+## 2026-07-22 — Background stop left the launched server child listening
+
+- Tools: `background_event_stream`, `background_stop`
+- Job: `mon_3`
+- Expected: stopping the runtime-owned `nub run start` job cancels its full process tree, including `node dist/server/index.js`.
+- Actual: `background_stop` returned `cancelled`, but child PID 19769 remained bound to `127.0.0.1:4783`, causing the next Playwright run to fail its web-server port check.
+- Reproduction: launch `nub run start 2>&1` as a persistent background event stream, then stop `mon_3` and inspect port 4783.
+- Evidence: output and metadata under `~/.pi/agent/background-processes/019f89cc-8dc6-72bd-888e-d397a4c37723/abe4953c-622a-4780-ad9e-b5a8a620236a/mon_3/`.
+- Fallback: terminate the orphaned wrapper/child PIDs directly, verify the port is free, and continue tests.
+- Status: open.
+
+## 2026-07-23 — Documentation review aborted after five minutes
+
+- Tool: `agentflow_review`
+- Run: `af_mrxiw91k_2`
+- Expected: structured findings from a read-only review of ten Markdown files.
+- Actual: the reviewer performed useful repository reads for exactly five minutes, then returned only `Subagent aborted` without findings.
+- Reproduction: request a no-limits documentation diff review across `README.md`, `AGENTS.md`, `RULES.md`, and `docs/**/*.md`.
+- Evidence: run snapshot `~/.pi/agent/agentflow/af_mrxiw91k_2/`.
+- Fallback: inspect the partial tool trace, review the diff directly, and run formatting/link checks locally.
+- Status: open; matches the existing five-minute review-abort defect.
+
 ## 2026-07-24 — Focused foreground review aborted after extensive unrelated inspection
 
 - Tool: `agentflow_review`
