@@ -12,6 +12,7 @@ import {
   type CommandResponseMessage,
   type CompletionResultMessage,
   type PongMessage,
+  type ProviderMessage,
   type ReadyMessage,
   type ServerMessage,
   type StateUpdateMessage,
@@ -21,6 +22,7 @@ import { ClientQueue } from "./client-queue.js";
 import { mentionCompletions, slashCompletions } from "./completion.js";
 import type { WebUiConfig } from "./config.js";
 import { parseClientCommand } from "./protocol.js";
+import { ProviderRegistry } from "./providers.js";
 import { mergeStateUpdates, SessionStateStore } from "./state.js";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -50,6 +52,7 @@ export interface StartWebUiServerOptions {
   assetRoot: string;
   generation: string;
   autocompleteProvider?: AutocompleteProvider;
+  providerRegistry?: ProviderRegistry;
 }
 
 function contentSecurityPolicy(config: WebUiConfig): string {
@@ -109,6 +112,7 @@ function serialize(message: ServerMessage): string {
 
 export async function startWebUiServer(options: StartWebUiServerOptions): Promise<WebUiRuntime> {
   const { pi, context, config, assetRoot, generation, autocompleteProvider } = options;
+  const providers = options.providerRegistry ?? new ProviderRegistry();
   const store = new SessionStateStore(context, generation, pi.getActiveTools());
   const clients = new Map<WebSocket, ClientQueue>();
   let closed = false;
@@ -122,6 +126,16 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
   let authentication: StandaloneAuthentication;
 
   const snapshotSerialized = (commandId?: string) => serialize(store.snapshot(commandId));
+  const providerUnsubscribe = providers.subscribe((snapshot) => {
+    const message: ProviderMessage = {
+      type: "provider_update",
+      protocolVersion: PROTOCOL_VERSION,
+      generation,
+      ...snapshot,
+    };
+    const serialized = serialize(message);
+    for (const channel of clients.values()) channel.enqueueProvider(snapshot.provider, serialized);
+  });
 
   function flushUpdate(): void {
     if (coalesceTimer) clearTimeout(coalesceTimer);
@@ -363,6 +377,43 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
         channel.enqueueSnapshot(snapshotSerialized(command.commandId));
         return;
       }
+      case "provider_snapshot": {
+        const snapshot = providers.snapshot(command.provider);
+        if (!snapshot) throw new Error(`Dashboard provider unavailable: ${command.provider}`);
+        accepted(channel, command);
+        sendControl(channel, {
+          type: "provider_snapshot",
+          protocolVersion: PROTOCOL_VERSION,
+          generation,
+          commandId: command.commandId,
+          ...snapshot,
+        });
+        return;
+      }
+      case "provider_action":
+        void providers
+          .action(command.provider, command.action, command.payload)
+          .then((data) => {
+            accepted(channel, command);
+            sendControl(channel, {
+              type: "provider_action_result",
+              protocolVersion: PROTOCOL_VERSION,
+              generation,
+              provider: command.provider,
+              revision: providers.snapshot(command.provider)?.revision ?? 0,
+              commandId: command.commandId,
+              data,
+            });
+          })
+          .catch((error: unknown) =>
+            rejected(
+              channel,
+              command.commandId,
+              command.type,
+              error instanceof Error ? error.message : "Provider action failed",
+            ),
+          );
+        return;
       case "complete":
         accepted(channel, command);
         startCompletion(command);
@@ -400,6 +451,17 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
     };
     sendControl(channel, ready);
     channel.enqueueSnapshot();
+    for (const snapshot of providers.list()) {
+      channel.enqueueProvider(
+        snapshot.provider,
+        serialize({
+          type: "provider_snapshot",
+          protocolVersion: PROTOCOL_VERSION,
+          generation,
+          ...snapshot,
+        }),
+      );
+    }
     websocket.on("message", (data, isBinary) => {
       if (isBinary) {
         rejected(channel, undefined, undefined, "Binary commands are not supported");
@@ -538,6 +600,8 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
     close() {
       closePromise ??= (async () => {
         closed = true;
+        providerUnsubscribe();
+        providers.close();
         if (coalesceTimer) clearTimeout(coalesceTimer);
         coalesceTimer = undefined;
         pendingUpdate = undefined;

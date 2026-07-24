@@ -46,6 +46,7 @@ function harness(dependencies: WebUiExtensionDependencies) {
     registerEntryRenderer,
     appendEntry,
     sendUserMessage: vi.fn(),
+    events: { on: vi.fn(), emit: vi.fn() },
   } as unknown as ExtensionAPI;
   createWebUiExtension(dependencies)(pi);
   return { handlers, registerCommand, registerEntryRenderer, appendEntry };

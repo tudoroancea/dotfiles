@@ -606,6 +606,22 @@ export class RunEngine {
     }
     return out;
   }
+  getSteerableNodeIds(runId: string): string[] {
+    const live = this.store.getLive(runId);
+    if (!live) return [];
+    return live.snapshot.nodes
+      .filter((node) => {
+        const control = live.controls.get(node.id);
+        return (
+          node.status === "running" &&
+          node.backend !== "claude" &&
+          Boolean(control?.steer) &&
+          control?.isStreaming === true
+        );
+      })
+      .map((node) => node.id);
+  }
+
   async steer(runId: string, nodeId: string | undefined, message: string) {
     const live = this.store.getLive(runId);
     if (!live) throw new Error(`Unknown run: ${runId}`);

@@ -19,6 +19,7 @@ import type { RunSnapshot } from "./types.ts";
 import { registerDashboard } from "./ui/dashboard.ts";
 import { renderSemanticSnapshot } from "./ui/semantic-renderer.ts";
 import { runCostDetails } from "./utils.ts";
+import { registerAgentflowWebProvider } from "./web-provider.ts";
 
 function expandHint(): string | undefined {
   try {
@@ -91,6 +92,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
     undefined,
     (store) => new ClaudeSubagentRunner(store, () => claudeResources.getSkills()),
   );
+  registerAgentflowWebProvider(pi, engine);
   const semanticService = new SemanticAgentService(engine, () => pi.getAllTools());
   registerSemanticTools(pi, semanticService);
   registerClaudeTool(pi, engine);

@@ -8,6 +8,12 @@ import {
 import { Text, type AutocompleteProvider } from "@earendil-works/pi-tui";
 import { readWebUiConfig } from "./server/config.js";
 import {
+  PROVIDER_DISCOVER_EVENT,
+  PROVIDER_REGISTER_EVENT,
+  ProviderRegistry,
+  type DashboardProvider,
+} from "./server/providers.js";
+import {
   startWebUiServer,
   type StartWebUiServerOptions,
   type WebUiRuntime,
@@ -61,6 +67,11 @@ export function createWebUiExtension(
     let runtime: WebUiRuntime | undefined;
     let activeGeneration: string | undefined;
 
+    const providerRegistry = new ProviderRegistry();
+    pi.events.on(PROVIDER_REGISTER_EVENT, (provider) =>
+      providerRegistry.register(provider as DashboardProvider),
+    );
+
     pi.registerEntryRenderer<StartupEntryData>(STARTUP_ENTRY, (entry, _options, theme) => {
       if (!entry.data || entry.data.generation !== activeGeneration) return undefined;
       const url = entry.data.url;
@@ -84,6 +95,7 @@ export function createWebUiExtension(
         autocompleteProvider = current;
         return current;
       });
+      pi.events.emit(PROVIDER_DISCOVER_EVENT, undefined);
       const started = await dependencies.startServer({
         pi,
         context,
@@ -91,6 +103,7 @@ export function createWebUiExtension(
         assetRoot: dependencies.assetRoot,
         generation: randomUUID(),
         ...(autocompleteProvider ? { autocompleteProvider } : {}),
+        providerRegistry,
       });
       runtime = started;
       if (context.mode === "tui") {
@@ -125,6 +138,7 @@ export function createWebUiExtension(
       runtime = undefined;
       activeGeneration = undefined;
       if (active) await active.close();
+      providerRegistry.close();
     });
   };
 }

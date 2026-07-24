@@ -2,12 +2,13 @@ import { Buffer } from "node:buffer";
 import { WebSocket } from "ws";
 import { LIMITS } from "../shared/limits.js";
 
-type FrameKind = "control" | "state" | "snapshot";
+type FrameKind = "control" | "state" | "snapshot" | "provider";
 
 interface Frame {
   kind: FrameKind;
   data: string;
   bytes: number;
+  key?: string;
 }
 
 export class ClientQueue {
@@ -30,10 +31,25 @@ export class ClientQueue {
     this.enqueue({ kind: "state", data: serialized, bytes: Buffer.byteLength(serialized) });
   }
 
+  enqueueProvider(provider: string, serialized: string): void {
+    for (let index = this.frames.length - 1; index >= 0; index -= 1) {
+      const frame = this.frames[index]!;
+      if (frame.kind !== "provider" || frame.key !== provider) continue;
+      this.queuedBytes -= frame.bytes;
+      this.frames.splice(index, 1);
+    }
+    this.enqueue({
+      kind: "provider",
+      key: provider,
+      data: serialized,
+      bytes: Buffer.byteLength(serialized),
+    });
+  }
+
   enqueueSnapshot(serialized = this.currentSnapshot()): void {
     for (let index = this.frames.length - 1; index >= 0; index -= 1) {
       const frame = this.frames[index]!;
-      if (frame.kind === "control") continue;
+      if (frame.kind === "control" || frame.kind === "provider") continue;
       this.queuedBytes -= frame.bytes;
       this.frames.splice(index, 1);
     }

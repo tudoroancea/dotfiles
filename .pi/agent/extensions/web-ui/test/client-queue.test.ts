@@ -43,6 +43,20 @@ describe("ClientQueue", () => {
     expect(socket.sent).toEqual(["control-1", "control-2", "snapshot"]);
   });
 
+  it("preserves the newest provider frame across a session snapshot barrier", () => {
+    const socket = new FakeWebSocket();
+    const queue = new ClientQueue(socket as unknown as WebSocket, () => "current-snapshot");
+    queue.enqueueControl("in-flight");
+    queue.enqueueProvider("agentflow", "provider-old");
+    queue.enqueueProvider("agentflow", "provider-new");
+    queue.enqueueState("session-update");
+    queue.enqueueSnapshot("session-snapshot");
+    socket.completeNext();
+    expect(socket.sent.at(-1)).toBe("provider-new");
+    socket.completeNext();
+    expect(socket.sent.at(-1)).toBe("session-snapshot");
+  });
+
   it("collapses state queue overflow to a current snapshot", () => {
     const socket = new FakeWebSocket();
     const queue = new ClientQueue(socket as unknown as WebSocket, () => "current-snapshot");

@@ -91,7 +91,7 @@ describe("web UI server", () => {
     const health = await fetch(new URL("health", runtime.diagnosticUrl));
     expect(await health.json()).toEqual({
       status: "ok",
-      protocolVersion: 4,
+      protocolVersion: 5,
       generation: "generation-1",
       isIdle: true,
     });

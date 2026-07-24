@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import { LIMITS } from "./limits.js";
 
-export const PROTOCOL_VERSION = 4 as const;
+export const PROTOCOL_VERSION = 5 as const;
 
 const RevisionSchema = Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
 const GenerationSchema = Type.String({ minLength: 1, maxLength: 128 });
@@ -161,6 +161,26 @@ export const ClientCommandSchema = Type.Union([
   ),
   Type.Object(
     {
+      type: Type.Literal("provider_snapshot"),
+      commandId: CommandIdSchema,
+      generation: GenerationSchema,
+      provider: Type.Union([Type.Literal("agentflow"), Type.Literal("background")]),
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      type: Type.Literal("provider_action"),
+      commandId: CommandIdSchema,
+      generation: GenerationSchema,
+      provider: Type.Union([Type.Literal("agentflow"), Type.Literal("background")]),
+      action: Type.String({ minLength: 1, maxLength: 64 }),
+      payload: Type.Optional(Type.Unknown()),
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
       type: Type.Literal("complete"),
       commandId: CommandIdSchema,
       generation: GenerationSchema,
@@ -251,6 +271,23 @@ export const CompletionResultMessageSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ProviderMessageSchema = Type.Object(
+  {
+    type: Type.Union([
+      Type.Literal("provider_snapshot"),
+      Type.Literal("provider_update"),
+      Type.Literal("provider_action_result"),
+    ]),
+    protocolVersion: ProtocolVersionSchema,
+    generation: GenerationSchema,
+    provider: Type.Union([Type.Literal("agentflow"), Type.Literal("background")]),
+    revision: Type.Integer({ minimum: 0 }),
+    commandId: Type.Optional(CommandIdSchema),
+    data: Type.Unknown(),
+  },
+  { additionalProperties: false },
+);
+
 export const ResyncRequiredMessageSchema = Type.Object(
   {
     type: Type.Literal("resync_required"),
@@ -269,6 +306,7 @@ export const ServerMessageSchema = Type.Union([
   CommandResponseMessageSchema,
   PongMessageSchema,
   CompletionResultMessageSchema,
+  ProviderMessageSchema,
   ResyncRequiredMessageSchema,
 ]);
 
@@ -288,5 +326,6 @@ export type CommandResponseMessage = Static<typeof CommandResponseMessageSchema>
 export type PongMessage = Static<typeof PongMessageSchema>;
 export type CompletionItem = Static<typeof CompletionItemSchema>;
 export type CompletionResultMessage = Static<typeof CompletionResultMessageSchema>;
+export type ProviderMessage = Static<typeof ProviderMessageSchema>;
 export type ResyncRequiredMessage = Static<typeof ResyncRequiredMessageSchema>;
 export type ServerMessage = Static<typeof ServerMessageSchema>;
