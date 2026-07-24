@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #191724;
+  color: #e0def4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+.shell {
+  width: min(48rem, 100%);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+header,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+h1 {
+  font-size: 1rem;
+}
+
+.status,
+.notice {
+  color: #908caa;
+}
+
+.status--open {
+  color: #9ccfd8;
+}
+
+.status--unauthorized {
+  color: #eb6f92;
+}
+
+.notice {
+  min-height: 3rem;
+  padding: 0.75rem;
+  border: 1px solid #403d52;
+  border-radius: 0.5rem;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+select,
+textarea,
+button {
+  color: inherit;
+  background: #26233a;
+  border: 1px solid #524f67;
+  border-radius: 0.4rem;
+}
+
+select,
+button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  resize: vertical;
+}
+
+button:disabled {
+  opacity: 0.5;
+}

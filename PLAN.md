@@ -135,16 +135,16 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 1 — lifecycle and transport spike (sequential prerequisite)
 
-- [ ] Start Node HTTP/`ws` resources only from `session_start` in TUI/RPC modes.
-- [ ] Implement idempotent shutdown for `/reload`, session replacement, and process shutdown.
-- [ ] Serve built assets, health metadata, and a minimal authenticated WebSocket.
-- [ ] Generate per-run credentials, bind to loopback by default, validate Origin, and avoid query-string secrets.
-- [ ] Once listening, insert one initial non-LLM startup announcement before normal conversation content showing the canonical access URL and `/copy-remote-url`; do not persist stale per-run URLs into LLM context.
-- [ ] Register `/copy-remote-url` (“Copy Remote URL”) to copy a directly usable authenticated link through Pi's `copyToClipboard()`, with success/error feedback and tests for unavailable clipboard integration.
-- [ ] Exchange the link's short-lived single-use fragment credential for the per-run browser authentication state, then strip the fragment immediately.
-- [ ] Send prompt, explicit steer/follow-up, abort, ping, snapshot request, and command acceptance/error responses.
-- [ ] In RPC mode, write only the non-secret diagnostic URL to stderr and never emit startup announcements or URLs on stdout; define no-output behavior for print/JSON modes.
-- [ ] Verify RPC stdout remains clean and TUI responsiveness is unaffected.
+- [x] Start Node HTTP/`ws` resources only from `session_start` in TUI/RPC modes.
+- [x] Implement idempotent shutdown for `/reload`, session replacement, and process shutdown.
+- [x] Serve built assets, health metadata, and a minimal authenticated WebSocket.
+- [x] Generate per-run credentials, bind to loopback by default, validate Origin, and avoid query-string secrets.
+- [x] Once listening, insert one initial non-LLM startup announcement before normal conversation content showing the canonical access URL and `/copy-remote-url`; do not persist stale per-run URLs into LLM context.
+- [x] Register `/copy-remote-url` (“Copy Remote URL”) to copy a directly usable authenticated link through Pi's `copyToClipboard()`, with success/error feedback and tests for unavailable clipboard integration.
+- [x] Exchange the link's short-lived single-use fragment credential for the per-run browser authentication state, then strip the fragment immediately.
+- [x] Send prompt, explicit steer/follow-up, abort, ping, snapshot request, and command acceptance/error responses.
+- [x] In RPC mode, write only the non-secret diagnostic URL to stderr and never emit startup announcements or URLs on stdout; define no-output behavior for print/JSON modes.
+- [x] Verify RPC stdout remains clean and TUI responsiveness is unaffected.
 
 ### Phase 2 — versioned session protocol and state (depends on Phase 1)
 

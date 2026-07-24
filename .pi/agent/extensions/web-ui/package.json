@@ -15,7 +15,10 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
+    "prepare": "vite build",
+    "pretest": "vite build",
     "test": "vitest run",
+    "smoke:rpc": "node scripts/rpc-smoke.mjs",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@earendil-works/pi-ai": "0.82.0",
     "@earendil-works/pi-coding-agent": "0.82.0",
+    "@earendil-works/pi-tui": "0.82.0",
     "@preact/preset-vite": "2.10.6",
     "@testing-library/preact": "3.2.4",
     "@types/node": "26.1.1",
@@ -42,6 +46,7 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": ">=0.82.0 <0.83.0",
+    "@earendil-works/pi-tui": ">=0.82.0 <0.83.0",
     "typebox": ">=1.1.38 <2.0.0"
   },
   "devEngines": {
