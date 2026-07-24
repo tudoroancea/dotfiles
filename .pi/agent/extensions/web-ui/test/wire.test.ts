@@ -28,7 +28,7 @@ const context = {
   getContextUsage: () => undefined,
 } as unknown as ExtensionContext;
 
-describe("protocol v2 schemas", () => {
+describe("protocol v3 schemas", () => {
   it("requires generation on every mutating client command", () => {
     for (const type of ["prompt", "steer", "follow_up"] as const) {
       const command = {
@@ -69,7 +69,7 @@ describe("protocol v2 schemas", () => {
     ).toBe(false);
   });
 
-  it("validates every top-level server envelope at protocol version 2", () => {
+  it("validates every top-level server envelope at protocol version 3", () => {
     const store = new SessionStateStore(context, "generation-wire");
     const snapshot = store.snapshot("snapshot-1");
     const update = store.agentStart()!;

@@ -369,11 +369,62 @@ export function projectPersistedState(context: ExtensionContext): PersistedState
   };
 }
 
+function sessionCost(context: ExtensionContext): number {
+  const unkeyed = { total: 0 };
+  const keyed = new Map<string, number>();
+  const addDetails = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    const details = value as { cost?: unknown; costId?: unknown; costs?: unknown };
+    if (typeof details.cost === "number" && Number.isFinite(details.cost) && details.cost >= 0) {
+      if (typeof details.costId === "string") {
+        keyed.set(details.costId, Math.max(keyed.get(details.costId) ?? 0, details.cost));
+      } else unkeyed.total += details.cost;
+    }
+    if (!Array.isArray(details.costs)) return;
+    for (const item of details.costs) {
+      if (!item || typeof item !== "object") continue;
+      const record = item as { costId?: unknown; cost?: unknown };
+      if (
+        typeof record.costId === "string" &&
+        typeof record.cost === "number" &&
+        Number.isFinite(record.cost) &&
+        record.cost >= 0
+      ) {
+        keyed.set(record.costId, Math.max(keyed.get(record.costId) ?? 0, record.cost));
+      }
+    }
+  };
+
+  for (const candidate of context.sessionManager.getBranch()) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const entry = candidate as unknown as Record<string, unknown>;
+    if (entry.type === "custom" && entry.customType === "agentflow-cost") {
+      addDetails(entry.data);
+      continue;
+    }
+    if (entry.type === "custom_message" && entry.customType === "agentflow-result") {
+      addDetails(entry.details);
+      continue;
+    }
+    if (entry.type !== "message" || !entry.message || typeof entry.message !== "object") continue;
+    const message = entry.message as Record<string, unknown>;
+    if (message.role === "assistant") {
+      const usage = message.usage as { cost?: { total?: unknown } } | undefined;
+      const cost = usage?.cost?.total;
+      if (typeof cost === "number" && Number.isFinite(cost) && cost >= 0) unkeyed.total += cost;
+    } else if (message.role === "toolResult" || message.role === "custom") {
+      addDetails(message.details);
+    }
+  }
+  return unkeyed.total + [...keyed.values()].reduce((sum, cost) => sum + cost, 0);
+}
+
 export function projectMetadata(
   context: ExtensionContext,
   activeTools: readonly string[] = [],
 ): SessionMetadata {
   const usage = context.getContextUsage();
+  const cost = sessionCost(context);
   return {
     cwd: String(context.cwd).slice(0, 4_096),
     isIdle: context.isIdle(),
@@ -397,5 +448,6 @@ export function projectMetadata(
         }
       : {}),
     activeTools: activeTools.slice(0, 256).map((name) => String(name).slice(0, 256)),
+    sessionCost: cost,
   };
 }

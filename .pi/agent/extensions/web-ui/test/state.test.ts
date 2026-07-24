@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
-import { projectJson, projectPersistedState } from "../src/server/projection.js";
+import { projectJson, projectMetadata, projectPersistedState } from "../src/server/projection.js";
 import { mergeStateUpdates, SessionStateStore } from "../src/server/state.js";
 
 const fixtures = JSON.parse(
@@ -285,6 +285,47 @@ describe("SessionStateStore", () => {
 });
 
 describe("safe projection", () => {
+  it("projects zero cost and deduplicates Agentflow cost IDs", () => {
+    expect(projectMetadata(harness([]).context).sessionCost).toBe(0);
+    const session = harness([
+      {
+        type: "message",
+        id: "assistant-cost",
+        parentId: null,
+        timestamp: "2026-07-24T00:00:00.000Z",
+        message: { role: "assistant", content: [], usage: { cost: { total: 1 } } },
+      },
+      {
+        type: "message",
+        id: "tool-cost",
+        parentId: "assistant-cost",
+        timestamp: "2026-07-24T00:00:01.000Z",
+        message: {
+          role: "toolResult",
+          content: [],
+          details: { costs: [{ costId: "run-1", cost: 0.5 }] },
+        },
+      },
+      {
+        type: "custom_message",
+        id: "duplicate-cost",
+        parentId: "tool-cost",
+        timestamp: "2026-07-24T00:00:02.000Z",
+        customType: "agentflow-result",
+        details: { cost: 0.4, costId: "run-1" },
+      },
+      {
+        type: "custom",
+        id: "unkeyed-cost",
+        parentId: "duplicate-cost",
+        timestamp: "2026-07-24T00:00:03.000Z",
+        customType: "agentflow-cost",
+        data: { cost: 0.2 },
+      },
+    ]);
+    expect(projectMetadata(session.context).sessionCost).toBeCloseTo(1.7);
+  });
+
   it("applies image count and source limits to persisted messages", () => {
     const images = Array.from({ length: 5 }, () => ({
       type: "image",

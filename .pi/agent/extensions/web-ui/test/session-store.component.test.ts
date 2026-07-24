@@ -51,7 +51,7 @@ describe("browser session store", () => {
     expect(
       browser.apply({
         type: "ready",
-        protocolVersion: 2,
+        protocolVersion: 3,
         generation: "generation-new",
         revision: 0,
       }),

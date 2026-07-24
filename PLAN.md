@@ -169,11 +169,11 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 4 — boxed composer, controls, and session polish (depends on Phases 2–3)
 
-- [ ] Implement the responsive boxed composer based on `.pi/agent/extensions/boxed-editor.ts`: usage/cost, provider/model, colored thinking level, shortened cwd, multiline input, and mobile-safe sticky placement.
-- [ ] Implement idle prompt and explicit busy steer/follow-up modes.
-- [ ] Implement abort, busy/idle/reconnect state, model/thinking/cwd/session display, and command acceptance feedback.
-- [ ] Preserve active branch ordering and reconcile ephemeral finals without visible duplication.
-- [ ] Add read-only tree only if active-branch usage proves insufficient.
+- [x] Implement the responsive boxed composer based on `.pi/agent/extensions/boxed-editor.ts`: usage/cost, provider/model, colored thinking level, shortened cwd, multiline input, and mobile-safe sticky placement.
+- [x] Implement idle prompt and explicit busy steer/follow-up modes.
+- [x] Implement abort, busy/idle/reconnect state, model/thinking/cwd/session display, and command acceptance feedback.
+- [x] Preserve active branch ordering and reconcile ephemeral finals without visible duplication.
+- [x] Add read-only tree only if active-branch usage proves insufficient (active-branch rendering is sufficient).
 
 ### Phase 4b — composer completion (separate milestone after core composer)
 

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import type { ServerMessage } from "../shared/wire.js";
+import { Composer, type ComposerMode } from "./components/Composer.js";
 import { Timeline } from "./components/Timeline.js";
 import { BrowserSessionStore, useBrowserSession } from "./session-store.js";
 import {
@@ -9,8 +10,6 @@ import {
   type WebTransport,
 } from "./transport.js";
 import "./styles.css";
-
-type SendMode = "prompt" | "steer" | "follow_up";
 
 const CONNECTION_LABEL: Record<ConnectionState, string> = {
   connecting: "Connecting",
@@ -28,7 +27,7 @@ export function App() {
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [message, setMessage] = useState("Authenticate with /copy-remote-url in Pi.");
   const [content, setContent] = useState("");
-  const [mode, setMode] = useState<SendMode>("prompt");
+  const [mode, setMode] = useState<ComposerMode>("prompt");
 
   useEffect(() => {
     let active = true;
@@ -79,12 +78,12 @@ export function App() {
     if (element && stickToBottom.current) element.scrollTop = element.scrollHeight;
   }, [session.revision, session.state]);
 
-  const submit = (event: Event) => {
-    event.preventDefault();
+  const submit = () => {
     const value = content.trim();
     if (!value || !session.generation || transport.current?.socket.readyState !== WebSocket.OPEN)
       return;
-    transport.current.send(mode, { content: value, generation: session.generation });
+    const delivery = isRunning ? (mode === "follow_up" ? "follow_up" : "steer") : "prompt";
+    transport.current.send(delivery, { content: value, generation: session.generation });
     setContent("");
     setMessage("Sending…");
   };
@@ -130,55 +129,25 @@ export function App() {
         )}
       </main>
 
-      <footer class="composer">
-        <p class="composer__notice" aria-live="polite">
-          {message}
-        </p>
-        <form class="composer__form" onSubmit={submit}>
-          <div class="composer__meta">
-            {metadata?.model ? <span class="composer__model">{metadata.model.name}</span> : null}
-            {metadata?.cwd ? <span class="composer__cwd">{metadata.cwd}</span> : null}
-          </div>
-          <textarea
-            class="composer__input"
-            aria-label="Message"
-            rows={3}
-            value={content}
-            placeholder={isRunning ? "Steer the running turn…" : "Send a prompt…"}
-            onInput={(event) => setContent(event.currentTarget.value)}
-          />
-          <div class="composer__controls">
-            <label class="composer__mode" for="mode">
-              <span class="composer__mode-label">Deliver as</span>
-              <select
-                id="mode"
-                value={mode}
-                onChange={(event) => setMode(event.currentTarget.value as SendMode)}
-              >
-                <option value="prompt">Prompt</option>
-                <option value="steer">Steer</option>
-                <option value="follow_up">Follow-up</option>
-              </select>
-            </label>
-            <div class="composer__actions">
-              <button
-                type="button"
-                class="btn btn--ghost"
-                disabled={!ready}
-                onClick={() =>
-                  session.generation &&
-                  transport.current?.send("abort", { generation: session.generation })
-                }
-              >
-                Abort
-              </button>
-              <button type="submit" class="btn btn--send" disabled={!ready || !content.trim()}>
-                Send
-              </button>
-            </div>
-          </div>
-        </form>
-      </footer>
+      <Composer
+        {...(metadata ? { metadata } : {})}
+        {...(session.state?.persisted.sessionId
+          ? { sessionId: session.state.persisted.sessionId }
+          : {})}
+        running={Boolean(isRunning)}
+        connected={ready}
+        content={content}
+        mode={mode}
+        notice={message}
+        onContent={setContent}
+        onMode={setMode}
+        onSend={submit}
+        onAbort={() => {
+          if (session.generation) {
+            transport.current?.send("abort", { generation: session.generation });
+          }
+        }}
+      />
     </div>
   );
 }

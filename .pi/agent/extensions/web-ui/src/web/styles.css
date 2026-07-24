@@ -1004,10 +1004,48 @@ a {
   min-width: 0;
 }
 
-.composer__cwd {
+.composer__meta--top {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.composer__meta--bottom {
+  flex: 1;
+  margin: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.composer__meta-spacer {
+  flex: 1;
+}
+
+.composer__thinking {
+  font-weight: 700;
+}
+
+.composer__thinking--off,
+.composer__thinking--minimal,
+.composer__thinking--low {
+  color: var(--fg-muted);
+}
+
+.composer__thinking--medium {
+  color: var(--accent);
+}
+
+.composer__thinking--high,
+.composer__thinking--xhigh,
+.composer__thinking--max {
+  color: var(--gold);
+}
+
+.composer__idle-mode {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .composer__input {
@@ -1107,8 +1145,28 @@ summary {
     gap: 0.5rem;
   }
 
+  .composer__meta--top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 0.75rem;
+  }
+
+  .composer__meta-spacer {
+    display: none;
+  }
+
+  .composer__meta--top > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .composer__controls {
     flex-wrap: wrap;
+  }
+
+  .composer__meta--bottom {
+    flex-basis: 100%;
   }
 
   .composer__actions {
