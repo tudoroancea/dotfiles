@@ -1,0 +1,59 @@
+{
+  "name": "pi-web-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Session-scoped web companion for Pi",
+  "keywords": [
+    "extension",
+    "pi"
+  ],
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings .",
+    "test": "vitest run",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "dompurify": "3.4.12",
+    "highlight.js": "11.11.1",
+    "marked": "17.0.6",
+    "preact": "10.29.7",
+    "ws": "8.21.1"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.82.0",
+    "@earendil-works/pi-coding-agent": "0.82.0",
+    "@preact/preset-vite": "2.10.6",
+    "@testing-library/preact": "3.2.4",
+    "@types/node": "26.1.1",
+    "@types/ws": "8.18.1",
+    "jsdom": "28.1.0",
+    "oxfmt": "0.59.0",
+    "oxlint": "1.75.0",
+    "typebox": "1.1.38",
+    "typescript": "7.0.2",
+    "vite": "7.3.6",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0 <0.83.0",
+    "typebox": ">=1.1.38 <2.0.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "nub",
+      "version": "^0.4.11",
+      "onFail": "warn"
+    }
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

@@ -1,0 +1,264 @@
+{
+  "persistedBranch": [
+    {
+      "type": "message",
+      "id": "entry-user",
+      "parentId": null,
+      "timestamp": "2026-07-24T12:00:00.000Z",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Describe this image"
+          },
+          {
+            "type": "image",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+            "mimeType": "image/png"
+          }
+        ],
+        "timestamp": 1784894400000
+      }
+    },
+    {
+      "type": "custom_message",
+      "id": "entry-custom",
+      "parentId": "entry-user",
+      "timestamp": "2026-07-24T12:00:01.000Z",
+      "customType": "background-monitor-event",
+      "content": "monitor job-stream (Server readiness)\nsource sequences: 1-1\ndropped: 0 lines / 0 bytes\nsplit source lines: 0\ncoalesced capture batches: 0\noutput: /tmp/background/job-stream/output.log\n\nready on port 3000",
+      "display": true,
+      "details": {
+        "jobId": "job-stream",
+        "description": "Server readiness",
+        "outputPath": "/tmp/background/job-stream/output.log",
+        "delivery": 1,
+        "lines": ["ready on port 3000"],
+        "captureOnly": false,
+        "firstSequence": 1,
+        "lastSequence": 1,
+        "droppedLines": 0,
+        "droppedBytes": 0,
+        "splitLines": 0,
+        "captureBatches": 0
+      }
+    },
+    {
+      "type": "message",
+      "id": "entry-error",
+      "parentId": "entry-custom",
+      "timestamp": "2026-07-24T12:00:02.000Z",
+      "message": {
+        "role": "toolResult",
+        "toolCallId": "call-unknown",
+        "toolName": "unknown_tool",
+        "content": [
+          {
+            "type": "text",
+            "text": "\u001b[31m<script>alert(1)</script>\u001b[0m"
+          }
+        ],
+        "details": {
+          "filename": "</details><img src=x onerror=alert(1)>"
+        },
+        "isError": true,
+        "timestamp": 1784894402000
+      }
+    },
+    {
+      "type": "custom_message",
+      "id": "entry-agentflow-result",
+      "parentId": "entry-error",
+      "timestamp": "2026-07-24T12:00:03.000Z",
+      "customType": "agentflow-result",
+      "content": "Background finder completed.",
+      "display": true,
+      "details": {
+        "snapshot": {
+          "runId": "run-background-finder",
+          "kind": "agent",
+          "semanticRole": "finder",
+          "status": "completed",
+          "createdAt": "2026-07-24T12:00:00.000Z",
+          "completedAt": "2026-07-24T12:00:03.000Z",
+          "phases": [],
+          "nodes": [],
+          "logs": [],
+          "resultPreview": "Repository map complete"
+        }
+      }
+    },
+    {
+      "type": "custom_message",
+      "id": "entry-background-completion",
+      "parentId": "entry-agentflow-result",
+      "timestamp": "2026-07-24T12:00:04.000Z",
+      "customType": "background-process-completion",
+      "content": "{\"jobs\":[{\"jobId\":\"job-bg1\",\"kind\":\"background_run\",\"status\":\"completed\",\"command\":\"nub test\",\"description\":\"Run tests\",\"cwd\":\"/repo\",\"durationMs\":10000,\"exitCode\":0,\"outputBytes\":120,\"outputPath\":\"/tmp/background/job-bg1/output.log\",\"metadataPath\":\"/tmp/background/job-bg1/job.json\",\"deliveryState\":\"sent\"}],\"truncated\":false,\"omittedCount\":0}",
+      "display": true,
+      "details": {
+        "jobs": [
+          {
+            "jobId": "job-bg1",
+            "kind": "background_run",
+            "status": "completed",
+            "command": "nub test",
+            "description": "Run tests",
+            "cwd": "/repo",
+            "durationMs": 10000,
+            "exitCode": 0,
+            "outputBytes": 120,
+            "outputPath": "/tmp/background/job-bg1/output.log",
+            "metadataPath": "/tmp/background/job-bg1/job.json",
+            "deliveryState": "sent"
+          }
+        ],
+        "text": "{\"jobs\":[{\"jobId\":\"job-bg1\",\"kind\":\"background_run\",\"status\":\"completed\",\"command\":\"nub test\",\"description\":\"Run tests\",\"cwd\":\"/repo\",\"durationMs\":10000,\"exitCode\":0,\"outputBytes\":120,\"outputPath\":\"/tmp/background/job-bg1/output.log\",\"metadataPath\":\"/tmp/background/job-bg1/job.json\",\"deliveryState\":\"sent\"}],\"truncated\":false,\"omittedCount\":0}",
+        "truncated": false,
+        "omittedCount": 0
+      }
+    }
+  ],
+  "liveEvents": [
+    {
+      "type": "message_update",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Working"
+          },
+          {
+            "type": "thinking",
+            "thinking": "Checking fixtures"
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "pave",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "toolUse",
+        "timestamp": 1784894403000
+      },
+      "assistantMessageEvent": {
+        "type": "text_delta",
+        "contentIndex": 0,
+        "delta": "ing"
+      }
+    },
+    {
+      "type": "tool_execution_start",
+      "toolCallId": "parallel-a",
+      "toolName": "read",
+      "args": {
+        "path": "a.ts"
+      }
+    },
+    {
+      "type": "tool_execution_start",
+      "toolCallId": "parallel-b",
+      "toolName": "bash",
+      "args": {
+        "command": "nub test"
+      }
+    },
+    {
+      "type": "tool_execution_update",
+      "toolCallId": "parallel-b",
+      "toolName": "bash",
+      "args": {
+        "command": "nub test"
+      },
+      "partialResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "half complete"
+          }
+        ],
+        "details": {}
+      }
+    },
+    {
+      "type": "tool_execution_update",
+      "toolCallId": "parallel-b",
+      "toolName": "bash",
+      "args": {
+        "command": "nub test"
+      },
+      "partialResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "half complete\nfailed: assertion"
+          }
+        ],
+        "details": {}
+      }
+    },
+    {
+      "type": "tool_execution_update",
+      "toolCallId": "parallel-a",
+      "toolName": "read",
+      "args": {
+        "path": "a.ts"
+      },
+      "partialResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "export const a = 1;"
+          }
+        ],
+        "details": {}
+      }
+    },
+    {
+      "type": "tool_execution_end",
+      "toolCallId": "parallel-a",
+      "toolName": "read",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "export const a = 1;"
+          }
+        ],
+        "details": {}
+      },
+      "isError": false
+    },
+    {
+      "type": "tool_execution_end",
+      "toolCallId": "parallel-b",
+      "toolName": "bash",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "half complete\nfailed: assertion"
+          }
+        ],
+        "details": {
+          "exitCode": 1
+        }
+      },
+      "isError": true
+    }
+  ]
+}
