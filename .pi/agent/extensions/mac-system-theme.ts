@@ -12,40 +12,36 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 const execAsync = promisify(exec);
 
 async function isDarkMode(): Promise<boolean> {
-	try {
-		const { stdout } = await execAsync(
-			"osascript -e 'tell application \"System Events\" to tell appearance preferences to return dark mode'",
-		);
-		return stdout.trim() === "true";
-	} catch {
-		return false;
-	}
+  try {
+    const { stdout } = await execAsync(
+      "osascript -e 'tell application \"System Events\" to tell appearance preferences to return dark mode'",
+    );
+    return stdout.trim() === "true";
+  } catch {
+    return false;
+  }
 }
 
 export default function (pi: ExtensionAPI) {
-	let intervalId: ReturnType<typeof setInterval> | null = null;
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
-	pi.on("session_start", async (_event, ctx) => {
-		let currentTheme = (await isDarkMode())
-			? "rosepine-moon"
-			: "rosepine-dawn";
-		ctx.ui.setTheme(currentTheme);
+  pi.on("session_start", async (_event, ctx) => {
+    let currentTheme = (await isDarkMode()) ? "rosepine-moon" : "rosepine-dawn";
+    ctx.ui.setTheme(currentTheme);
 
-		intervalId = setInterval(async () => {
-			const newTheme = (await isDarkMode())
-				? "rosepine-moon"
-				: "rosepine-dawn";
-			if (newTheme !== currentTheme) {
-				currentTheme = newTheme;
-				ctx.ui.setTheme(currentTheme);
-			}
-		}, 2000);
-	});
+    intervalId = setInterval(async () => {
+      const newTheme = (await isDarkMode()) ? "rosepine-moon" : "rosepine-dawn";
+      if (newTheme !== currentTheme) {
+        currentTheme = newTheme;
+        ctx.ui.setTheme(currentTheme);
+      }
+    }, 2000);
+  });
 
-	pi.on("session_shutdown", () => {
-		if (intervalId) {
-			clearInterval(intervalId);
-			intervalId = null;
-		}
-	});
+  pi.on("session_shutdown", () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  });
 }

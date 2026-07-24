@@ -130,7 +130,7 @@ The completed [Claude system-prompt audit](./CLAUDE_SYSTEM_PROMPT_AUDIT.md) agai
 Use full replacement:
 
 ```ts
-systemPrompt: compiledStandaloneClaudePrompt
+systemPrompt: compiledStandaloneClaudePrompt;
 ```
 
 Do not use the `claude_code` preset and do not append Agentflow policy to it. The audit contains the fullest obtainable reconstruction, evidence labels, conflict analysis, and the complete controlled replacement prompt template. The implementation must express that standalone prompt as a root Markdown asset with `@` imports of the canonical general instructions and Claude-specific tool, autonomy, resource-boundary, and result fragments. Compile that root asset with the exact resolver built in Phase 1, then pass the resulting string directly to the Agent SDK as `systemPrompt`.
@@ -233,7 +233,7 @@ The Claude child should receive the same skills Pi loaded for the parent turn, n
 Capture the current Pi resource snapshot in Agentflow's `before_agent_start` handler:
 
 ```ts
-event.systemPromptOptions.skills
+event.systemPromptOptions.skills;
 ```
 
 Store only plain immutable skill metadata needed by a child:

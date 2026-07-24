@@ -5,7 +5,12 @@ class DoubleEscapeEditor extends CustomEditor {
   private lastEscape = 0;
   private readonly timeout = 500; // milliseconds
 
-  constructor(tui: any, theme: any, kb: any, private ctx: any) {
+  constructor(
+    tui: any,
+    theme: any,
+    kb: any,
+    private ctx: any,
+  ) {
     super(tui, theme, kb);
   }
 
@@ -62,8 +67,6 @@ class DoubleEscapeEditor extends CustomEditor {
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     // Replace the default editor with our timed logic version
-    ctx.ui.setEditorComponent((tui, theme, kb) => 
-      new DoubleEscapeEditor(tui, theme, kb, ctx)
-    );
+    ctx.ui.setEditorComponent((tui, theme, kb) => new DoubleEscapeEditor(tui, theme, kb, ctx));
   });
 }

@@ -21,225 +21,208 @@ const ACTIVITY_TIMEOUT_MS = 45000; // 45 seconds - assume unfocused if no activi
 const DEBOUNCE_MS = 100; // Debounce rapid focus changes
 
 function shouldNotify(): boolean {
-	// If we receive focus events, trust them
-	if (focusEventsReceived && focusReportingSupported) {
-		return !isFocused;
-	}
+  // If we receive focus events, trust them
+  if (focusEventsReceived && focusReportingSupported) {
+    return !isFocused;
+  }
 
-	// Fallback heuristic: If no activity for 45+ seconds, assume unfocused
-	const inactiveTime = Date.now() - lastActivityTime;
-	return inactiveTime > ACTIVITY_TIMEOUT_MS;
+  // Fallback heuristic: If no activity for 45+ seconds, assume unfocused
+  const inactiveTime = Date.now() - lastActivityTime;
+  return inactiveTime > ACTIVITY_TIMEOUT_MS;
 }
 
 function setupFocusTracking() {
-	if (cleanupFocus || !process.stdin.isTTY) return;
+  if (cleanupFocus || !process.stdin.isTTY) return;
 
-	process.stdout.write("\x1b[?1004h"); // Enable focus reporting
-	focusReportingSupported = true;
+  process.stdout.write("\x1b[?1004h"); // Enable focus reporting
+  focusReportingSupported = true;
 
-	let pendingFocusChange: NodeJS.Timeout | null = null;
+  let pendingFocusChange: NodeJS.Timeout | null = null;
 
-	const handleData = (data: Buffer) => {
-		const str = data.toString();
+  const handleData = (data: Buffer) => {
+    const str = data.toString();
 
-		// Track activity for fallback heuristic
-		lastActivityTime = Date.now();
+    // Track activity for fallback heuristic
+    lastActivityTime = Date.now();
 
-		// Check for focus events
-		if (str.includes("\x1b[I")) {
-			focusEventsReceived = true;
-			// Debounce rapid changes
-			if (pendingFocusChange) clearTimeout(pendingFocusChange);
-			pendingFocusChange = setTimeout(() => {
-				isFocused = true;
-				pendingFocusChange = null;
-			}, DEBOUNCE_MS);
-		}
-		if (str.includes("\x1b[O")) {
-			focusEventsReceived = true;
-			// Debounce rapid changes
-			if (pendingFocusChange) clearTimeout(pendingFocusChange);
-			pendingFocusChange = setTimeout(() => {
-				isFocused = false;
-				pendingFocusChange = null;
-			}, DEBOUNCE_MS);
-		}
-	};
+    // Check for focus events
+    if (str.includes("\x1b[I")) {
+      focusEventsReceived = true;
+      // Debounce rapid changes
+      if (pendingFocusChange) clearTimeout(pendingFocusChange);
+      pendingFocusChange = setTimeout(() => {
+        isFocused = true;
+        pendingFocusChange = null;
+      }, DEBOUNCE_MS);
+    }
+    if (str.includes("\x1b[O")) {
+      focusEventsReceived = true;
+      // Debounce rapid changes
+      if (pendingFocusChange) clearTimeout(pendingFocusChange);
+      pendingFocusChange = setTimeout(() => {
+        isFocused = false;
+        pendingFocusChange = null;
+      }, DEBOUNCE_MS);
+    }
+  };
 
-	process.stdin.on("data", handleData);
+  process.stdin.on("data", handleData);
 
-	cleanupFocus = () => {
-		process.stdout.write("\x1b[?1004l"); // Disable focus reporting
-		process.stdin.off("data", handleData);
-		cleanupFocus = null; // Fix: Allow re-setup on reload
-	};
+  cleanupFocus = () => {
+    process.stdout.write("\x1b[?1004l"); // Disable focus reporting
+    process.stdin.off("data", handleData);
+    cleanupFocus = null; // Fix: Allow re-setup on reload
+  };
 }
 
 // --- Notification Logic ---
 function sendNotification(title: string, message: string) {
-	if (!shouldNotify()) return;
+  if (!shouldNotify()) return;
 
-	// Sanitize: remove semicolons as they are delimiters for OSC 777
-	const cleanTitle = title.replace(/;/g, " ").replace(/\s+/g, " ").trim();
-	const cleanMessage = message.replace(/;/g, " ").replace(/\s+/g, " ").trim();
+  // Sanitize: remove semicolons as they are delimiters for OSC 777
+  const cleanTitle = title.replace(/;/g, " ").replace(/\s+/g, " ").trim();
+  const cleanMessage = message.replace(/;/g, " ").replace(/\s+/g, " ").trim();
 
-	// Send multiple protocols for better compatibility
-	// OSC 777: Ghostty / WezTerm
-	process.stdout.write(`\x1b]777;notify;${cleanTitle};${cleanMessage}\x07`);
-	// OSC 9: iTerm2
-	process.stdout.write(`\x1b]9;${cleanMessage}\x07`);
+  // Send multiple protocols for better compatibility
+  // OSC 777: Ghostty / WezTerm
+  process.stdout.write(`\x1b]777;notify;${cleanTitle};${cleanMessage}\x07`);
+  // OSC 9: iTerm2
+  process.stdout.write(`\x1b]9;${cleanMessage}\x07`);
 }
 
 // --- Confetti Logic ---
 type MinimalMessage = {
-	role?: string;
-	content?: unknown;
+  role?: string;
+  content?: unknown;
 };
 
 function messageContentToText(content: unknown): string {
-	if (typeof content === "string") return content;
+  if (typeof content === "string") return content;
 
-	if (Array.isArray(content)) {
-		return content
-			.map((part) => {
-				if (
-					typeof part === "object" &&
-					part !== null &&
-					"text" in part &&
-					typeof part.text === "string"
-				) {
-					return part.text;
-				}
-				return "";
-			})
-			.join(" ");
-	}
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (
+          typeof part === "object" &&
+          part !== null &&
+          "text" in part &&
+          typeof part.text === "string"
+        ) {
+          return part.text;
+        }
+        return "";
+      })
+      .join(" ");
+  }
 
-	return "";
+  return "";
 }
 
 function isWorkflowSubagentSession(
-	event: { messages?: MinimalMessage[] },
-	ctx: { mode?: string; sessionManager?: unknown },
+  event: { messages?: MinimalMessage[] },
+  ctx: { mode?: string; sessionManager?: unknown },
 ): boolean {
-	const sessionManager = ctx.sessionManager as
-		| {
-				isPersisted?: () => boolean;
-				getSessionFile?: () => string | undefined;
-		  }
-		| undefined;
+  const sessionManager = ctx.sessionManager as
+    | {
+        isPersisted?: () => boolean;
+        getSessionFile?: () => string | undefined;
+      }
+    | undefined;
 
-	// pi-dynamic-workflows uses SDK-created in-memory print-mode sessions for agent().
-	const isInMemoryPrintSession =
-		ctx.mode === "print" &&
-		(sessionManager?.isPersisted?.() === false ||
-			sessionManager?.getSessionFile?.() === undefined);
+  // pi-dynamic-workflows uses SDK-created in-memory print-mode sessions for agent().
+  const isInMemoryPrintSession =
+    ctx.mode === "print" &&
+    (sessionManager?.isPersisted?.() === false || sessionManager?.getSessionFile?.() === undefined);
 
-	// WorkflowAgent prepends this to every workflow subagent prompt.
-	const hasWorkflowTaskLabel = event.messages?.some(
-		(message) =>
-			message.role === "user" &&
-			messageContentToText(message.content).includes("Task label:"),
-	);
+  // WorkflowAgent prepends this to every workflow subagent prompt.
+  const hasWorkflowTaskLabel = event.messages?.some(
+    (message) =>
+      message.role === "user" && messageContentToText(message.content).includes("Task label:"),
+  );
 
-	return isInMemoryPrintSession && Boolean(hasWorkflowTaskLabel);
+  return isInMemoryPrintSession && Boolean(hasWorkflowTaskLabel);
 }
 
 async function triggerConfetti() {
-	if (!shouldNotify()) return;
-	// Only run on macOS
-	if (process.platform === "darwin") {
-		exec("open -g raycast-x://extensions/raycast/raycast/confetti");
-	}
+  if (!shouldNotify()) return;
+  // Only run on macOS
+  if (process.platform === "darwin") {
+    exec("open -g raycast-x://extensions/raycast/raycast/confetti");
+  }
 }
 
 // --- Extension Entry Point ---
 export default function (pi: ExtensionAPI) {
-	pi.on("session_start", () => setupFocusTracking());
-	pi.on("session_shutdown", () => cleanupFocus?.());
+  pi.on("session_start", () => setupFocusTracking());
+  pi.on("session_shutdown", () => cleanupFocus?.());
 
-	pi.on("tool_call", async (event) => {
-		if (event.toolName === "question" || event.toolName === "questionnaire") {
-			sendNotification(
-				"❓ Pi has a question",
-				"Check the terminal to provide input.",
-			);
-		}
-	});
+  pi.on("tool_call", async (event) => {
+    if (event.toolName === "question" || event.toolName === "questionnaire") {
+      sendNotification("❓ Pi has a question", "Check the terminal to provide input.");
+    }
+  });
 
-	pi.on("agent_end", async (event, ctx) => {
-		const noConfetti = pi.getFlag("no-confetti") as boolean;
-		const lastAssistant = [...event.messages]
-			.reverse()
-			.find((m) => m.role === "assistant");
+  pi.on("agent_end", async (event, ctx) => {
+    const noConfetti = pi.getFlag("no-confetti") as boolean;
+    const lastAssistant = [...event.messages].reverse().find((m) => m.role === "assistant");
 
-		const summary =
-			typeof lastAssistant?.content === "string"
-				? lastAssistant.content
-				: Array.isArray(lastAssistant?.content)
-					? lastAssistant.content
-							.filter((p) => p.type === "text")
-							.map((p) => p.text)
-							.join(" ")
-					: "";
+    const summary =
+      typeof lastAssistant?.content === "string"
+        ? lastAssistant.content
+        : Array.isArray(lastAssistant?.content)
+          ? lastAssistant.content
+              .filter((p) => p.type === "text")
+              .map((p) => p.text)
+              .join(" ")
+          : "";
 
-		const success =
-			lastAssistant?.stopReason === "stop" ||
-			lastAssistant?.stopReason === "toolUse";
+    const success = lastAssistant?.stopReason === "stop" || lastAssistant?.stopReason === "toolUse";
 
-		sendNotification(
-			success ? "✅ Pi finished" : "⚠️ Pi stopped",
-			summary || "Task completed.",
-		);
+    sendNotification(success ? "✅ Pi finished" : "⚠️ Pi stopped", summary || "Task completed.");
 
-		if (!noConfetti && success && !isWorkflowSubagentSession(event, ctx)) {
-			await triggerConfetti();
-		}
-	});
+    if (!noConfetti && success && !isWorkflowSubagentSession(event, ctx)) {
+      await triggerConfetti();
+    }
+  });
 
-	pi.registerFlag("no-confetti", {
-		description: "Disable confetti",
-		type: "boolean",
-		default: false,
-	});
+  pi.registerFlag("no-confetti", {
+    description: "Disable confetti",
+    type: "boolean",
+    default: false,
+  });
 
-	pi.registerCommand("notify-test", {
-		description: "Test notification",
-		args: {
-			wait: {
-				description: "Seconds to wait before sending notification",
-				type: "number",
-				isOptional: true,
-			},
-		},
-		handler: async (args, ctx) => {
-			// Temporarily override focus state for testing
-			const savedIsFocused = isFocused;
-			const savedEventsReceived = focusEventsReceived;
-			isFocused = false;
-			focusEventsReceived = true; // Pretend we got focus events
+  pi.registerCommand("notify-test", {
+    description: "Test notification",
+    args: {
+      wait: {
+        description: "Seconds to wait before sending notification",
+        type: "number",
+        isOptional: true,
+      },
+    },
+    handler: async (args, ctx) => {
+      // Temporarily override focus state for testing
+      const savedIsFocused = isFocused;
+      const savedEventsReceived = focusEventsReceived;
+      isFocused = false;
+      focusEventsReceived = true; // Pretend we got focus events
 
-			const waitSeconds = (args.wait as number) || 0;
+      const waitSeconds = (args.wait as number) || 0;
 
-			if (waitSeconds > 0) {
-				ctx.ui.notify(
-					`Waiting ${waitSeconds} seconds before sending notification...`,
-					"info",
-				);
-				await new Promise((resolve) =>
-					setTimeout(resolve, waitSeconds * 1000),
-				);
-			}
+      if (waitSeconds > 0) {
+        ctx.ui.notify(`Waiting ${waitSeconds} seconds before sending notification...`, "info");
+        await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
+      }
 
-			sendNotification("🔔 Test", "Native notification working!");
+      sendNotification("🔔 Test", "Native notification working!");
 
-			// Provide immediate feedback in the TUI so you know the command ran
-			ctx.ui.notify("Sent test notification. Check your desktop!", "info");
+      // Provide immediate feedback in the TUI so you know the command ran
+      ctx.ui.notify("Sent test notification. Check your desktop!", "info");
 
-			// Small delay before restoring state to ensure the write is processed
-			await new Promise((resolve) => setTimeout(resolve, 100));
-			isFocused = savedIsFocused;
-			focusEventsReceived = savedEventsReceived;
-		},
-	});
+      // Small delay before restoring state to ensure the write is processed
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      isFocused = savedIsFocused;
+      focusEventsReceived = savedEventsReceived;
+    },
+  });
 }

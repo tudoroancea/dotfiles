@@ -12,7 +12,10 @@ function getCollapsedToolCallMode(settings: any): CollapsedToolCallMode | undefi
 
 function loadCollapsedToolCallMode(cwd: string): CollapsedToolCallMode {
   let mode: CollapsedToolCallMode = "hidden";
-  const settingsPaths = [path.join(getAgentDir(), "settings.json"), path.join(cwd, ".pi", "settings.json")];
+  const settingsPaths = [
+    path.join(getAgentDir(), "settings.json"),
+    path.join(cwd, ".pi", "settings.json"),
+  ];
 
   for (const settingsPath of settingsPaths) {
     if (!existsSync(settingsPath)) continue;
@@ -35,22 +38,22 @@ export default function (pi: ExtensionAPI) {
     const collapsedToolCallMode = loadCollapsedToolCallMode(ctx.cwd);
 
     ctx.ui.custom((tui, theme, _kb, done) => {
-      const isAssistantComponent = (c: any) => 
-        c.constructor.name === "AssistantMessageComponent" || 
-        (typeof c.updateContent === 'function' && typeof c.setHideThinkingBlock === 'function');
+      const isAssistantComponent = (c: any) =>
+        c.constructor.name === "AssistantMessageComponent" ||
+        (typeof c.updateContent === "function" && typeof c.setHideThinkingBlock === "function");
 
-      const isToolComponent = (c: any) => 
-        c.constructor.name === "ToolExecutionComponent" || 
-        (typeof c.updateResult === 'function' && typeof c.updateArgs === 'function');
+      const isToolComponent = (c: any) =>
+        c.constructor.name === "ToolExecutionComponent" ||
+        (typeof c.updateResult === "function" && typeof c.updateArgs === "function");
 
-      const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, '');
+      const stripAnsi = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, "");
       const ellipsize = (text: string, max: number) =>
         text.length > max ? `${text.slice(0, max)}...` : text;
 
       const getHexColor = (type: "success" | "error" | "successBg" | "errorBg" | "dim") => {
         // Simple dark mode detection based on text color brightness
         const textFg = theme.fg("text", "!");
-        const match = textFg.match(/\x1b\[38;2;(\d+);(\d+);(\d+)m/);
+        const match = textFg.match(/\u001b\[38;2;(\d+);(\d+);(\d+)m/);
         let isDark = true;
         if (match) {
           const [_, r, g, b] = match.map(Number);
@@ -81,27 +84,32 @@ export default function (pi: ExtensionAPI) {
 
         if (name === "bash") {
           const cmd = args.command || "";
-          const firstLine = cmd.split('\n')[0];
-          if (cmd.includes('\n')) {
+          const firstLine = cmd.split("\n")[0];
+          if (cmd.includes("\n")) {
             return firstLine + " ...";
           }
           return firstLine;
         }
         if (name === "todo") {
-          if (args.action === "add") return `Add: "${args.text?.slice(0, 40)}${args.text?.length > 40 ? '...' : ''}"`;
+          if (args.action === "add")
+            return `Add: "${args.text?.slice(0, 40)}${args.text?.length > 40 ? "..." : ""}"`;
           if (args.action === "toggle") return `Toggle todo #${args.id}`;
           if (args.action === "list") return "List todos";
           return `${args.action || ""}: "${args.text || ""}"`;
         }
         if (name === "questionnaire") {
           if (args.questions && Array.isArray(args.questions)) {
-            return args.questions.map((q: any) => `Q: "${q.prompt?.slice(0, 30)}${q.prompt?.length > 30 ? '...' : ''}"`).join(", ");
+            return args.questions
+              .map(
+                (q: any) => `Q: "${q.prompt?.slice(0, 30)}${q.prompt?.length > 30 ? "..." : ""}"`,
+              )
+              .join(", ");
           }
           return "Ask question(s)";
         }
         if (name === "read" || name === "write" || name === "ls" || name === "edit") return p;
         if (name === "grep" || name === "find") return `${args.pattern || ""}, ${p || ""}`;
-        
+
         return Object.entries(args)
           .map(([k, v]) => `${k}=${v}`)
           .join(", ");
@@ -123,7 +131,7 @@ export default function (pi: ExtensionAPI) {
           }
 
           const lines = originalRender(width - 1);
-          
+
           let dotColor = "text";
           const message = assistant.lastMessage;
           if (message?.stopReason === "error" || message?.stopReason === "aborted") {
@@ -212,7 +220,12 @@ export default function (pi: ExtensionAPI) {
 
             if (action === "add") {
               if (maxLines !== undefined && text) {
-                lines.push(truncateToWidth(` ⎿ ${theme.fg("dim", `Added todo: \"${ellipsize(text, 50)}\"`)}`, width));
+                lines.push(
+                  truncateToWidth(
+                    ` ⎿ ${theme.fg("dim", `Added todo: "${ellipsize(text, 50)}"`)}`,
+                    width,
+                  ),
+                );
               }
             } else if (action === "toggle") {
               let todoText = text;
@@ -222,7 +235,9 @@ export default function (pi: ExtensionAPI) {
                 todoText = todo?.text;
               }
               if (maxLines !== undefined) {
-                const summary = todoText ? `Toggled todo: \"${ellipsize(todoText, 50)}\"` : "Toggled todo";
+                const summary = todoText
+                  ? `Toggled todo: "${ellipsize(todoText, 50)}"`
+                  : "Toggled todo";
                 lines.push(truncateToWidth(` ⎿ ${theme.fg("dim", summary)}`, width));
               }
             } else if (action === "list") {
@@ -241,7 +256,7 @@ export default function (pi: ExtensionAPI) {
 
           if (tool.toolName === "read" && !tool.isPartial && !tool.result?.isError) {
             const output = tool.getTextOutput() || "";
-            const lineCount = output === "" ? 0 : output.split('\n').length;
+            const lineCount = output === "" ? 0 : output.split("\n").length;
             return [truncateToWidth(` ⎿ ${theme.fg("dim", `Read ${lineCount} lines`)}`, width)];
           }
 
@@ -280,7 +295,16 @@ export default function (pi: ExtensionAPI) {
                 const [_, sign, lineNum, rest] = match;
                 const bgColor = sign === "+" ? getHexColor("successBg") : getHexColor("errorBg");
                 const dotColor = sign === "+" ? getHexColor("success") : getHexColor("error");
-                line = bgColor + dotColor + sign + theme.fg("dim", lineNum) + "\x1b[0m" + bgColor + " " + rest + "\x1b[0m";
+                line =
+                  bgColor +
+                  dotColor +
+                  sign +
+                  theme.fg("dim", lineNum) +
+                  "\x1b[0m" +
+                  bgColor +
+                  " " +
+                  rest +
+                  "\x1b[0m";
               } else {
                 const contextMatch = plainLine.match(/^(\s)(\s*\d*)\s(.*)$/);
                 if (contextMatch) {
@@ -289,7 +313,7 @@ export default function (pi: ExtensionAPI) {
                 }
               }
             }
-            
+
             const prefix = !contentStarted ? " ⎿ " : "   ";
             previewLines.push(truncateToWidth(prefix + line, width));
             contentStarted = true;
@@ -303,7 +327,9 @@ export default function (pi: ExtensionAPI) {
             if (tool.result?.isError) {
               const errorText = tool.getTextOutput() || "";
               if (errorText.includes("Validation failed")) {
-                previewLines.push(truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width));
+                previewLines.push(
+                  truncateToWidth(" ⎿ " + theme.fg("error", "Validation failed"), width),
+                );
               } else {
                 previewLines.push(truncateToWidth(" ⎿ " + theme.fg("error", errorText), width));
               }
@@ -319,7 +345,13 @@ export default function (pi: ExtensionAPI) {
           const currentResultId = tool.result;
           const currentExpanded = tool.expanded;
           const currentArgs = JSON.stringify(tool.args);
-          if (cachedResult && cachedWidth === width && lastResultId === currentResultId && lastExpanded === currentExpanded && lastArgs === currentArgs) {
+          if (
+            cachedResult &&
+            cachedWidth === width &&
+            lastResultId === currentResultId &&
+            lastExpanded === currentExpanded &&
+            lastArgs === currentArgs
+          ) {
             return cachedResult;
           }
 
@@ -332,20 +364,25 @@ export default function (pi: ExtensionAPI) {
           if (tool.toolName === "edit") toolName = "Update";
 
           let args = formatArgs(tool.toolName, tool.args);
-          
+
           // For todo toggle, try to get the text from the result
-          if (tool.toolName === "todo" && tool.args?.action === "toggle" && tool.result && !tool.isPartial) {
+          if (
+            tool.toolName === "todo" &&
+            tool.args?.action === "toggle" &&
+            tool.result &&
+            !tool.isPartial
+          ) {
             // The result details contain the full todos array
             const details = tool.result.details;
             if (details?.todos && tool.args.id !== undefined) {
               const todo = details.todos.find((t: any) => t.id === tool.args.id);
               if (todo) {
                 const text = todo.text;
-                args = `toggled "${text.slice(0, 30)}${text.length > 30 ? '...' : ''}"`;
+                args = `toggled "${text.slice(0, 30)}${text.length > 30 ? "..." : ""}"`;
               }
             }
           }
-          
+
           const dot = dotType === "dim" ? theme.fg("dim", "⏺") : getHexColor(dotType) + "⏺\x1b[0m";
           const header = dot + " " + theme.bold(toolName) + theme.fg("dim", `(${args})`);
           const truncatedHeader = truncateToWidth(header, width);

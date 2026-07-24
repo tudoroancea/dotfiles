@@ -47,9 +47,9 @@ function shortenPath(cwd: string): string {
 
 function stripAnsi(text: string): string {
   return text
-    .replace(/\x1b\[[0-9;]*[mGKHJ]/g, "")
-    .replace(/\x1b_[^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
-    .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
+    .replace(/\u001b\[[0-9;]*[mGKHJ]/g, "")
+    .replace(/\u001b_[^\u0007\u001b]*(?:\u0007|\u001b\\)/g, "")
+    .replace(/\u001b\]8;;[^\u0007]*\u0007/g, "");
 }
 
 function sanitizeStatus(text: string): string {

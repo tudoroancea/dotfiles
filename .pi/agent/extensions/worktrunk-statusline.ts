@@ -28,7 +28,10 @@ type CommandResult = {
 };
 
 function sanitizeStatusText(text: string): string {
-  return text.replace(/[\r\n\t]/g, " ").replace(/ +/g, " ").trim();
+  return text
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/ +/g, " ")
+    .trim();
 }
 
 function stripTrailingNewlines(text: string): string {
@@ -88,9 +91,12 @@ function runCommand(
       child.kill("SIGTERM");
     }, options.timeoutMs ?? WT_TIMEOUT_MS);
 
-    const forceKillId = setTimeout(() => {
-      if (!settled) child.kill("SIGKILL");
-    }, (options.timeoutMs ?? WT_TIMEOUT_MS) + 250);
+    const forceKillId = setTimeout(
+      () => {
+        if (!settled) child.kill("SIGKILL");
+      },
+      (options.timeoutMs ?? WT_TIMEOUT_MS) + 250,
+    );
 
     if (options.stdin) child.stdin.write(options.stdin);
     child.stdin.end();
@@ -241,7 +247,11 @@ export default function (pi: ExtensionAPI) {
     return result.code === 0;
   };
 
-  const setMarker = async (snapshot: StatuslineSnapshot, marker: string | undefined, branch?: string | null) => {
+  const setMarker = async (
+    snapshot: StatuslineSnapshot,
+    marker: string | undefined,
+    branch?: string | null,
+  ) => {
     const args = ["-C", snapshot.cwd, "config", "state", "marker", marker ? "set" : "clear"];
     if (marker) args.push(marker);
     if (branch) args.push("--branch", branch);
@@ -346,7 +356,9 @@ export default function (pi: ExtensionAPI) {
               .filter(Boolean);
 
             if (extensionStatuses.length > 0) {
-              lines.push(truncateToWidth(extensionStatuses.join(" "), width, theme.fg("dim", "...")));
+              lines.push(
+                truncateToWidth(extensionStatuses.join(" "), width, theme.fg("dim", "...")),
+              );
             }
 
             return lines;

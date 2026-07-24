@@ -1,0 +1,3 @@
+{
+  "ignorePatterns": ["extensions/herdr-agent-state.ts", "**/package-lock.json", "**/nub.lock"]
+}

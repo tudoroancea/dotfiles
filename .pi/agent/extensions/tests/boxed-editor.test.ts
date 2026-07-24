@@ -5,7 +5,7 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import boxedEditorExtension, { composeActivityFooter } from "../boxed-editor.ts";
 
-const plainText = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
+const plainText = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, "");
 
 const statuses = new Map([
   ["warnings", "◇ warnings 2 · /reviews"],
