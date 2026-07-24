@@ -4,22 +4,16 @@ import type { CompletionItem } from "../shared/wire.js";
 
 const MAX_ITEMS = 20;
 
+/**
+ * ExtensionAPI.sendUserMessage deliberately bypasses Pi command/template/skill
+ * expansion. Do not advertise slash entries until Pi exposes a public raw-input
+ * dispatch API that preserves getCommands() invocation semantics.
+ */
 export function slashCompletions(
-  commands: readonly SlashCommandInfo[],
-  query: string,
+  _commands: readonly SlashCommandInfo[],
+  _query: string,
 ): CompletionItem[] {
-  const needle = query.replace(/^\//, "").toLowerCase();
-  return commands
-    .filter((command) => ["extension", "prompt", "skill"].includes(command.source))
-    .filter((command) => command.name.toLowerCase().includes(needle))
-    .filter((command) => `/${command.name}`.length <= 512)
-    .slice(0, MAX_ITEMS)
-    .map((command) => ({
-      value: `/${command.name}`,
-      label: `/${command.name}`,
-      ...(command.description ? { description: command.description.slice(0, 1024) } : {}),
-      source: command.source,
-    }));
+  return [];
 }
 
 export async function mentionCompletions(

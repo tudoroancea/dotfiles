@@ -96,15 +96,21 @@ export function createWebUiExtension(
         return current;
       });
       pi.events.emit(PROVIDER_DISCOVER_EVENT, undefined);
-      const started = await dependencies.startServer({
-        pi,
-        context,
-        config: readWebUiConfig(),
-        assetRoot: dependencies.assetRoot,
-        generation: randomUUID(),
-        ...(autocompleteProvider ? { autocompleteProvider } : {}),
-        providerRegistry,
-      });
+      let started: WebUiRuntime;
+      try {
+        started = await dependencies.startServer({
+          pi,
+          context,
+          config: readWebUiConfig(),
+          assetRoot: dependencies.assetRoot,
+          generation: randomUUID(),
+          ...(autocompleteProvider ? { autocompleteProvider } : {}),
+          providerRegistry,
+        });
+      } catch (error) {
+        providerRegistry.close();
+        throw error;
+      }
       runtime = started;
       if (context.mode === "tui") {
         activeGeneration = started.generation;

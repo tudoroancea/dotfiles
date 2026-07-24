@@ -533,6 +533,12 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       resolvePromise();
     });
   }).catch(async (error) => {
+    closed = true;
+    if (coalesceTimer) clearTimeout(coalesceTimer);
+    coalesceTimer = undefined;
+    pendingUpdate = undefined;
+    providerUnsubscribe();
+    providers.close();
     websocketServer.close();
     await new Promise<void>((resolvePromise) => server.close(() => resolvePromise()));
     throw error;

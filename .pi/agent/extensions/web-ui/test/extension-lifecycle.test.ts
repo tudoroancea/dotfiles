@@ -120,6 +120,23 @@ describe("extension lifecycle", () => {
     expect(rpcRuntime.close).toHaveBeenCalledOnce();
   });
 
+  it.each(["new", "resume", "fork"] as const)(
+    "closes the old runtime for %s session replacement",
+    async (reason) => {
+      const runtime = fakeRuntime(reason);
+      const { handlers } = harness({
+        copy: vi.fn(),
+        startServer: vi.fn(async () => runtime),
+        writeStderr: vi.fn(),
+        assetRoot: "/assets",
+      });
+      const eventContext = context("tui");
+      await emit(handlers, "session_start", { reason: "startup" }, eventContext);
+      await emit(handlers, "session_shutdown", { reason }, eventContext);
+      expect(runtime.close).toHaveBeenCalledOnce();
+    },
+  );
+
   it("copies a directly usable bootstrap link and reports clipboard failure", async () => {
     const runtime = fakeRuntime("copy");
     const notify = vi.fn();

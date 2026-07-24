@@ -2,10 +2,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createServer as createNetServer } from "node:net";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 import { readWebUiConfig } from "../src/server/config.js";
+import { ProviderRegistry } from "../src/server/providers.js";
 import { startWebUiServer, type WebUiRuntime } from "../src/server/server.js";
 
 const temporaryDirectories: string[] = [];
@@ -476,6 +478,35 @@ describe("web UI server", () => {
     });
     runtimes.push(replacement);
     expect((await fetch(new URL("health", replacement.diagnosticUrl))).status).toBe(200);
+  });
+
+  it("cleans provider subscriptions after partial startup failure", async () => {
+    const blocker = createNetServer();
+    await new Promise<void>((resolve) => blocker.listen(0, "127.0.0.1", resolve));
+    const address = blocker.address();
+    if (!address || typeof address === "string") throw new Error("missing blocker address");
+    const unsubscribe = vi.fn();
+    const providers = new ProviderRegistry();
+    providers.register({
+      id: "agentflow",
+      getSnapshot: () => [],
+      subscribe: () => unsubscribe,
+      action: async () => [],
+    });
+    await expect(
+      startWebUiServer({
+        pi: controller(),
+        context: context().value,
+        config: configuration(address.port),
+        assetRoot: await assets(),
+        generation: "failed-start",
+        providerRegistry: providers,
+      }),
+    ).rejects.toThrow();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    await new Promise<void>((resolve, reject) =>
+      blocker.close((error) => (error ? reject(error) : resolve())),
+    );
   });
 
   it("rejects invalid origins and closes idempotently", async () => {

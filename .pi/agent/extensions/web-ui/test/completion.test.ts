@@ -5,7 +5,7 @@ import { mentionCompletions, slashCompletions } from "../src/server/completion.j
 import { applyCompletion, detectCompletion } from "../src/web/completion.js";
 
 describe("completion services", () => {
-  it("uses only invokable slash commands", () => {
+  it("does not advertise slash commands without a public raw-input dispatch API", () => {
     const commands = [
       { name: "copy-remote-url", description: "Copy", source: "extension" },
       { name: "fix", description: "Fix", source: "prompt" },
@@ -13,11 +13,7 @@ describe("completion services", () => {
       { name: "settings", source: "builtin" },
       { name: "x".repeat(600), source: "extension" },
     ] as unknown as SlashCommandInfo[];
-    expect(slashCompletions(commands, "").map((item) => item.value)).toEqual([
-      "/copy-remote-url",
-      "/fix",
-      "/skill:test",
-    ]);
+    expect(slashCompletions(commands, "")).toEqual([]);
   });
 
   it("reuses and caps the current mention provider", async () => {

@@ -177,9 +177,9 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 4b — composer completion (separate milestone after core composer)
 
-- [x] Add `/` completion from `pi.getCommands()` for extension commands, prompt templates, and skills that are actually invokable through web prompting; do not suggest TUI-only built-in commands.
+- [ ] Add `/` completion from `pi.getCommands()` for extension commands, prompt templates, and skills that are actually invokable through web prompting; do not suggest TUI-only built-in commands. Blocked on a public Pi raw-input dispatch API: `ExtensionAPI.sendUserMessage()` intentionally bypasses command/template/skill expansion, so the web UI suppresses misleading slash candidates.
 - [x] Add `@` completion through the installed `@ff-labs/pi-fff` provider so web results retain FFF indexing, fuzzy/frecency/git-aware ranking, directory results, 20-result cap, and quoted-path insertion semantics; do not build a competing `node:fs` scanner.
-- [x] Establish the smallest stable integration seam with pi-fff. Prefer a public/event-bus completion broker or exported singleton service that reuses its existing finder; the installed 0.10.1 package currently keeps `getMentionItems` and `createFffMentionProvider` private, so do not create a second native finder that could duplicate indexing or contend for FFF database locks.
+- [x] Establish the smallest stable integration seam with pi-fff. The web extension reuses Pi's public composed autocomplete provider in TUI mode and never creates a second finder; Pi 0.82's RPC UI does not expose that provider, so `@` completion degrades to an empty bounded result there until pi-fff offers a mode-independent broker.
 - [x] Preserve cancellation/debouncing, authenticated request bounds, cwd/session-generation invalidation, and FFF's existing fallback behavior when its lookup is unavailable.
 - [x] Implement keyboard and touch navigation, selection replacement, escape dismissal, active-descendant accessibility, and mobile popup positioning.
 - [x] Refresh command candidates after reload/session replacement and invalidate path candidates when cwd/generation changes.
@@ -202,11 +202,11 @@ Add a small in-process capability protocol over `pi.events` rather than importin
 
 ### Phase 7 — remote hardening and release verification (depends on integrated UI)
 
-- [ ] Document localhost and `tailscale serve` usage.
-- [ ] Complete CSP, authentication, Origin, unsafe Markdown/URL, oversized payload, malicious filename/output, and slow-client tests.
-- [ ] Verify normal shutdown, `/reload`, `/new`, `/resume`, `/fork`, TUI, RPC, reconnect, and port release.
-- [ ] Audit generated `.pi/agent/extensions/herdr-agent-state.ts` interaction without editing it.
-- [ ] Run stable integrated review and fix actionable findings.
+- [x] Document localhost and `tailscale serve` usage.
+- [x] Complete CSP, authentication, Origin, unsafe Markdown/URL, oversized payload, malicious filename/output, and slow-client tests.
+- [x] Verify normal shutdown, `/reload`, `/new`, `/resume`, `/fork`, TUI, RPC, reconnect, and port release.
+- [x] Audit generated `.pi/agent/extensions/herdr-agent-state.ts` interaction without editing it.
+- [x] Run stable integrated review and fix actionable findings.
 
 ## Dependency graph and parallel work
 
