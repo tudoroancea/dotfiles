@@ -9,6 +9,7 @@ const expectedExtensionPath = await realpath(
 );
 const defaultTools = [
   "agentflow_cancel",
+  "agentflow_claude",
   "agentflow_delegate",
   "agentflow_finder",
   "agentflow_librarian",

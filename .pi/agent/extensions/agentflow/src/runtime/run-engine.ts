@@ -46,7 +46,8 @@ export interface ChildRunner {
 
 export class RunEngine {
   private readonly store = new RunStore();
-  private readonly runner: ChildRunner;
+  private readonly piRunner: ChildRunner;
+  private readonly claudeRunner?: ChildRunner;
   private readonly runtime = new Map<string, Runtime>();
   private readonly subscribers = new Set<ListUpdate>();
   private readonly runSubscribers = new Map<string, Set<Update>>();
@@ -66,13 +67,15 @@ export class RunEngine {
     private readonly globalConcurrency?: number,
     private readonly isParentIdle: () => boolean = () => true,
     private readonly artifacts = new ArtifactStore(),
+    createClaudeRunner?: (store: RunStore) => ChildRunner,
   ) {
     if (
       globalConcurrency !== undefined &&
       (!Number.isInteger(globalConcurrency) || globalConcurrency < 1)
     )
       throw new Error("globalConcurrency must be a positive integer");
-    this.runner = runner ?? new SubagentRunner(this.store, getTools, getThinking);
+    this.piRunner = runner ?? new SubagentRunner(this.store, getTools, getThinking);
+    this.claudeRunner = createClaudeRunner?.(this.store);
   }
 
   async recover(): Promise<void> {
@@ -263,6 +266,8 @@ export class RunEngine {
         dependsOn: node.dependsOn,
         originTool: node.originTool ?? live.snapshot.originTool,
         semanticRole: node.semanticRole ?? live.snapshot.semanticRole,
+        backend: node.claude ? "claude" : undefined,
+        model: node.claude ? (node.config?.model ?? "opus") : undefined,
         prompt: boundInitialPrompt(node.prompt),
         cwd: boundEffectiveCwd(node.config?.cwd ?? live.context!.cwd),
         status: "queued",
@@ -318,7 +323,13 @@ export class RunEngine {
       semanticRole: node.semanticRole ?? live.snapshot.semanticRole,
     });
     try {
-      const result = await this.runner.run(runId, node, live.context, live.controller.signal);
+      const runner = node.claude ? this.claudeRunner : this.piRunner;
+      if (!runner) throw new Error("Claude runner is not configured");
+      const result = await runner.run(runId, node, live.context, live.controller.signal);
+      if (live.controller.signal.aborted)
+        throw live.controller.signal.reason instanceof Error
+          ? live.controller.signal.reason
+          : new DOMException("Run aborted", "AbortError");
       if (live.result) throw new DOMException("Run already settled", "AbortError");
       const snap = this.store.updateNode(runId, node.id, (n) => {
         n.status = "completed";
@@ -609,6 +620,8 @@ export class RunEngine {
         );
       target = running[0].id;
     }
+    const node = live.snapshot.nodes.find((candidate) => candidate.id === target);
+    if (node?.backend === "claude") throw new Error("Claude runs do not support steering in v1");
     const control = live.controls.get(target);
     if (!control) throw new Error(`Task is not running: ${target}`);
     if (!control.steer) throw new Error(`Task does not support steering: ${target}`);

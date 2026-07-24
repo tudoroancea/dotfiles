@@ -35,6 +35,12 @@ Semantic tools are registered by default:
 - `agentflow_delegate`
 - `agentflow_review`
 
+The controlled Claude coding child is also registered by default:
+
+- `agentflow_claude({ task, model?, mode? })`
+
+`model` accepts only `fable`, `opus`, or `sonnet` and defaults to `opus`; Haiku is intentionally unavailable. Use Fable for exceptional advisory or review problems and Opus for frontend, visual, UX, copy, or other taste-sensitive implementation. The task must be self-contained and must say whether the child should advise only or edit files. Foreground and background runs use the same Agentflow status, wait, cancellation, delivery, snapshot, and cost lifecycle as Pi children. Claude runs do not support steering, continuation, or persisted sessions in this version.
+
 Management tools are always registered:
 
 - `agentflow_status`
@@ -79,6 +85,14 @@ Foreground failures report the causal error, run ID, relevant node error, and ar
 
 `agentflow_look_at` performs objective-focused analysis of a local image or other file. It requires `path` and `objective`, accepts optional `context`, `referenceFiles`, and foreground/background `mode`, and uses an image-capable Luna child with low thinking. The child has an in-memory session, no skills or extensions, and only the read and structured-output tools. Reference files are read and compared systematically; uncertain or unavailable evidence is reported rather than guessed.
 
+### Controlled Claude environment
+
+The Claude child has the fixed coding tools `Read`, `Glob`, `Grep`, `Bash`, `Edit`, `Write`, `WebFetch`, `WebSearch`, and `Skill`. `Agent` and `AskUserQuestion` are unavailable, so it cannot start nested agents or pause for user input. Web tools intentionally permit network access and carry the usual prompt-injection and disclosure risk.
+
+For every run, Agentflow stages exactly the active Pi skill snapshot in a private temporary `.claude/skills` tree and removes it during cleanup. Ambient global and project Claude skills are not loaded. The child receives only the repository root `AGENTS.md` as delimited project context; it does not load project or global `CLAUDE.md`, `.claude/rules`, Claude settings, hooks, plugins, memory, MCP servers, connectors, or persisted sessions.
+
+Isolation is best-effort while preserving the installed Claude/Claude Code account authentication. Agentflow uses no Claude setting source and supplies fixed inline restrictions, but ambient login state and managed organization policy remain outside that boundary. Requested aliases are shown in snapshots; they are not claimed to be the concrete versioned model selected by the installed Claude runtime.
+
 ## Dotfiles integration policy
 
 - Shared all-agent behavior belongs in the global `AGENTS.md`; semantic routing remains in each tool's `promptGuidelines`.
@@ -92,20 +106,25 @@ Foreground failures report the causal error, run ID, relevant node error, and ar
 ```text
 Pi semantic tools ── SemanticAgentService ──┐
 Workflow semantic IPC ──────────────────────┼── RunEngine ─── RunStore
-Raw agent/workflow requests ────────────────┘
+Raw agent/workflow requests ────────────────┤
+agentflow_claude ───────────────────────────┘
                                              │
                                       shared scheduler
                                              │
-                                      SubagentRunner
-                                             │
-                                  isolated Pi AgentSession
+                         ┌───────────────────┴───────────────────┐
+                         │                                       │
+                  SubagentRunner                       ClaudeSubagentRunner
+                         │                                       │
+              isolated Pi AgentSession                 Claude SDK query()
+                         └───────────────────┬───────────────────┘
                                              │
                                        ArtifactStore
 ```
 
 - `RunEngine` owns run/task lifecycle, process-wide and per-run concurrency, cancellation, result envelopes, and background delivery.
 - `SemanticAgentService` compiles strict profile input into trusted prompts, capabilities, resources, persistence, and structured output policy.
-- `SubagentRunner` constructs deterministic child resources, captures bounded tool-call snapshots, and returns a `ChildExecutionResult`.
+- `SubagentRunner` constructs deterministic Pi child resources, captures bounded tool-call snapshots, and returns a `ChildExecutionResult`.
+- `ClaudeSubagentRunner` compiles the controlled standalone prompt, stages the active Pi skills, streams Claude SDK previews and tool snapshots, and performs bounded cancellation and cleanup.
 - Scheduler callers receive one normalized `AgentTaskResult` success/failure envelope.
 - `RunStore` is private to the engine and publishes defensive snapshots.
 - Workflow artifacts are stored under Pi's agent directory in `agentflow/<runId>`.

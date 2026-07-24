@@ -68,6 +68,9 @@ export interface SemanticRenderOptions {
   observedAt?: number;
 }
 
+const executionLabel = (node: NodeSnapshot | undefined): string | undefined =>
+  node?.backend ? `${node.backend}/${node.model ?? "default"}` : undefined;
+
 const wrapPlainLine = (line: string, width: number): string[] => {
   if (!line) return [""];
   const chunks: string[] = [];
@@ -118,10 +121,12 @@ export function renderSemanticSnapshot(
         for (const call of visibleCalls)
           lines.push(...formatStyledToolCall(call, theme).map((line) => `  ${line}`));
         const prompt = options.collapsedPrompt ? ` · ${formatPrompt(node?.prompt)}` : "";
+        const execution = executionLabel(node);
+        const backend = execution ? theme.fg("dim", ` · ${execution}`) : "";
         const configuredHint = expandHint();
         const hint = configuredHint ? theme.fg("dim", ` · ${configuredHint}`) : "";
         lines.push(
-          `${colorStatus(theme, status, formatStatus(status))}${prompt} · ${summary}${hint}`,
+          `${colorStatus(theme, status, formatStatus(status))}${prompt}${backend} · ${summary}${hint}`,
         );
         return lines.map((line) => truncateToWidth(line, width, "…"));
       }
@@ -137,9 +142,10 @@ export function renderSemanticSnapshot(
         node?.completedAt ?? snapshot.completedAt,
         options.observedAt ?? Date.now(),
       );
+      const execution = executionLabel(node);
       lines.push(
         "",
-        `${colorStatus(theme, status, formatStatus(status))} · ${theme.fg("dim", `${elapsed} · ${formatTokens(usage.total)} tokens · ${formatCost(usage.cost)}`)}`,
+        `${colorStatus(theme, status, formatStatus(status))} · ${theme.fg("dim", `${elapsed}${execution ? ` · ${execution}` : ""} · ${formatTokens(usage.total)} tokens · ${formatCost(usage.cost)}`)}`,
         "",
         theme.fg("toolTitle", theme.bold("Tool calls")),
       );
@@ -153,11 +159,13 @@ export function renderSemanticSnapshot(
       );
       lines.push("", theme.fg("toolTitle", theme.bold("Metadata")));
       lines.push(theme.fg("dim", `Cwd: ${sanitizeRenderedValue(node?.cwd ?? "(unknown)")}`));
+      if (node?.backend)
+        lines.push(theme.fg("dim", `Backend: ${sanitizeRenderedValue(node.backend)}`));
+      if (node?.model) lines.push(theme.fg("dim", `Model: ${sanitizeRenderedValue(node.model)}`));
       if (node?.sessionFile)
         lines.push(theme.fg("dim", `Session: ${sanitizeRenderedValue(node.sessionFile)}`));
       if (snapshot.artifactDir)
         lines.push(theme.fg("dim", `Artifacts: ${sanitizeRenderedValue(snapshot.artifactDir)}`));
-      if (!node?.sessionFile && !snapshot.artifactDir) lines.push(theme.fg("dim", "(none)"));
       return lines.map((line) => truncateToWidth(line, width, "…"));
     },
     invalidate() {},

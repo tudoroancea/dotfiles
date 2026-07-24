@@ -177,4 +177,31 @@ describe("semantic snapshot renderer", () => {
     expect(styled).toContain('<muted>args:</muted> <dim>{"path":"src/auth.ts"');
     expect(styled).not.toContain("completed read");
   });
+
+  it("renders Claude backend, requested model alias, and cost in shared cards", () => {
+    const task = node();
+    task.backend = "claude";
+    task.model = "opus";
+    task.status = "completed";
+    const snapshot: RunSnapshot = {
+      runId: "af_claude",
+      kind: "agent",
+      name: "claude/opus",
+      status: "completed",
+      createdAt: new Date(0).toISOString(),
+      phases: [],
+      nodes: [task],
+      logs: [],
+    };
+
+    const collapsed = renderSemanticSnapshot(snapshot, {}, theme).render(80).join("\n");
+    expect(collapsed).toContain("claude/opus");
+    expect(collapsed).toContain("$0.0123");
+    const expanded = renderSemanticSnapshot(snapshot, { expanded: true }, theme)
+      .render(80)
+      .join("\n");
+    expect(expanded).toContain("Backend: claude");
+    expect(expanded).toContain("Model: opus");
+    expect(expanded).toContain("$0.0123");
+  });
 });

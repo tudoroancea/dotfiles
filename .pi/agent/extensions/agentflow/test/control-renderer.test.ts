@@ -110,6 +110,25 @@ describe("agentflow control tool rendering", () => {
     expect(expanded).not.toContain("RAW JSON");
   });
 
+  it("includes Claude backend and requested model in status rendering", () => {
+    const { tools } = toolsHarness();
+    const run = snapshot("af_claude");
+    run.name = "claude/opus";
+    run.semanticRole = undefined;
+    run.nodes[0]!.semanticRole = undefined;
+    run.nodes[0]!.backend = "claude";
+    run.nodes[0]!.model = "opus";
+
+    const rendered = tools
+      .get("agentflow_status")
+      .renderResult({ details: { snapshot: run } }, { expanded: false }, theme, { state: {} })
+      .render(100)
+      .join("\n");
+
+    expect(rendered).toContain("claude/opus");
+    expect(rendered).toContain("$0.0120");
+  });
+
   it("renders wait and cancellation results from structured details", () => {
     const { tools } = toolsHarness();
     const run = snapshot("af_waited");

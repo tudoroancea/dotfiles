@@ -7,7 +7,7 @@
 - [x] Identify a shared-prompt/import approach for Pi and Claude.
 - [x] Phase 1 — Add shared Markdown imports and extract common agent instructions.
 - [x] Phase 2 — Add a minimal Claude runner behind Agentflow's existing runtime.
-- [ ] Phase 3 — Register the single `agentflow_claude` tool and routing guidance.
+- [x] Phase 3 — Register the single `agentflow_claude` tool and routing guidance.
 - [ ] Phase 4 — Verify live behavior, isolation, and lifecycle integration.
 
 ## Objective

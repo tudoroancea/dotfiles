@@ -85,7 +85,9 @@ export function renderRunList(
     const selected = snapshot.runId === selectedRunId;
     const role = snapshot.semanticRole ?? snapshot.nodes[0]?.semanticRole ?? snapshot.kind;
     const marker = selected ? ">" : " ";
-    const heading = `${marker} ${formatStatus(snapshot.status)} · ${role}`;
+    const node = snapshot.nodes[0];
+    const execution = node?.backend ? ` · ${node.backend}/${node.model ?? "default"}` : "";
+    const heading = `${marker} ${formatStatus(snapshot.status)} · ${role}${execution}`;
     const identity = width >= 100 ? ` · ${snapshot.name ?? snapshot.kind} · ${snapshot.runId}` : "";
     lines.push(truncateToWidth(sanitizedLine(`${heading}${identity}`), width));
 
@@ -136,8 +138,11 @@ export function renderRunDetail(
   if (!snapshot.nodes.length) lines.push("(none)");
   for (const node of snapshot.nodes) {
     const role = node.semanticRole ? ` · ${sanitizedLine(node.semanticRole)}` : "";
+    const execution = node.backend
+      ? ` · ${sanitizedLine(node.backend)}/${sanitizedLine(node.model ?? "default")}`
+      : "";
     lines.push(
-      `${formatStatus(node.status)} ${sanitizedLine(node.label)}${role} · ${formatElapsed(node.startedAt ?? node.queuedAt, node.completedAt, now)} · ${formatUsage(node.usage)}`,
+      `${formatStatus(node.status)} ${sanitizedLine(node.label)}${role}${execution} · ${formatElapsed(node.startedAt ?? node.queuedAt, node.completedAt, now)} · ${formatUsage(node.usage)}`,
     );
     if (node.phase) lines.push(`  phase: ${sanitizedLine(node.phase)}`);
     if (node.dependsOn?.length)

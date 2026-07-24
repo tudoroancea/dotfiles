@@ -6,9 +6,11 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Box, Text, type Component } from "@earendil-works/pi-tui";
 import { ClaudeResourceSnapshot } from "./claude/resources.ts";
+import { ClaudeSubagentRunner } from "./runtime/claude-subagent-runner.ts";
 import { RunEngine } from "./runtime/run-engine.ts";
 import { SemanticAgentService } from "./semantic/semantic-agent-service.ts";
 import { registerAgentTool } from "./tools/agent-tool.ts";
+import { registerClaudeTool } from "./tools/claude-tool.ts";
 import { registerStatusTool } from "./tools/status-tool.ts";
 import { registerSemanticTools } from "./tools/semantic-tools.ts";
 import { registerSteerTool } from "./tools/steer-tool.ts";
@@ -86,9 +88,12 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
     undefined,
     undefined,
     () => lastContext?.isIdle() ?? true,
+    undefined,
+    (store) => new ClaudeSubagentRunner(store, () => claudeResources.getSkills()),
   );
   const semanticService = new SemanticAgentService(engine, () => pi.getAllTools());
   registerSemanticTools(pi, semanticService);
+  registerClaudeTool(pi, engine);
   if (process.env.PI_AGENTFLOW_CONFIG_SMOKE === "1") {
     pi.registerCommand("agentflow-config-smoke", {
       description: "Report Agentflow registration for the installed-configuration smoke test",

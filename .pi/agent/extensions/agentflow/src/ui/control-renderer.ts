@@ -51,6 +51,11 @@ const runUsage = (snapshot: RunSnapshot): UsageSnapshot =>
 const roleFor = (snapshot: RunSnapshot): string =>
   snapshot.semanticRole ?? snapshot.nodes[0]?.semanticRole ?? snapshot.name ?? snapshot.kind;
 
+const executionLabel = (snapshot: RunSnapshot): string | undefined => {
+  const node = snapshot.nodes[0];
+  return node?.backend ? `${node.backend}/${node.model ?? "default"}` : undefined;
+};
+
 const runSummary = (snapshot: RunSnapshot): string => {
   const usage = runUsage(snapshot);
   const node = snapshot.nodes[0];
@@ -72,7 +77,8 @@ const component = (renderLines: (width: number) => string[]): Component => ({
 
 const runHeading = (snapshot: RunSnapshot, theme: Theme, observedAt: number): string => {
   const elapsed = formatElapsed(snapshot.createdAt, snapshot.completedAt, observedAt);
-  return `${statusColor(theme, snapshot.status, formatStatus(snapshot.status))} ${theme.fg("toolTitle", roleFor(snapshot))} ${theme.fg("dim", `${sanitizeRenderedValue(snapshot.runId)} · ${elapsed}`)}`;
+  const execution = executionLabel(snapshot);
+  return `${statusColor(theme, snapshot.status, formatStatus(snapshot.status))} ${theme.fg("toolTitle", roleFor(snapshot))} ${theme.fg("dim", `${sanitizeRenderedValue(snapshot.runId)} · ${elapsed}${execution ? ` · ${execution}` : ""}`)}`;
 };
 
 export function renderRunSnapshots(

@@ -36,6 +36,7 @@ export interface AgentNodeSpec {
   id: string;
   label: string;
   prompt: string;
+  claude?: true;
   phase?: string;
   dependsOn?: string[];
   originTool?: string;
@@ -74,6 +75,8 @@ export interface NodeSnapshot {
   dependsOn?: string[];
   originTool?: string;
   semanticRole?: SemanticRole;
+  backend?: "claude";
+  model?: string;
   prompt: string;
   cwd: string;
   status: NodeStatus;

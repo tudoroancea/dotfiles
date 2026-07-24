@@ -11,6 +11,7 @@ const engineWith = (
     globalConcurrency?: number;
     deliver?: ConstructorParameters<typeof RunEngine>[2];
     idle?: () => boolean;
+    createClaudeRunner?: ConstructorParameters<typeof RunEngine>[8];
   } = {},
 ) =>
   new RunEngine(
@@ -21,6 +22,8 @@ const engineWith = (
     { run },
     options.globalConcurrency,
     options.idle,
+    undefined,
+    options.createClaudeRunner,
   );
 
 describe("RunEngine subscriptions", () => {
@@ -320,12 +323,134 @@ describe("RunEngine settlement", () => {
     expect(peak).toBe(2);
   });
 
+  it("routes only marked nodes to Claude and snapshots requested model and cost", async () => {
+    const piRun = vi.fn(async () => childResult("pi"));
+    const claudeRun = vi.fn(async () => childResult("claude"));
+    const engine = engineWith(piRun, {
+      createClaudeRunner: () => ({ run: claudeRun }),
+    });
+
+    const piResult = await engine.launchAgent(
+      { id: "pi", label: "pi", prompt: "routine" },
+      context,
+      { background: false },
+    );
+    const claudeResult = await engine.launchAgent(
+      {
+        id: "claude",
+        label: "claude/fable",
+        prompt: "hard advice",
+        claude: true,
+        config: { model: "fable" },
+      },
+      context,
+      { background: false },
+    );
+
+    expect(piRun).toHaveBeenCalledOnce();
+    expect(claudeRun).toHaveBeenCalledOnce();
+    expect(piResult).toMatchObject({ status: "completed", result: "pi" });
+    expect(claudeResult).toMatchObject({
+      status: "completed",
+      result: "claude",
+      snapshot: {
+        nodes: [{ backend: "claude", model: "fable", usage }],
+      },
+    });
+  });
+
+  it("never falls back to the Pi runner for a marked Claude node", async () => {
+    const piRun = vi.fn(async () => childResult("wrong runner"));
+    const engine = engineWith(piRun);
+
+    const result = await engine.launchAgent(
+      { id: "claude", label: "claude/opus", prompt: "work", claude: true },
+      context,
+      { background: false },
+    );
+
+    expect(piRun).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: "failed",
+      error: "Claude runner is not configured",
+      snapshot: { nodes: [{ backend: "claude", model: "opus" }] },
+    });
+  });
+
+  it("reports unsupported Claude steering and stays aborted when its control resolves normally", async () => {
+    const abort = vi.fn();
+    const engine = engineWith(async () => childResult("pi"), {
+      createClaudeRunner: (store) => ({
+        run: async (runId, node) =>
+          new Promise((resolve) => {
+            store.attachControl(runId, node.id, {
+              abort: async () => {
+                abort();
+                resolve(childResult("late result"));
+              },
+            });
+          }),
+      }),
+    });
+    const launched = await engine.launchAgent(
+      { id: "claude", label: "claude/opus", prompt: "work", claude: true },
+      context,
+      { background: true },
+    );
+    await vi.waitFor(() =>
+      expect(engine.getSnapshot(launched.runId)).toMatchObject({ nodes: [{ status: "running" }] }),
+    );
+
+    await expect(engine.steer(launched.runId, undefined, "change direction")).rejects.toThrow(
+      "Claude runs do not support steering in v1",
+    );
+    await engine.cancel([launched.runId]);
+
+    expect(abort).toHaveBeenCalledOnce();
+    expect(engine.getSnapshot(launched.runId)).toMatchObject({
+      status: "aborted",
+      nodes: [{ status: "aborted", backend: "claude" }],
+    });
+  });
+
+  it("keeps a Claude run aborted when shutdown races a successful resolution", async () => {
+    const engine = engineWith(async () => childResult("pi"), {
+      createClaudeRunner: (store) => ({
+        run: async (runId, node) =>
+          new Promise((resolve) => {
+            store.attachControl(runId, node.id, {
+              abort: async () => resolve(childResult("late shutdown result")),
+            });
+          }),
+      }),
+    });
+    const launched = await engine.launchAgent(
+      { id: "claude", label: "claude/opus", prompt: "work", claude: true },
+      context,
+      { background: true },
+    );
+    await vi.waitFor(() =>
+      expect(engine.getSnapshot(launched.runId)).toMatchObject({ nodes: [{ status: "running" }] }),
+    );
+
+    await engine.shutdown();
+
+    expect(engine.getResult(launched.runId)).toMatchObject({
+      status: "aborted",
+      snapshot: { nodes: [{ status: "aborted", backend: "claude" }] },
+    });
+  });
+
   it("delivers a background result once, and only while the parent is idle", async () => {
     let idle = false;
     const deliver = vi.fn();
-    const engine = engineWith(async () => childResult("done"), { deliver, idle: () => idle });
+    const engine = engineWith(async () => childResult("pi"), {
+      deliver,
+      idle: () => idle,
+      createClaudeRunner: () => ({ run: async () => childResult("done") }),
+    });
     const result = await engine.launchAgent(
-      { id: "agent", label: "agent", prompt: "work" },
+      { id: "claude", label: "claude/opus", prompt: "work", claude: true },
       context,
       { background: true },
     );
@@ -335,7 +460,7 @@ describe("RunEngine settlement", () => {
 
     // wait() consumes delivery. A second run exercises idle-triggered delivery.
     const second = await engine.launchAgent(
-      { id: "agent", label: "agent", prompt: "work" },
+      { id: "claude", label: "claude/opus", prompt: "work", claude: true },
       context,
       { background: true },
     );
@@ -347,7 +472,7 @@ describe("RunEngine settlement", () => {
     expect(deliver.mock.calls[0]?.[1]).toMatchObject({
       runId: second.runId,
       status: "completed",
-      snapshot: { nodes: [{ usage: { cost: 0.25 } }] },
+      snapshot: { nodes: [{ backend: "claude", model: "opus", usage: { cost: 0.25 } }] },
     });
   });
 });
