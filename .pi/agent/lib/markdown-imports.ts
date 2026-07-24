@@ -63,10 +63,11 @@ export class MarkdownImportResolver {
   async compile(options: MarkdownImportOptions): Promise<MarkdownImportResult> {
     const rootPath = resolve(options.rootPath);
     const canonicalRoot = await this.canonicalizeRoot(rootPath);
+    const lexicalAllowedRoots = (options.allowedRoots ?? [dirname(rootPath)]).map((path) =>
+      resolve(path),
+    );
     const allowedRoots = await Promise.all(
-      (options.allowedRoots ?? [dirname(rootPath)]).map((path) =>
-        this.canonicalizeRoot(resolve(path)),
-      ),
+      lexicalAllowedRoots.map((path) => this.canonicalizeRoot(path)),
     );
     const maxDepth = options.maxDepth ?? DEFAULT_MAX_IMPORT_DEPTH;
     const maxImportedFileBytes = options.maxImportedFileBytes ?? DEFAULT_MAX_IMPORTED_FILE_BYTES;
@@ -96,7 +97,11 @@ export class MarkdownImportResolver {
       const candidate = isAbsolute(specifier)
         ? resolve(specifier)
         : resolve(dirname(importer), specifier);
-      if (!options.allowOutsideRoots && !allowedRoots.some((root) => isWithin(candidate, root))) {
+      if (
+        !options.allowOutsideRoots &&
+        !lexicalAllowedRoots.some((root) => isWithin(candidate, root)) &&
+        !allowedRoots.some((root) => isWithin(candidate, root))
+      ) {
         throw new MarkdownImportError(
           `Markdown import escapes the allowed roots: ${specifier} imported from ${importer}`,
         );

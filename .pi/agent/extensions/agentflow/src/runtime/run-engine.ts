@@ -119,7 +119,7 @@ export class RunEngine {
     };
     const live: LiveRun = {
       snapshot,
-      sessions: new Map(),
+      controls: new Map(),
       controller,
       context: ctx,
       completion,
@@ -601,7 +601,7 @@ export class RunEngine {
     let target = nodeId;
     if (!target) {
       const running = live.snapshot.nodes.filter(
-        (n) => n.status === "running" && live.sessions.has(n.id),
+        (n) => n.status === "running" && live.controls.has(n.id),
       );
       if (running.length !== 1)
         throw new Error(
@@ -609,9 +609,11 @@ export class RunEngine {
         );
       target = running[0].id;
     }
-    const session = live.sessions.get(target);
-    if (!session?.isStreaming) throw new Error(`Task is not streaming: ${target}`);
-    await session.steer(message);
+    const control = live.controls.get(target);
+    if (!control) throw new Error(`Task is not running: ${target}`);
+    if (!control.steer) throw new Error(`Task does not support steering: ${target}`);
+    if (!control.isStreaming) throw new Error(`Task is not streaming: ${target}`);
+    await control.steer(message);
     this.log(runId, `Steered ${target}: ${message}`);
     return { runId, nodeId: target, accepted: true as const };
   }

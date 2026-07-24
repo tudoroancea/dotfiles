@@ -5,6 +5,7 @@ import {
   type Theme,
 } from "@earendil-works/pi-coding-agent";
 import { Box, Text, type Component } from "@earendil-works/pi-tui";
+import { ClaudeResourceSnapshot } from "./claude/resources.ts";
 import { RunEngine } from "./runtime/run-engine.ts";
 import { SemanticAgentService } from "./semantic/semantic-agent-service.ts";
 import { registerAgentTool } from "./tools/agent-tool.ts";
@@ -38,6 +39,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
     default: false,
   });
   let lastContext: ExtensionContext | undefined;
+  const claudeResources = new ClaudeResourceSnapshot();
   let engine!: RunEngine;
   const refreshUi = () => {
     if (!lastContext) return;
@@ -146,8 +148,12 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
       theme,
     );
   });
+  pi.on("before_agent_start", (event) => {
+    claudeResources.capture(event.systemPromptOptions.skills);
+  });
   pi.on("session_start", async (_event, ctx) => {
     lastContext?.ui.setStatus("agentflow", undefined);
+    claudeResources.clear();
     lastContext = ctx;
     await engine.recover();
     refreshUi();
@@ -158,6 +164,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
   pi.on("session_shutdown", async () => {
     lastContext?.ui.setStatus("agentflow", undefined);
     await engine.shutdown();
+    claudeResources.clear();
     lastContext = undefined;
   });
 }

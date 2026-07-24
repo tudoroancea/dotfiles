@@ -348,7 +348,15 @@ export class SubagentRunner {
       await disposeChildSession(session);
       throw error;
     }
-    if (!this.store.attachSession(runId, node.id, session)) {
+    if (
+      !this.store.attachControl(runId, node.id, {
+        abort: () => session.abort(),
+        steer: (message) => session.steer(message),
+        get isStreaming() {
+          return session.isStreaming;
+        },
+      })
+    ) {
       await disposeChildSession(session);
       throw abortError();
     }
@@ -456,7 +464,7 @@ export class SubagentRunner {
       for (const t of toolTimers.values()) clearTimeout(t);
       parentSignal.removeEventListener("abort", onAbort);
       unsubscribe();
-      this.store.detachSession(runId, node.id);
+      this.store.detachControl(runId, node.id);
       await settleChildAbort(abortPromise);
       await disposeChildSession(session);
     }

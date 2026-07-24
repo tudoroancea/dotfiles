@@ -29,6 +29,7 @@ vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => ({
   keyHint: () => "alt+e to expand",
 }));
 
+import { ClaudeResourceSnapshot } from "../src/claude/resources.ts";
 import agentflowExtension from "../src/index.ts";
 
 function load(raw: boolean): { beforeStart: string[]; afterStart: string[]; commands: string[] } {
@@ -67,6 +68,41 @@ describe("extension tool registration", () => {
     vi.clearAllMocks();
     mocks.engine.snapshots = [];
   });
+  it("captures the exact Pi skill snapshot before each parent turn", async () => {
+    const handlers = new Map<string, (...args: any[]) => unknown>();
+    const capture = vi.spyOn(ClaudeResourceSnapshot.prototype, "capture");
+    const pi = {
+      registerFlag: vi.fn(),
+      getFlag: vi.fn(() => false),
+      registerTool: vi.fn(),
+      registerCommand: vi.fn(),
+      registerMessageRenderer: vi.fn(),
+      on: vi.fn((event: string, handler: (...args: any[]) => unknown) =>
+        handlers.set(event, handler),
+      ),
+      getActiveTools: () => [],
+      getAllTools: () => [],
+      getThinkingLevel: () => undefined,
+      sendMessage: vi.fn(),
+      appendEntry: vi.fn(),
+      events: { emit: vi.fn() },
+    };
+    agentflowExtension(pi as never);
+    const skills = [
+      {
+        name: "frontend-design",
+        description: "Design skill",
+        filePath: "/skills/frontend-design/SKILL.md",
+        baseDir: "/skills/frontend-design",
+      },
+    ];
+
+    await handlers.get("before_agent_start")!({ systemPromptOptions: { skills } });
+
+    expect(capture).toHaveBeenCalledWith(skills);
+    capture.mockRestore();
+  });
+
   it("hides the raw agent launch tool by default", () => {
     expect(load(false).afterStart).toEqual([
       "agentflow_finder",

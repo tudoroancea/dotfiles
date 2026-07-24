@@ -1,4 +1,4 @@
-import type { AgentSession, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { TSchema } from "typebox";
 
 export type RunKind = "agent" | "workflow";
@@ -113,9 +113,14 @@ export interface RunResult {
   error?: string;
   snapshot: RunSnapshot;
 }
+export interface ChildControl {
+  abort(): Promise<void>;
+  steer?(message: string): Promise<void>;
+  readonly isStreaming?: boolean;
+}
 export interface LiveRun {
   snapshot: RunSnapshot;
-  sessions: Map<string, AgentSession>;
+  controls: Map<string, ChildControl>;
   controller: AbortController;
   context?: ExtensionContext;
   notify?: (snapshot: RunSnapshot) => void;

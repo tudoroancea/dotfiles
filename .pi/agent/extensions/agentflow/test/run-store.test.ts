@@ -17,7 +17,7 @@ const live = (runId: string, extra: Record<string, unknown> = {}) => {
   });
   return {
     snapshot: snapshot(runId),
-    sessions: new Map(),
+    controls: new Map(),
     controller: new AbortController(),
     context: {} as never,
     completion,
@@ -65,11 +65,30 @@ describe("RunStore", () => {
     expect(store.getResult("r1")).toMatchObject({ status: "completed", result: "done" });
   });
 
-  it("aborts the run controller and live sessions", async () => {
+  it("refuses to attach a child control after settlement", () => {
+    const store = new RunStore();
+    store.add(live("r1") as never);
+    store.settle(
+      "r1",
+      (state) => {
+        state.status = "completed";
+      },
+      (terminalSnapshot) => ({
+        runId: "r1",
+        status: "completed",
+        result: "done",
+        snapshot: terminalSnapshot,
+      }),
+    );
+
+    expect(store.attachControl("r1", "n1", { abort: vi.fn(async () => undefined) })).toBe(false);
+  });
+
+  it("aborts the run controller and live child controls", async () => {
     const store = new RunStore();
     const abort = vi.fn(async () => undefined);
     const controller = new AbortController();
-    store.add(live("r1", { sessions: new Map([["n1", { abort } as never]]), controller }) as never);
+    store.add(live("r1", { controls: new Map([["n1", { abort }]]), controller }) as never);
     await store.abort("r1");
     expect(controller.signal.aborted).toBe(true);
     expect(abort).toHaveBeenCalledOnce();

@@ -1,5 +1,4 @@
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import type { LiveRun, NodeSnapshot, RunResult, RunSnapshot } from "../types.ts";
+import type { ChildControl, LiveRun, NodeSnapshot, RunResult, RunSnapshot } from "../types.ts";
 
 const clone = <T>(value: T): T => structuredClone(value);
 
@@ -27,7 +26,7 @@ export class RunStore {
     };
     this.runs.set(snapshot.runId, {
       snapshot: clone(snapshot),
-      sessions: new Map(),
+      controls: new Map(),
       controller,
       completion: Promise.resolve(result),
       resolveCompletion: () => {},
@@ -72,15 +71,15 @@ export class RunStore {
       mutate(node);
     });
   }
-  attachSession(runId: string, nodeId: string, session: AgentSession): boolean {
+  attachControl(runId: string, nodeId: string, control: ChildControl): boolean {
     const run = this.runs.get(runId);
     if (!run) throw new Error(`Unknown run: ${runId}`);
     if (run.result) return false;
-    run.sessions.set(nodeId, session);
+    run.controls.set(nodeId, control);
     return true;
   }
-  detachSession(runId: string, nodeId: string): void {
-    this.runs.get(runId)?.sessions.delete(nodeId);
+  detachControl(runId: string, nodeId: string): void {
+    this.runs.get(runId)?.controls.delete(nodeId);
   }
   settle(
     runId: string,
@@ -99,7 +98,7 @@ export class RunStore {
     const result = createResult(snapshot);
     run.result = result;
     run.context = undefined;
-    run.sessions.clear();
+    run.controls.clear();
     run.resolveCompletion(result);
     try {
       run.notify?.(snapshot);
@@ -138,7 +137,7 @@ export class RunStore {
     const run = this.runs.get(runId);
     if (!run) return false;
     run.controller.abort();
-    await Promise.allSettled([...run.sessions.values()].map((session) => session.abort()));
+    await Promise.allSettled([...run.controls.values()].map((control) => control.abort()));
     return true;
   }
   async abortAll(): Promise<void> {

@@ -62,6 +62,8 @@ describe("tool call snapshots", () => {
       "src/auth.ts:80-179",
     );
     expect(summarizeToolArguments("bash", { command: "npm test\necho done" })).toBe("npm test");
+    expect(summarizeToolArguments("Read", { file_path: "src/claude.ts" })).toBe("src/claude.ts");
+    expect(summarizeToolArguments("Bash", { command: "nub run test" })).toBe("nub run test");
   });
 });
 

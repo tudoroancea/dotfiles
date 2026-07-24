@@ -14,14 +14,17 @@ const stringify = (value: unknown, max: number): string => {
 export function summarizeToolArguments(name: string, args: unknown): string {
   if (!args || typeof args !== "object") return stringify(args, 240);
   const value = args as Record<string, unknown>;
-  const path = typeof value.path === "string" ? value.path : undefined;
-  if (name === "read" && path) {
+  const normalizedName = name.toLowerCase();
+  const path = [value.path, value.file_path].find((item) => typeof item === "string") as
+    | string
+    | undefined;
+  if (normalizedName === "read" && path) {
     const range = value.offset
       ? `:${value.offset}${value.limit ? `-${Number(value.offset) + Number(value.limit) - 1}` : ""}`
       : "";
     return bounded(`${path}${range}`, 240);
   }
-  if (name === "bash" && typeof value.command === "string")
+  if (normalizedName === "bash" && typeof value.command === "string")
     return bounded(value.command.split("\n", 1)[0], 240);
   const query = [value.query, value.pattern].find((item) => typeof item === "string") as
     | string
