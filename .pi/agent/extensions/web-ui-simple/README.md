@@ -90,6 +90,7 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] improve scroll behavior: stick to the bottom or stay fixed
 - [x] hotkey support for collapse/expand thinking (default collapsed), expanding/collapsing tool calls (default collapse), showing/hiding timestamps (default hide), showing/hiding model/thinking level switches (default hide), showing/hiding the effective system prompt (default hide)
       -> implemented natively with a tiny Preact context + `localStorage` + a single `document` keydown listener (no extra dependencies). See "Display preferences" above.
+- [x] keep the global background lighter than tool backgrounds in light themes, matching the TUI
 - [ ] fix the markdown rendering of the thinking
 - [ ] dynamically change the window title to `π – <session title>`
 - [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)

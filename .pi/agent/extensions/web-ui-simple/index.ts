@@ -154,7 +154,7 @@ function adjustColor(color: string, factor: number): string {
     .slice(1)
     .match(/.{2}/g)!
     .map((value) =>
-      Math.round(Number.parseInt(value, 16) * factor)
+      Math.min(255, Math.round(Number.parseInt(value, 16) * factor))
         .toString(16)
         .padStart(2, "0"),
     )
@@ -210,7 +210,7 @@ function completePalette(palette: ThemePalette): ThemePalette {
   palette.hover = palette.selectedBg;
   const base = palette.userMessageBg;
   const isLight = colorLuminance(base) > 0.5;
-  palette["body-bg"] = adjustColor(base, isLight ? 0.96 : 0.7);
+  palette["body-bg"] = adjustColor(base, isLight ? 1.03 : 0.7);
   palette["container-bg"] = adjustColor(base, isLight ? 1 : 0.85);
   palette.colorScheme = isLight ? "light" : "dark";
   return palette;
