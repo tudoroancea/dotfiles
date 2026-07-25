@@ -653,7 +653,7 @@ function AgentflowLiveSnapshot({ snapshot, expanded, onToggle }) {
       <span class="agentflow-run-status status-${status}">${statusIcon(status)} ${status}</span>
       ${execution ? html`<span> · ${execution}</span>` : null}
       <span> · ${semanticRunSummary(snapshot, node)}</span>
-      <span> · <kbd>e</kbd> to ${expanded ? "collapse" : "expand"}</span>
+      <span> · click to ${expanded ? "collapse" : "expand"}</span>
     </button>
   </div>`;
 }
@@ -1026,18 +1026,38 @@ function Expandable({ className, label, collapsed, children }) {
 }
 
 function ThinkingBlock({ text }) {
-  const { prefs, toggle } = useContext(PrefsContext);
-  if (!prefs.thinking) {
+  const { prefs } = useContext(PrefsContext);
+  const [open, setOpen] = useState(prefs.thinking);
+  // The global "thinking" hotkey expands/collapses every block at once;
+  // opening a collapsed block only changes that block.
+  useEffect(() => setOpen(prefs.thinking), [prefs.thinking]);
+  if (!open) {
     return html`<button
       type="button"
       class="thinking-collapsed"
       aria-expanded="false"
-      onClick=${() => toggle("thinking")}
+      onClick=${() => setOpen(true)}
     >
-      thinking · <kbd>t</kbd> to expand
+      thinking... (click to expand)
     </button>`;
   }
-  return html`<div class="thinking-block">
+  const onKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setOpen(false);
+  };
+  return html`<div
+    class="thinking-block"
+    role="button"
+    tabindex="0"
+    aria-expanded="true"
+    aria-label="Collapse thinking"
+    onKeyDown=${onKeyDown}
+    onClick=${(event) => {
+      if (event.target.closest("a") || window.getSelection().toString()) return;
+      setOpen(false);
+    }}
+  >
     <div class="thinking-text"><${Markdown} text=${text} /></div>
   </div>`;
 }

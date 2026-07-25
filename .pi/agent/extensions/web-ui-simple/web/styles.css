@@ -327,6 +327,19 @@ body {
   outline-offset: 2px;
 }
 
+.thinking-block {
+  cursor: pointer;
+}
+
+.thinking-block:hover {
+  opacity: 0.9;
+}
+
+.thinking-block:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .thinking-block + .assistant-text {
   padding-top: 0;
 }
