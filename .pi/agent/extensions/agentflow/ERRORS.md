@@ -133,3 +133,14 @@ Each report should include the date, tool, run ID when available, expected and a
 - Evidence: `~/.pi/agent/agentflow/af_ms054z1z_6/` and continuation session `/tmp/agentflow-web-ui-history-server.json`.
 - Fallback: split the implementation into smaller bounded delegate tasks and continue from direct source inspection; the failed run made no edits.
 - Status: open.
+
+## 2026-07-25 — Review reset a working-tree CSS change and reviewed stale content
+
+- Tool: `agentflow_review`
+- Run ID: not returned by the tool.
+- Expected: read-only review of the current working-tree diff in `.pi/agent/extensions/web-ui-simple/web/styles.css` against `HEAD`.
+- Actual: although `git diff` immediately before the review showed the CSS change, the review claimed there was no diff and described the `HEAD` content; immediately afterward the working-tree CSS change had been reset, despite the tool being documented as non-mutating. The review also generated an untracked `package.json`, `nub.lock`, and `node_modules/` in `web-ui-simple` at 18:16:21.
+- Reproduction: modify `styles.css`, confirm with `git diff`, then review that path with `base: "HEAD"` and inspect the file and status afterward.
+- Evidence: parent session `019f9a09-4c87-7e0a-8459-845fd94a9562`; no run or artifact path was returned.
+- Fallback: remove the generated package artifacts, reapply the two focused CSS edits directly, and verify with local `git diff`/`git diff --check`.
+- Status: open.
