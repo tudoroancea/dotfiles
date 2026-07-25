@@ -291,20 +291,21 @@ body {
 }
 
 .assistant-text {
-  padding: var(--line-height);
-  padding-bottom: 0;
+  padding: calc(var(--line-height) / 2);
+  /*padding-bottom: 0;*/
 }
 
 .thinking-text {
-  padding: var(--line-height);
+  padding-left: calc(var(--line-height) / 2);
+  padding-right: calc(var(--line-height) / 2);
   color: var(--thinkingText);
   font-style: italic;
 }
 
 .thinking-collapsed {
   align-self: flex-start;
-  margin-left: var(--line-height);
-  padding: var(--line-height) 0;
+  padding-left: calc(var(--line-height) / 2);
+  padding-right: calc(var(--line-height) / 2);
   border: 0;
   color: var(--thinkingText);
   background: transparent;

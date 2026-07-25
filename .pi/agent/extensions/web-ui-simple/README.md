@@ -115,6 +115,7 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, Agentflow, and background-processes tools
 - [x] add working word that changes exactly as in `.pi/agent/extensions/working-word.ts`
 - [x] tailscale server command spawned in parallel with the node HTTP server and split the copy URL command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
+- [ ] fix thinking expansion behavior: when clicking on a collapsed thinking block only this one should be expanded, not all (same behavior that currently exists on the tool calls)
 - [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
 - [ ] input box:
   - [ ] initial support for sending messages via a sticky text input are at the bottom (with ability to both steer and queue via opt+enter and ctrl+enter, enter just creating a new line)
