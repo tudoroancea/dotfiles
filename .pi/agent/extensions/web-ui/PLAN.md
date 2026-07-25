@@ -297,7 +297,7 @@ This phase is client-only. It must not import private Pi internals, invoke TUI r
 
 #### 4A. Search
 
-- [ ] Add incremental plain-text indexing over loaded projected entries.
+- [x] Add incremental plain-text indexing over loaded projected entries.
 - [ ] Fetch remaining pages sequentially for complete-session search with cancellation/progress.
 - [ ] Implement next/previous result navigation through virtual row mounting.
 

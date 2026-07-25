@@ -19,6 +19,32 @@ const entry = (id: string): PersistedEntry => ({
   payload: {},
 });
 
+const messageEntry = (id: string, text: string): PersistedEntry => ({
+  id,
+  parentId: null,
+  timestamp: id,
+  entryType: "message",
+  payload: { message: { role: "user", content: [{ type: "text", text }] } },
+});
+
+const messageState = (
+  historyGeneration: string,
+  entries: PersistedEntry[],
+  hasOlder = true,
+  olderCursor = "cursor-1",
+): SessionState => ({
+  persisted: {
+    sessionId: "session",
+    leafId: entries.at(-1)?.id ?? null,
+    historyGeneration,
+    entries,
+    hasOlder,
+    ...(hasOlder ? { olderCursor } : {}),
+  },
+  live: { isRunning: false, finalizedMessages: [], tools: [] },
+  metadata: { cwd: "/repo", isIdle: true, activeTools: [] },
+});
+
 const state = (
   historyGeneration: string,
   ids: string[],
@@ -247,6 +273,89 @@ describe("browser session store", () => {
       }),
     ).toBe("ignored");
     expect(browser.getHistorySnapshot().loadingOlder).toBe(true);
+  });
+
+  it("indexes loaded entries across tail appends and older-page prepends for querying", () => {
+    const browser = new BrowserSessionStore();
+    browser.apply(
+      snapshot("generation", messageState("lineage", [messageEntry("tail", "banana")])),
+    );
+    expect(browser.searchLoadedHistory("banana").matches.map((match) => match.entryId)).toEqual([
+      "tail",
+    ]);
+
+    const request = browser.requestOlderHistory("older-1")!;
+    browser.apply({
+      type: "history_page",
+      protocolVersion: PROTOCOL_VERSION,
+      commandId: request.commandId,
+      generation: request.generation,
+      historyGeneration: request.historyGeneration,
+      revision: 0,
+      entries: [messageEntry("head", "banana bread"), messageEntry("mid", "cherry")],
+      hasOlder: false,
+    });
+    const result = browser.searchLoadedHistory("banana");
+    expect(result.matches.map((match) => match.entryId)).toEqual(["head", "tail"]);
+    expect(result.totalMatches).toBe(2);
+
+    browser.apply({
+      type: "state_update",
+      protocolVersion: PROTOCOL_VERSION,
+      generation: "generation",
+      baseRevision: 0,
+      revision: 1,
+      patch: {
+        persisted: messageState("lineage", [messageEntry("next", "banana split")], false).persisted,
+      },
+    });
+    expect(browser.searchLoadedHistory("banana").matches.map((match) => match.entryId)).toEqual([
+      "head",
+      "tail",
+      "next",
+    ]);
+  });
+
+  it("clears the search index atomically on a lineage reset", () => {
+    const browser = new BrowserSessionStore();
+    browser.apply(
+      snapshot("generation", messageState("lineage-1", [messageEntry("old", "durian")])),
+    );
+    expect(browser.searchLoadedHistory("durian").matches).toHaveLength(1);
+
+    browser.apply(
+      snapshot("generation", messageState("lineage-2", [messageEntry("new", "elder")]), 1),
+    );
+    expect(browser.searchLoadedHistory("durian").matches).toEqual([]);
+    expect(browser.searchLoadedHistory("elder").matches.map((match) => match.entryId)).toEqual([
+      "new",
+    ]);
+  });
+
+  it("leaves the search index unchanged across live-only token updates", () => {
+    const browser = new BrowserSessionStore();
+    browser.apply(snapshot("generation", messageState("lineage", [messageEntry("tail", "fig")])));
+    const before = browser.searchLoadedHistory("fig");
+    expect(before.matches).toHaveLength(1);
+
+    browser.apply({
+      type: "state_update",
+      protocolVersion: PROTOCOL_VERSION,
+      generation: "generation",
+      baseRevision: 0,
+      revision: 1,
+      patch: {
+        live: {
+          isRunning: true,
+          finalizedMessages: [],
+          partialAssistant: { role: "assistant", content: [{ type: "text", text: "fig fig fig" }] },
+          tools: [],
+        },
+      },
+    });
+    const after = browser.searchLoadedHistory("fig");
+    expect(after.totalMatches).toBe(before.totalMatches);
+    expect(after.matches.map((match) => match.entryId)).toEqual(["tail"]);
   });
 
   it("treats a snapshot from a new extension generation as a reset barrier", () => {

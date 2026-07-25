@@ -6,6 +6,7 @@ import type {
   StatePatch,
 } from "../shared/wire.js";
 import { BrowserHistoryStore, type BrowserHistorySnapshot } from "./history-store.js";
+import type { SearchQueryResult } from "./search-index.js";
 
 export interface BrowserSessionSnapshot {
   generation?: string;
@@ -29,6 +30,9 @@ export class BrowserSessionStore {
 
   getSnapshot = (): BrowserSessionSnapshot => this.snapshotValue;
   getHistorySnapshot = (): BrowserHistorySnapshot => this.history.getSnapshot();
+
+  /** Queries the plain-text index over the currently loaded history window. */
+  searchLoadedHistory = (term: string): SearchQueryResult => this.history.search.query(term);
   subscribeHistory = (listener: () => void): (() => void) => this.history.subscribe(listener);
 
   requestOlderHistory(commandId: string): HistoryPageCommand | undefined {

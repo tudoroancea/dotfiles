@@ -4,6 +4,7 @@ import type {
   PersistedEntry,
   PersistedState,
 } from "../shared/wire.js";
+import { LoadedEntrySearchIndex } from "./search-index.js";
 
 export interface BrowserHistorySnapshot {
   historyGeneration?: string | undefined;
@@ -23,6 +24,8 @@ interface PendingHistoryRequest {
 }
 
 export class BrowserHistoryStore {
+  /** Plain-text index over the loaded window, driven by the same mutations. */
+  readonly search = new LoadedEntrySearchIndex();
   private chunks: readonly (readonly PersistedEntry[])[] = [];
   private prefixEnds: readonly number[] = [];
   private entryIds = new Set<string>();
@@ -68,6 +71,7 @@ export class BrowserHistoryStore {
     this.chunks = [];
     this.prefixEnds = [];
     this.entryIds = new Set();
+    this.search.reset();
     this.loadedOlder = false;
     this.pending = undefined;
     this.publish({
@@ -99,6 +103,7 @@ export class BrowserHistoryStore {
     if (additions.length > 0) {
       this.chunks = [...this.chunks, additions];
       this.reindex();
+      this.search.append(additions);
     }
 
     const hasPagingState = this.loadedOlder || this.pending !== undefined;
@@ -171,6 +176,7 @@ export class BrowserHistoryStore {
     if (older.length > 0) {
       this.chunks = [older, ...this.chunks];
       this.reindex();
+      this.search.prepend(older);
     }
     this.publish({
       historyGeneration: message.historyGeneration,
@@ -188,6 +194,8 @@ export class BrowserHistoryStore {
     this.chunks = tail.length > 0 ? [tail] : [];
     this.reindex();
     this.entryIds = new Set(tail.map((entry) => entry.id));
+    this.search.reset();
+    this.search.append(tail);
     this.loadedOlder = false;
     this.pending = undefined;
     this.publish({
