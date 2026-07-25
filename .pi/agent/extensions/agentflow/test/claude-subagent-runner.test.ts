@@ -240,6 +240,7 @@ describe("ClaudeSubagentRunner", () => {
       includePartialMessages: true,
       skills: [skill.name],
     });
+    expect(captured!.options).not.toHaveProperty("maxTurns");
     expect(captured!.options.systemPrompt).toContain("## Agency");
     expect(captured!.options.systemPrompt).toContain(`- ${skill.name}: ${skill.description}`);
     expect(captured!.options.systemPrompt).not.toContain("${activeSkillsIndex}");

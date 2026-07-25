@@ -33,7 +33,6 @@ const CLAUDE_TOOLS = [
 const AUTO_ALLOWED_TOOLS = ["Read", "Glob", "Grep", "Skill"];
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const CLOSE_TIMEOUT_MS = 500;
-const MAX_TURNS = 50;
 const MAX_OUTPUT = 100_000;
 const promptPath = fileURLToPath(new URL("../claude/prompts/system.md", import.meta.url));
 const agentDir = resolve(dirname(promptPath), "../../../../..");
@@ -248,7 +247,6 @@ export class ClaudeSubagentRunner {
         skills: skills.names,
         persistSession: false,
         includePartialMessages: true,
-        maxTurns: MAX_TURNS,
         abortController: controller,
         env: buildClaudeEnvironment(this.environment),
       };

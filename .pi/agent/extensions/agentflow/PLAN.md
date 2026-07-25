@@ -320,7 +320,6 @@ Use a fixed options object, verified against the pinned package types:
   skills: exactPiSkillNames,
   persistSession: false,
   includePartialMessages: true,
-  maxTurns: fixedBound,
   abortController,
 }
 ```
@@ -330,6 +329,7 @@ Notes:
 - `disableSkillShellExecution: true` disables skill preprocessing shell snippets, not the normal Bash tool used by an implementation task.
 - `strictMcpConfig: true` is required because `mcpServers: {}` alone does not exclude every ambient connector.
 - `persistSession: false` avoids Claude transcript/memory persistence. Agentflow retains its normal bounded snapshots/artifacts.
+- Do not set the SDK's optional `maxTurns`: implementation tasks may legitimately require more than a fixed turn count. The runner's deadline and abort controller remain the execution bounds.
 - Do not enable Claude's `Agent` tool; nested Claude agents would bypass Agentflow scheduling and accounting.
 - Do not expose SDK options through tool arguments.
 
