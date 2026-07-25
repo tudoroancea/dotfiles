@@ -274,7 +274,6 @@ body {
   padding: var(--line-height);
   color: var(--thinkingText);
   font-style: italic;
-  white-space: pre-wrap;
 }
 
 .thinking-collapsed {

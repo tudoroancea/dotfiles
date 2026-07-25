@@ -225,6 +225,13 @@ function resultText(result) {
     .join("\n");
 }
 
+function resolveSessionTitle(snapshot) {
+  const sessionName = typeof snapshot.sessionName === "string" ? snapshot.sessionName.trim() : "";
+  if (sessionName) return sessionName;
+  const sessionId = typeof snapshot.header?.id === "string" ? snapshot.header.id.trim() : "";
+  return sessionId || "Pi session";
+}
+
 // ---------------------------------------------------------------------------
 // Small presentational components
 // ---------------------------------------------------------------------------
@@ -475,7 +482,7 @@ function ThinkingBlock({ text }) {
     </button>`;
   }
   return html`<div class="thinking-block">
-    <div class="thinking-text">${text}</div>
+    <div class="thinking-text"><${Markdown} text=${text} /></div>
   </div>`;
 }
 
@@ -682,8 +689,7 @@ function SystemPromptPanel({ snapshot }) {
   </section>`;
 }
 
-function StatusBar({ snapshot, connection }) {
-  const title = snapshot.sessionName || snapshot.header?.id || "Pi session";
+function StatusBar({ title, snapshot, connection }) {
   const state =
     connection === "offline"
       ? html`<span class="status-state"><span class="status-dot offline"></span>disconnected</span>`
@@ -747,6 +753,11 @@ function App() {
   const [connection, setConnection] = useState("connecting");
   const preferences = usePreferences();
   const { awayFromBottom, scrollToBottom } = useStickToBottom(snapshot);
+  const sessionTitle = resolveSessionTitle(snapshot);
+
+  useEffect(() => {
+    document.title = `π – ${sessionTitle}`;
+  }, [sessionTitle]);
 
   useEffect(() => {
     if (!snapshot.theme) return;
@@ -810,7 +821,7 @@ function App() {
   }, []);
 
   return html`<${PrefsContext.Provider} value=${preferences}>
-    <${StatusBar} snapshot=${snapshot} connection=${connection} />
+    <${StatusBar} title=${sessionTitle} snapshot=${snapshot} connection=${connection} />
     <${SystemPromptPanel} snapshot=${snapshot} />
     ${awayFromBottom
       ? html`<button

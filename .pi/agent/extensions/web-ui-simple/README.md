@@ -91,8 +91,8 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] hotkey support for collapse/expand thinking (default collapsed), expanding/collapsing tool calls (default collapse), showing/hiding timestamps (default hide), showing/hiding model/thinking level switches (default hide), showing/hiding the effective system prompt (default hide)
       -> implemented natively with a tiny Preact context + `localStorage` + a single `document` keydown listener (no extra dependencies). See "Display preferences" above.
 - [x] keep the global background lighter than tool backgrounds in light themes, matching the TUI
-- [ ] fix the markdown rendering of the thinking
-- [ ] dynamically change the window title to `π – <session title>`
+- [x] fix the markdown rendering of the thinking
+- [x] dynamically change the window title to `π – <session title>`
 - [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)
 - [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
 - [ ] input box:
