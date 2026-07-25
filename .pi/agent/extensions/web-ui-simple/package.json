@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "nub run format:check && nub run lint && nub run typecheck && nub run test:e2e",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "lint": "oxlint .",
+    "lint": "oxlint --deny-warnings .",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "0.82.0",
+    "@playwright/test": "1.62.0",
     "@types/node": "26.1.1",
     "oxfmt": "0.59.0",
     "oxlint": "1.75.0",

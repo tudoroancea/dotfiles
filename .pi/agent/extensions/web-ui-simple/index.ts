@@ -60,7 +60,7 @@ interface SnapshotTheme {
   dark: ThemePalette;
 }
 
-interface Snapshot {
+export interface Snapshot {
   header: unknown;
   leafId: string | null;
   sessionName: string | undefined;
@@ -71,7 +71,7 @@ interface Snapshot {
   entries: unknown[];
 }
 
-interface WebUiServer {
+export interface WebUiServer {
   readonly url: string;
   readonly origin: string;
   readonly port: number;
@@ -353,7 +353,7 @@ async function readBody(request: IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
+export async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
   const sessionToken = randomBytes(32).toString("base64url");
   const basePath = `/${randomBytes(18).toString("base64url")}/`;
   const bootstrapCodes = new Map<string, BootstrapCode>();

@@ -103,13 +103,15 @@ requested no-build-tools route for this minimal milestone.
 
 ## Development checks
 
-The extension intentionally has no `package.json`. Run the formatter and linter
-without installing project dependencies:
+Install the local development dependencies and run the complete check:
 
 ```sh
-nubx -y oxfmt .
-nubx -y oxlint --deny-warnings index.ts web/app.js
+nub install
+nubx playwright install chromium
+nub run check
 ```
+
+The Playwright suite launches the real authenticated HTTP/SSE server and production browser assets with deterministic session snapshots. Its assertions use accessible browser behavior rather than Preact component internals.
 
 ## Roadmap
 
@@ -130,7 +132,7 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
   - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
   - [ ] global hotkey to focus the input box
   - [ ] file autocompletions via @ (both in TUI and RPC modes by inspecting how the pi-fff extension implements it)
-  - [ ] command autocompletions support via /
+  - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
 - [ ] questionnaire tool rendering
 - [ ] notification system (like in `.pi/agent/extensions/notify.ts`) . I am not yet clear on what it takes to be able to send notifications (need a pwa?) or if we have to deal with a permission prompt for every new session server
 - [ ] image support compatible with remote machines:
