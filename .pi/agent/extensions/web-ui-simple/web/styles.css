@@ -281,7 +281,9 @@ body {
 }
 
 .assistant-message {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--line-height);
 }
 
 .assistant-message > .message-timestamp {
@@ -300,6 +302,7 @@ body {
 }
 
 .thinking-collapsed {
+  align-self: flex-start;
   margin-left: var(--line-height);
   padding: var(--line-height) 0;
   border: 0;
@@ -331,11 +334,6 @@ body {
 .tool-execution {
   padding: calc(var(--line-height) / 2);
   border-radius: 4px;
-}
-
-.tool-execution + .tool-execution,
-.assistant-text + .tool-execution {
-  margin-top: calc(var(--line-height) / 2);
 }
 
 .tool-execution.pending {
