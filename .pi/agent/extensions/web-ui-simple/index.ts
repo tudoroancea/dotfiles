@@ -1,4 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -28,6 +29,8 @@ import {
 const WEB_ROOT = fileURLToPath(new URL("./web/", import.meta.url));
 const COOKIE_NAME = `pi_wus_${randomBytes(6).toString("base64url")}`;
 const MAX_AUTH_BODY_BYTES = 4096;
+const MAX_BOOTSTRAP_CODES = 8;
+const BOOTSTRAP_CODE_TTL_MS = 2 * 60 * 1000;
 const BROADCAST_DEBOUNCE_MS = 60;
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -70,8 +73,14 @@ interface Snapshot {
 
 interface WebUiServer {
   readonly url: string;
-  bootstrapUrl(): string;
+  readonly origin: string;
+  readonly port: number;
+  bootstrapUrl(origin?: string): string;
   broadcast(): void;
+  close(): Promise<void>;
+}
+
+interface TailscaleServe {
   close(): Promise<void>;
 }
 
@@ -79,6 +88,11 @@ interface SseClient {
   response: ServerResponse;
   blocked: boolean;
   pending: string | undefined;
+}
+
+interface BootstrapCode {
+  expiresAt: number;
+  timer: NodeJS.Timeout;
 }
 
 function normalizeResultContent(raw: unknown): { content: unknown[]; details: unknown } {
@@ -342,7 +356,7 @@ async function readBody(request: IncomingMessage): Promise<string> {
 async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
   const sessionToken = randomBytes(32).toString("base64url");
   const basePath = `/${randomBytes(18).toString("base64url")}/`;
-  const bootstrapCodes = new Set<string>();
+  const bootstrapCodes = new Map<string, BootstrapCode>();
   const clients = new Set<SseClient>();
   let lastSnapshotVersion = "";
 
@@ -423,10 +437,17 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
         sendJson(response, 400, { error: "Invalid request" });
         return;
       }
-      if (typeof code !== "string" || !bootstrapCodes.delete(code)) {
+      const bootstrapCode = typeof code === "string" ? bootstrapCodes.get(code) : undefined;
+      if (typeof code !== "string" || !bootstrapCode || bootstrapCode.expiresAt <= Date.now()) {
+        if (typeof code === "string" && bootstrapCode) {
+          clearTimeout(bootstrapCode.timer);
+          bootstrapCodes.delete(code);
+        }
         sendJson(response, 401, { error: "Invalid or expired code" });
         return;
       }
+      clearTimeout(bootstrapCode.timer);
+      bootstrapCodes.delete(code);
       response.setHeader(
         "Set-Cookie",
         `${COOKIE_NAME}=${sessionToken}; HttpOnly; SameSite=Strict; Path=${basePath}`,
@@ -499,10 +520,26 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
 
   return {
     url: `${origin}${basePath}`,
-    bootstrapUrl() {
+    origin,
+    port,
+    bootstrapUrl(publicOrigin = origin) {
+      const now = Date.now();
+      for (const [code, bootstrapCode] of bootstrapCodes) {
+        if (bootstrapCode.expiresAt > now) continue;
+        clearTimeout(bootstrapCode.timer);
+        bootstrapCodes.delete(code);
+      }
+      while (bootstrapCodes.size >= MAX_BOOTSTRAP_CODES) {
+        const oldestCode = bootstrapCodes.keys().next().value;
+        if (oldestCode === undefined) break;
+        clearTimeout(bootstrapCodes.get(oldestCode)?.timer);
+        bootstrapCodes.delete(oldestCode);
+      }
       const code = randomBytes(24).toString("base64url");
-      bootstrapCodes.add(code);
-      return `${origin}${basePath}#code=${code}`;
+      const expiryTimer = setTimeout(() => bootstrapCodes.delete(code), BOOTSTRAP_CODE_TTL_MS);
+      expiryTimer.unref?.();
+      bootstrapCodes.set(code, { expiresAt: now + BOOTSTRAP_CODE_TTL_MS, timer: expiryTimer });
+      return `${publicOrigin}${basePath}#code=${code}`;
     },
     broadcast() {
       if (clients.size === 0) return;
@@ -511,6 +548,7 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
     },
     async close() {
       clearInterval(freshnessTimer);
+      for (const bootstrapCode of bootstrapCodes.values()) clearTimeout(bootstrapCode.timer);
       bootstrapCodes.clear();
       for (const client of clients) client.response.end();
       clients.clear();
@@ -522,8 +560,102 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
   };
 }
 
+function startTailscaleServe(
+  localOrigin: string,
+  port: number,
+  onReady: (origin: string) => void,
+  onFailure: (reason: string) => void,
+): TailscaleServe {
+  const child = spawn("tailscale", ["serve", "--yes", `--https=${port}`, localOrigin], {
+    detached: process.platform !== "win32",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  let errorOutput = "";
+  let ready = false;
+  let closing = false;
+  let failureReported = false;
+  let processClosed = false;
+  const emergencyCleanup = () => killProcessTree("SIGTERM");
+  process.once("exit", emergencyCleanup);
+  const closed = new Promise<void>((resolvePromise) => {
+    child.once("close", () => {
+      processClosed = true;
+      process.off("exit", emergencyCleanup);
+      resolvePromise();
+    });
+  });
+
+  function inspectOutput(chunk: Buffer): void {
+    output = (output + chunk.toString("utf8")).slice(-8192);
+    const match = output.match(/https:\/\/[^\s/]+\.ts\.net(?::\d+)?/i);
+    if (!match || ready) return;
+    ready = true;
+    onReady(match[0]);
+  }
+
+  function reportFailure(reason: string): void {
+    if (closing || failureReported) return;
+    failureReported = true;
+    onFailure(reason);
+  }
+
+  function killProcessTree(signal: NodeJS.Signals): void {
+    if (process.platform !== "win32" && child.pid !== undefined) {
+      try {
+        process.kill(-child.pid, signal);
+        return;
+      } catch {
+        // The process group may already have exited; fall back to the direct child.
+      }
+    }
+    child.kill(signal);
+  }
+
+  function waitForClose(timeoutMs: number): Promise<boolean> {
+    if (processClosed) return Promise.resolve(true);
+    return new Promise<boolean>((resolvePromise) => {
+      const timer = setTimeout(() => resolvePromise(false), timeoutMs);
+      void closed.then(() => {
+        clearTimeout(timer);
+        resolvePromise(true);
+      });
+    });
+  }
+
+  child.stdout.on("data", inspectOutput);
+  child.stderr.on("data", (chunk: Buffer) => {
+    errorOutput = (errorOutput + chunk.toString("utf8")).slice(-4096);
+    inspectOutput(chunk);
+  });
+  child.on("error", (error) => reportFailure(error.message));
+  child.on("exit", (code, signal) => {
+    if (closing) return;
+    const detail = errorOutput.trim().split("\n").at(-1);
+    reportFailure(
+      detail ||
+        (signal
+          ? `tailscale serve stopped (${signal})`
+          : `tailscale serve exited with code ${code ?? "unknown"}`),
+    );
+  });
+
+  return {
+    async close() {
+      closing = true;
+      if (processClosed) return;
+      killProcessTree("SIGTERM");
+      if (await waitForClose(2000)) return;
+      killProcessTree("SIGKILL");
+      await waitForClose(1000);
+    },
+  };
+}
+
 export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   let server: WebUiServer | undefined;
+  let tailscaleServe: TailscaleServe | undefined;
+  let remoteOrigin: string | undefined;
   let context: ExtensionContext | undefined;
   let broadcastTimer: NodeJS.Timeout | undefined;
   let automaticTheme: [string, string] | undefined;
@@ -632,26 +764,57 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     liveTools.clear();
   }
 
-  pi.registerCommand("copy-web-ui-simple-url", {
-    description: "Copy an authenticated Pi Web UI (simple) link",
+  async function copyUrl(commandContext: ExtensionCommandContext, origin?: string): Promise<void> {
+    if (!server) {
+      commandContext.ui.notify("Pi Web UI (simple) is not running in this mode.", "error");
+      return;
+    }
+    const url = server.bootstrapUrl(origin);
+    if (commandContext.mode === "rpc") {
+      commandContext.ui.notify(url, "info");
+      return;
+    }
+    try {
+      await copyToClipboard(url);
+      commandContext.ui.notify(
+        origin ? "Remote Web UI link copied." : "Local Web UI link copied.",
+        "info",
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "clipboard unavailable";
+      commandContext.ui.notify(`Could not copy Web UI link: ${reason}`, "error");
+    }
+  }
+
+  pi.registerCommand("copy-url", {
+    description: "Copy a local authenticated Pi Web UI link",
     handler: async (_args: string, commandContext: ExtensionCommandContext): Promise<void> => {
-      if (!server) {
-        commandContext.ui.notify("Pi Web UI (simple) is not running in this mode.", "error");
+      await copyUrl(commandContext);
+    },
+  });
+
+  pi.registerCommand("copy-remote-url", {
+    description: "Copy a tailnet-authenticated Pi Web UI link",
+    handler: async (_args: string, commandContext: ExtensionCommandContext): Promise<void> => {
+      if (!remoteOrigin) {
+        commandContext.ui.notify(
+          tailscaleServe
+            ? "The remote Web UI is still starting. Try again shortly."
+            : "The remote Web UI is unavailable. Check that Tailscale is installed and connected.",
+          "error",
+        );
         return;
       }
-      try {
-        await copyToClipboard(server.bootstrapUrl());
-        commandContext.ui.notify("Web UI link copied.", "info");
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : "clipboard unavailable";
-        commandContext.ui.notify(`Could not copy Web UI link: ${reason}`, "error");
-      }
+      await copyUrl(commandContext, remoteOrigin);
     },
   });
 
   pi.on("session_start", async (_event, ctx) => {
     if (ctx.mode !== "tui" && ctx.mode !== "rpc") return;
+    if (tailscaleServe) await tailscaleServe.close();
     if (server) await server.close();
+    tailscaleServe = undefined;
+    remoteOrigin = undefined;
     clearLive();
     context = ctx;
     const settings = SettingsManager.create(ctx.cwd, getAgentDir(), {
@@ -671,13 +834,35 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       else automaticTheme = undefined;
     }
     server = await startServer(buildSnapshot);
+    const activeServer = server;
+    tailscaleServe = startTailscaleServe(
+      activeServer.origin,
+      activeServer.port,
+      (origin) => {
+        if (server !== activeServer) return;
+        remoteOrigin = origin;
+        if (ctx.mode === "tui") {
+          ctx.ui.notify("Remote Web UI ready — use /copy-remote-url.", "info");
+        } else {
+          process.stderr.write(`Pi Web UI (simple, tailnet): ${origin}\n`);
+        }
+      },
+      (reason) => {
+        if (server !== activeServer) return;
+        tailscaleServe = undefined;
+        remoteOrigin = undefined;
+        const message = `Remote Web UI unavailable: ${reason}`;
+        if (ctx.mode === "tui") ctx.ui.notify(message, "warning");
+        else process.stderr.write(`Pi Web UI (simple): ${message}\n`);
+      },
+    );
     if (ctx.mode === "tui") {
       ctx.ui.notify(
-        `Pi Web UI (simple): ${server.url} — use /copy-web-ui-simple-url for an authenticated link.`,
+        `Pi Web UI (simple): ${server.url} — use /copy-url locally or /copy-remote-url from your tailnet.`,
         "info",
       );
     } else {
-      process.stderr.write(`Pi Web UI (simple): ${server.url}\n`);
+      process.stderr.write(`Pi Web UI (simple, local): ${server.url}\n`);
     }
   });
 
@@ -769,7 +954,10 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
 
   pi.on("session_shutdown", async () => {
     const active = server;
+    const activeTailscaleServe = tailscaleServe;
     server = undefined;
+    tailscaleServe = undefined;
+    remoteOrigin = undefined;
     context = undefined;
     automaticTheme = undefined;
     automaticPalette = undefined;
@@ -778,6 +966,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     clearLive();
     if (broadcastTimer) clearTimeout(broadcastTimer);
     broadcastTimer = undefined;
+    if (activeTailscaleServe) await activeTailscaleServe.close();
     if (active) await active.close();
   });
 }
