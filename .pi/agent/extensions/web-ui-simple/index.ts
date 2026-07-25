@@ -13,6 +13,7 @@ import {
   getPackageDir,
   SettingsManager,
   type Theme,
+  type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@ interface LiveTool {
   content: unknown[];
   details: unknown;
   isError: boolean;
+  isPartial: boolean;
   hasResult: boolean;
 }
 
@@ -161,52 +163,80 @@ function adjustColor(color: string, factor: number): string {
     .join("")}`;
 }
 
+const THEME_FOREGROUND: readonly ThemeColor[] = [
+  "accent",
+  "border",
+  "borderAccent",
+  "borderMuted",
+  "success",
+  "error",
+  "warning",
+  "muted",
+  "dim",
+  "text",
+  "thinkingText",
+  "userMessageText",
+  "customMessageText",
+  "customMessageLabel",
+  "toolTitle",
+  "toolOutput",
+  "mdHeading",
+  "mdLink",
+  "mdLinkUrl",
+  "mdCode",
+  "mdCodeBlock",
+  "mdCodeBlockBorder",
+  "mdQuote",
+  "mdQuoteBorder",
+  "mdHr",
+  "mdListBullet",
+  "toolDiffAdded",
+  "toolDiffRemoved",
+  "toolDiffContext",
+  "syntaxComment",
+  "syntaxKeyword",
+  "syntaxFunction",
+  "syntaxVariable",
+  "syntaxString",
+  "syntaxNumber",
+  "syntaxType",
+  "syntaxOperator",
+  "syntaxPunctuation",
+  "thinkingOff",
+  "thinkingMinimal",
+  "thinkingLow",
+  "thinkingMedium",
+  "thinkingHigh",
+  "thinkingXhigh",
+  "thinkingMax",
+  "bashMode",
+];
+
+const THEME_BACKGROUNDS = [
+  "selectedBg",
+  "userMessageBg",
+  "customMessageBg",
+  "toolPendingBg",
+  "toolSuccessBg",
+  "toolErrorBg",
+] as const;
+
 function themePalette(theme: Theme, light: boolean): ThemePalette {
-  const foreground = [
-    "text",
-    "muted",
-    "dim",
-    "accent",
-    "success",
-    "error",
-    "warning",
-    "borderAccent",
-    "border",
-    "userMessageText",
-    "thinkingText",
-    "toolOutput",
-    "toolDiffAdded",
-    "toolDiffRemoved",
-    "toolDiffContext",
-    "customMessageLabel",
-    "customMessageText",
-    "mdHeading",
-    "mdLink",
-    "mdCode",
-    "mdQuote",
-    "mdQuoteBorder",
-    "mdListBullet",
-    "mdHr",
-    "mdCodeBlockBorder",
-  ] as const;
-  const background = [
-    "selectedBg",
-    "userMessageBg",
-    "customMessageBg",
-    "toolPendingBg",
-    "toolSuccessBg",
-    "toolErrorBg",
-  ] as const;
   const palette: ThemePalette = {};
   const base = ansiToHex(theme.getBgAnsi("userMessageBg"), light ? "#e8e8e8" : "#343541");
   const isLight = colorLuminance(base) > 0.5;
   const fallbackText = isLight ? "#1f2328" : "#e5e5e7";
-  for (const name of foreground) palette[name] = ansiToHex(theme.getFgAnsi(name), fallbackText);
-  for (const name of background) palette[name] = ansiToHex(theme.getBgAnsi(name), base);
+  for (const name of THEME_FOREGROUND) {
+    palette[name] = ansiToHex(theme.getFgAnsi(name), fallbackText);
+  }
+  for (const name of THEME_BACKGROUNDS) {
+    palette[name] = ansiToHex(theme.getBgAnsi(name), base);
+  }
   return completePalette(palette);
 }
 
 function completePalette(palette: ThemePalette): ThemePalette {
+  palette.thinkingMax ??= palette.thinkingXhigh;
   palette.hover = palette.selectedBg;
   const base = palette.userMessageBg;
   const isLight = colorLuminance(base) > 0.5;
@@ -567,6 +597,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
           content: tool.content,
           details: tool.details,
           isError: tool.isError,
+          isPartial: tool.isPartial,
         },
       });
     }
@@ -670,6 +701,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       content: [],
       details: undefined,
       isError: false,
+      isPartial: true,
       hasResult: false,
     });
     scheduleBroadcast();
@@ -683,6 +715,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       content,
       details,
       isError: false,
+      isPartial: true,
       hasResult: content.length > 0,
     });
     scheduleBroadcast();
@@ -701,6 +734,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       content,
       details,
       isError: typed.isError,
+      isPartial: false,
       hasResult: true,
     });
     scheduleBroadcast();

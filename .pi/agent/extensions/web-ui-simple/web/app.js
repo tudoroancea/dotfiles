@@ -225,6 +225,104 @@ function resultText(result) {
     .join("\n");
 }
 
+function record(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function array(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function number(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function truncate(value, max = 80) {
+  if (typeof value !== "string") return "";
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function compactCommand(value) {
+  if (typeof value !== "string" || !value) return "...";
+  const oneLine = value.replace(/\s*\n\s*/g, " ↵ ");
+  return oneLine.length > 100 ? `${oneLine.slice(0, 97)}...` : oneLine;
+}
+
+function compactLineCount(text) {
+  if (!text || text === "(no output)") return 0;
+  return text.split("\n").length;
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / 1024 ** 2).toFixed(1)}MB`;
+}
+
+function readTruncationNotice(result) {
+  const truncation = record(result?.details).truncation;
+  if (!truncation?.truncated) return "";
+  if (truncation.firstLineExceedsLimit) {
+    return `[First line exceeds ${formatSize(number(truncation.maxBytes) ?? 50 * 1024)} limit]`;
+  }
+  if (truncation.truncatedBy === "lines") {
+    return `[Truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines (${truncation.maxLines ?? 2000} line limit)]`;
+  }
+  return `[Truncated: ${truncation.outputLines} lines shown (${formatSize(number(truncation.maxBytes) ?? 50 * 1024)} limit)]`;
+}
+
+function pluralize(count, noun) {
+  return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function formatDuration(milliseconds) {
+  if (typeof milliseconds !== "number" || !Number.isFinite(milliseconds)) return "";
+  if (milliseconds < 1000) return `${Math.round(milliseconds)}ms`;
+  if (milliseconds < 60_000) return `${(milliseconds / 1000).toFixed(1)}s`;
+  return `${Math.floor(milliseconds / 60_000)}m ${Math.round((milliseconds % 60_000) / 1000)}s`;
+}
+
+function formatBytes(bytes) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
+}
+
+function formatTokens(tokens) {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`;
+  return String(tokens);
+}
+
+function formatCost(cost) {
+  if (cost >= 1) return `$${cost.toFixed(2)}`;
+  if (cost >= 0.1) return `$${cost.toFixed(3)}`;
+  return `$${cost.toFixed(4)}`;
+}
+
+function statusIcon(status) {
+  if (status === "queued") return "·";
+  if (status === "running") return "◆";
+  if (status === "completed") return "✓";
+  if (status === "failed") return "✗";
+  return "◇";
+}
+
+function oneLine(value) {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+}
+
+function diffStats(diff) {
+  let additions = 0;
+  let removals = 0;
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("+") && !line.startsWith("+++")) additions++;
+    if (line.startsWith("-") && !line.startsWith("---")) removals++;
+  }
+  return { additions, removals };
+}
+
 function resolveSessionTitle(snapshot) {
   const sessionName = typeof snapshot.sessionName === "string" ? snapshot.sessionName.trim() : "";
   if (sessionName) return sessionName;
@@ -262,7 +360,7 @@ function Lines({ text }) {
 }
 
 // Terminal-style output block with exporter-like expand-on-click for long output.
-function ExpandableOutput({ text, maxLines }) {
+function ExpandableOutput({ text, maxLines, tone = "" }) {
   const { prefs } = useContext(PrefsContext);
   const [expanded, setExpanded] = useState(prefs.tools);
   // The global "tool output" hotkey expands/collapses every block at once;
@@ -273,7 +371,7 @@ function ExpandableOutput({ text, maxLines }) {
   const remaining = lines.length - maxLines;
 
   if (remaining <= 0) {
-    return html`<div class="tool-output"><${Lines} text=${clean} /></div>`;
+    return html`<div class="tool-output ${tone}"><${Lines} text=${clean} /></div>`;
   }
   const onKeyDown = (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -282,7 +380,7 @@ function ExpandableOutput({ text, maxLines }) {
   };
   if (expanded) {
     return html`<div
-      class="tool-output expandable"
+      class="tool-output expandable ${tone}"
       role="button"
       tabindex="0"
       aria-expanded="true"
@@ -297,7 +395,7 @@ function ExpandableOutput({ text, maxLines }) {
     </div>`;
   }
   return html`<div
-    class="tool-output expandable"
+    class="tool-output expandable ${tone}"
     role="button"
     tabindex="0"
     aria-expanded="false"
@@ -310,6 +408,23 @@ function ExpandableOutput({ text, maxLines }) {
   >
     <${Lines} text=${lines.slice(0, maxLines).join("\n")} />
     <div class="expand-hint">... (${remaining} more lines)</div>
+  </div>`;
+}
+
+function ToolDetails({ label = "details", children }) {
+  const { prefs } = useContext(PrefsContext);
+  const [open, setOpen] = useState(prefs.tools);
+  useEffect(() => setOpen(prefs.tools), [prefs.tools]);
+  return html`<div class="tool-details">
+    <button
+      type="button"
+      class="tool-details-toggle"
+      aria-expanded=${open ? "true" : "false"}
+      onClick=${() => setOpen((value) => !value)}
+    >
+      ${open ? "▾" : "▸"} ${label}
+    </button>
+    ${open ? html`<div class="tool-details-body">${children}</div>` : null}
   </div>`;
 }
 
@@ -354,11 +469,369 @@ function Diff({ diff, maxLines = 10 }) {
 }
 
 // ---------------------------------------------------------------------------
-// Tool calls (exporter built-in renderers + generic fallback)
+// Tool calls (exporter built-ins + renderers for the locally installed tools)
 // ---------------------------------------------------------------------------
 
+function Facts({ items }) {
+  const visible = items.filter((item) => item && item.value !== undefined && item.value !== "");
+  if (!visible.length) return null;
+  return html`<dl class="tool-facts">
+    ${visible.map(
+      (item, index) => html`<div key=${index} class="tool-fact ${item.error ? "error" : ""}">
+        <dt>${item.label}</dt>
+        <dd>${item.value}</dd>
+      </div>`,
+    )}
+  </dl>`;
+}
+
+const AGENTFLOW_RUN_TOOLS = new Set([
+  "agentflow_finder",
+  "agentflow_oracle",
+  "agentflow_librarian",
+  "agentflow_look_at",
+  "agentflow_delegate",
+  "agentflow_review",
+  "agentflow_claude",
+  "agentflow_agent",
+]);
+
+const AGENTFLOW_LABELS = {
+  agentflow_finder: ["finder", "task"],
+  agentflow_oracle: ["oracle", "question"],
+  agentflow_librarian: ["librarian", "question"],
+  agentflow_look_at: ["look at", "objective"],
+  agentflow_delegate: ["delegate", "task"],
+  agentflow_review: ["review", "task"],
+  agentflow_claude: ["claude", "task"],
+  agentflow_workflow: ["workflow", "script"],
+  agentflow_agent: ["agent", "prompt"],
+  agentflow_status: ["status", "runId"],
+  agentflow_wait: ["wait", "runIds"],
+  agentflow_cancel: ["cancel", "runIds"],
+  agentflow_steer: ["steer", "runId"],
+};
+
+function RunNode({ node }) {
+  const calls = array(node.toolCalls).map(record);
+  const usage = record(node.usage);
+  const usageParts = [];
+  if (number(usage.total) !== undefined) usageParts.push(`${usage.total.toLocaleString()} tok`);
+  if (number(usage.cost) !== undefined) usageParts.push(`$${usage.cost.toFixed(4)}`);
+  return html`<li class="run-node">
+    <div class="structured-head">
+      <span>${node.label || node.id || "node"}</span>
+      <span class="structured-status status-${node.status || "unknown"}">${node.status || ""}</span>
+    </div>
+    ${node.resultPreview ? html`<p>${truncate(node.resultPreview, 160)}</p>` : null}
+    ${node.error ? html`<p class="tool-error">${truncate(node.error, 240)}</p>` : null}
+    ${usageParts.length ? html`<p class="structured-muted">${usageParts.join(" · ")}</p>` : null}
+    ${calls.length
+      ? html`<ul class="run-tools">
+          ${calls.map(
+            (tool, index) => html`<li key=${index}>
+              <strong>${tool.name || "tool"}</strong>
+              ${tool.argumentSummary ? html` <span>${tool.argumentSummary}</span>` : null}
+              ${tool.resultPreview
+                ? html` <span class="structured-muted">— ${truncate(tool.resultPreview, 60)}</span>`
+                : null}
+              ${tool.error
+                ? html` <span class="tool-error">${truncate(tool.error, 120)}</span>`
+                : null}
+              ${tool.status
+                ? html` <span class="structured-status status-${tool.status}">${tool.status}</span>`
+                : null}
+            </li>`,
+          )}
+        </ul>`
+      : null}
+  </li>`;
+}
+
+function semanticRunSummary(snapshot, node) {
+  const usage = record(node.usage);
+  const tools = number(node.tools) ?? 0;
+  const tokens = number(usage.total) ?? 0;
+  const cost = number(usage.cost) ?? 0;
+  const role = snapshot.semanticRole || node.semanticRole;
+  let prefix = "";
+  if (typeof node.resultPreview === "string") {
+    try {
+      const value = JSON.parse(node.resultPreview);
+      if ((role === "finder" || role === "review") && Array.isArray(value.findings)) {
+        prefix = `${pluralize(value.findings.length, "finding")} · `;
+      } else if (role === "librarian" && Array.isArray(value.sources)) {
+        prefix = `${pluralize(value.sources.length, "source")} · `;
+      } else if (role === "look_at" && Array.isArray(value.observations)) {
+        prefix = `${pluralize(value.observations.length, "observation")} · `;
+      } else if (role === "delegate" && Array.isArray(value.filesChanged)) {
+        prefix = `${pluralize(value.filesChanged.length, "file")} · `;
+      } else if (role === "oracle" && typeof value.recommendation === "string") {
+        prefix = "recommendation · ";
+      }
+    } catch {
+      // Streaming previews are commonly incomplete JSON.
+    }
+  }
+  return `${prefix}${tools} tools · ${formatTokens(tokens)} tokens · ${formatCost(cost)}`;
+}
+
+function AgentflowToolRow({ call, expanded }) {
+  const status = typeof call.status === "string" ? call.status : "queued";
+  return html`<li class="agentflow-tool-row">
+    <span class="agentflow-status status-${status}" aria-label=${status}
+      >${statusIcon(status)}</span
+    >
+    <span class="agentflow-tool-name">${call.name || "tool"}</span>
+    <span class="agentflow-tool-argument">${oneLine(call.argumentSummary)}</span>
+    ${expanded && call.argumentsPreview
+      ? html`<span class="agentflow-tool-detail"
+          ><b>args:</b> ${oneLine(call.argumentsPreview)}</span
+        >`
+      : null}
+    ${expanded && call.error
+      ? html`<span class="agentflow-tool-detail error"><b>error:</b> ${oneLine(call.error)}</span>`
+      : expanded && call.resultPreview
+        ? html`<span class="agentflow-tool-detail"
+            ><b>result:</b> ${oneLine(call.resultPreview)}</span
+          >`
+        : null}
+  </li>`;
+}
+
+function AgentflowLiveSnapshot({ snapshot, expanded, onToggle }) {
+  const node = record(array(snapshot.nodes)[0]);
+  const calls = array(node.toolCalls).map(record);
+  const visibleCalls = expanded ? calls : calls.slice(-8);
+  const omitted = calls.length - visibleCalls.length;
+  const status = node.status || snapshot.status || "queued";
+  const execution = node.backend ? `${node.backend}/${node.model || "default"}` : "";
+  const logs = array(snapshot.logs).filter((line) => typeof line === "string");
+
+  return html`<div class="agentflow-live-run">
+    ${omitted > 0
+      ? html`<div class="agentflow-omitted">… ${pluralize(omitted, "earlier tool call")}</div>`
+      : null}
+    ${visibleCalls.length
+      ? html`<ul class="agentflow-tool-list">
+          ${visibleCalls.map(
+            (call, index) => html`<${AgentflowToolRow}
+              key=${call.id || index}
+              call=${call}
+              expanded=${expanded}
+            />`,
+          )}
+        </ul>`
+      : null}
+    ${expanded
+      ? html`<div class="agentflow-expanded">
+          ${node.error
+            ? html`<div class="tool-error">${node.error}</div>`
+            : node.resultPreview
+              ? html`<${ExpandableOutput} text=${node.resultPreview} maxLines=${24} />`
+              : null}
+          <${Facts}
+            items=${[
+              { label: "Run", value: snapshot.runId },
+              { label: "Cwd", value: node.cwd },
+              { label: "Backend", value: execution },
+              { label: "Session", value: node.sessionFile },
+              { label: "Artifacts", value: snapshot.artifactDir },
+            ]}
+          />
+          ${logs.length
+            ? html`<${ExpandableOutput} text=${logs.join("\n")} maxLines=${5} />`
+            : null}
+        </div>`
+      : null}
+    <button
+      type="button"
+      class="agentflow-run-footer"
+      aria-expanded=${expanded ? "true" : "false"}
+      onClick=${onToggle}
+    >
+      <span class="agentflow-run-status status-${status}">${statusIcon(status)} ${status}</span>
+      ${execution ? html`<span> · ${execution}</span>` : null}
+      <span> · ${semanticRunSummary(snapshot, node)}</span>
+      <span> · <kbd>e</kbd> to ${expanded ? "collapse" : "expand"}</span>
+    </button>
+  </div>`;
+}
+
+function AgentflowSnapshot({ snapshot }) {
+  const nodes = array(snapshot.nodes).map(record);
+  const phases = array(snapshot.phases)
+    .filter((phase) => typeof phase === "string")
+    .join(" → ");
+  const logs = array(snapshot.logs).filter((line) => typeof line === "string");
+  const label =
+    snapshot.name ||
+    snapshot.semanticRole ||
+    (typeof snapshot.originTool === "string"
+      ? snapshot.originTool.replace(/^agentflow_/, "")
+      : "") ||
+    snapshot.kind ||
+    "run";
+  return html`<div class="agentflow-run">
+    <${Facts}
+      items=${[
+        { label: "Run", value: snapshot.runId || "—" },
+        { label: "Kind", value: label },
+        {
+          label: "Status",
+          value: snapshot.status || "—",
+          error: /error|failed|aborted/.test(snapshot.status),
+        },
+        { label: "Phases", value: phases },
+        { label: "Phase", value: snapshot.currentPhase },
+        { label: "Completed", value: snapshot.completedAt },
+        { label: "Artifacts", value: snapshot.artifactDir },
+      ]}
+    />
+    ${snapshot.error ? html`<p class="tool-error">${truncate(snapshot.error, 320)}</p>` : null}
+    ${nodes.length
+      ? html`<ul class="run-nodes">
+          ${nodes.map((node, index) => html`<${RunNode} key=${index} node=${node} />`)}
+        </ul>`
+      : null}
+    ${logs.length ? html`<${ExpandableOutput} text=${logs.join("\n")} maxLines=${5} />` : null}
+  </div>`;
+}
+
+function AgentflowResult({ name, result }) {
+  const details = record(result?.details);
+  let snapshots = [];
+  if (name === "agentflow_wait") snapshots = array(details.results);
+  else if (name === "agentflow_cancel") snapshots = array(details.snapshots);
+  else if (Array.isArray(details.snapshot)) snapshots = details.snapshot;
+  else if (Object.keys(record(details.snapshot)).length) snapshots = [details.snapshot];
+
+  if (AGENTFLOW_RUN_TOOLS.has(name) && snapshots.length) {
+    return html`<${AgentflowLiveResult} snapshots=${snapshots} />`;
+  }
+
+  return html`<${ToolDetails}
+    label=${snapshots.length ? pluralize(snapshots.length, "run") : "result"}
+  >
+    ${resultText(result).trim()
+      ? html`<div class="agentflow-result"><${Markdown} text=${resultText(result)} /></div>`
+      : null}
+    ${snapshots.map((item, index) => {
+      const value = record(item);
+      const snapshot = record(value.snapshot || value);
+      return html`<div key=${index} class="run-list-item">
+        ${value.result ? html`<p>${truncate(value.result, 200)}</p>` : null}
+        ${value.error ? html`<p class="tool-error">${truncate(value.error, 240)}</p>` : null}
+        <${AgentflowSnapshot} snapshot=${snapshot} />
+      </div>`;
+    })}
+    ${!snapshots.length && !resultText(result).trim()
+      ? html`<div class="structured-muted">No run details</div>`
+      : null}
+  <//>`;
+}
+
+function AgentflowLiveResult({ snapshots }) {
+  const { prefs } = useContext(PrefsContext);
+  const [expanded, setExpanded] = useState(prefs.tools);
+  useEffect(() => setExpanded(prefs.tools), [prefs.tools]);
+  return html`<div class="agentflow-live-results">
+    ${snapshots.map((item, index) => {
+      const value = record(item);
+      const snapshot = record(value.snapshot || value);
+      return html`<${AgentflowLiveSnapshot}
+        key=${snapshot.runId || index}
+        snapshot=${snapshot}
+        expanded=${expanded}
+        onToggle=${() => setExpanded((open) => !open)}
+      />`;
+    })}
+  </div>`;
+}
+
+function JobCard({ job }) {
+  const monitor = record(job.monitor);
+  const errors = [
+    job.error,
+    job.deliveryError,
+    job.deliveryPersistenceError,
+    job.monitorDeliveryPersistenceError,
+    monitor.deliveryError,
+  ].filter((value) => typeof value === "string" && value);
+  return html`<div class="background-job">
+    <div class="structured-head">
+      <span>${compactCommand(job.command)}</span>
+      <span class="structured-status status-${job.status || "unknown"}">${job.status || ""}</span>
+    </div>
+    <${Facts}
+      items=${[
+        { label: "Task", value: job.description },
+        { label: "Job", value: job.jobId || "—" },
+        {
+          label: "Exit",
+          value: number(job.exitCode) !== undefined ? String(job.exitCode) : "",
+          error: number(job.exitCode) > 0,
+        },
+        { label: "Elapsed", value: formatDuration(number(job.durationMs)) },
+        { label: "Output", value: formatBytes(number(job.outputBytes)) },
+        { label: "Delivery", value: job.deliveryState },
+        { label: "Log", value: job.outputPath },
+        {
+          label: "Deliveries",
+          value: number(monitor.deliveries) !== undefined ? String(monitor.deliveries) : "",
+        },
+        {
+          label: "Dropped",
+          value: number(monitor.droppedLines)
+            ? `${monitor.droppedLines} lines / ${monitor.droppedBytes || 0} bytes`
+            : "",
+        },
+      ]}
+    />
+    ${errors.map((error, index) => html`<p key=${index} class="tool-error">${error}</p>`)}
+    ${typeof job.tail === "string" && job.tail
+      ? html`<${ExpandableOutput} text=${job.tail} maxLines=${10} />`
+      : null}
+    ${job.tailTruncated ? html`<p class="structured-muted">Output tail truncated</p>` : null}
+  </div>`;
+}
+
+function BackgroundResult({ result }) {
+  const details = record(result?.details);
+  const jobs = array(details.jobs).map(record);
+  const omitted = number(details.omittedCount) || 0;
+  const omittedJobs = record(details.omittedJobs);
+  return html`<${ToolDetails} label=${jobs.length ? pluralize(jobs.length, "job") : "result"}>
+    <div class="background-jobs">
+      ${jobs.map((job, index) => html`<${JobCard} key=${job.jobId || index} job=${job} />`)}
+    </div>
+    ${!jobs.length && resultText(result).trim()
+      ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
+      : null}
+    ${omitted
+      ? html`<p class="structured-muted">
+          ${pluralize(omitted, "job")}
+          omitted${omittedJobs.firstJobId && omittedJobs.lastJobId
+            ? ` (${omittedJobs.firstJobId}…${omittedJobs.lastJobId})`
+            : ""}${omittedJobs.guidance ? ` — ${omittedJobs.guidance}` : ""}
+        </p>`
+      : null}
+    ${details.truncated && !omitted
+      ? html`<p class="structured-muted">Result payload or output tail truncated</p>`
+      : null}
+  <//>`;
+}
+
 function ToolCall({ call, result }) {
-  const status = result ? (result.isError ? "error" : "success") : "pending";
+  const { prefs } = useContext(PrefsContext);
+  const expanded = prefs.tools;
+  const status = result
+    ? result.isError
+      ? "error"
+      : result.isPartial
+        ? "pending"
+        : "success"
+    : "pending";
   const args = call.arguments || {};
   const name = call.name;
   const invalid = html`<span class="tool-error">[invalid arg]</span>`;
@@ -368,12 +841,32 @@ function ToolCall({ call, result }) {
 
   if (name === "bash") {
     const command = str(args.command);
-    body = html`<div class="tool-command">$ ${command === null ? invalid : command || "..."}</div>
-      ${result && resultText(result).trim()
-        ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${5} />`
+    const output = resultText(result);
+    const outputLines = compactLineCount(output);
+    const commandLine = h("div", { class: "tool-command" }, [
+      h("span", { class: "tool-name" }, "$"),
+      " ",
+      h(
+        "span",
+        { class: "tool-argument" },
+        command === null ? invalid : compactCommand(command || ""),
+      ),
+      args.timeout ? h("span", { class: "line-count" }, ` (${args.timeout}s timeout)`) : null,
+    ]);
+    const summary = outputLines
+      ? `${outputLines} output line${outputLines === 1 ? "" : "s"}`
+      : "no output";
+    body = html`${commandLine}${result && expanded && output
+      ? html`<div class="tool-output"><${Lines} text=${output} /></div>`
+      : result && !expanded && !result.isPartial
+        ? html`<div class=${result.isError ? "compact-result error" : "compact-result"}>
+            ${result.isError ? `failed · ${summary}` : summary}
+          </div>`
         : null}`;
   } else if (name === "read") {
     const filePath = str(args.file_path ?? args.path);
+    const output = resultText(result).replace(/\n+$/, "");
+    const truncationNotice = readTruncationNotice(result);
     let suffix = "";
     if (filePath !== null && (args.offset !== undefined || args.limit !== undefined)) {
       const start = args.offset ?? 1;
@@ -389,37 +882,100 @@ function ToolCall({ call, result }) {
         >
       </div>
       <${ImageBlock} list=${resultImages} cls="tool-image" />
-      ${result && resultText(result)
-        ? html`<${ExpandableOutput} text=${resultText(result)} maxLines=${10} />`
+      ${result && output && (expanded || result.isError)
+        ? html`<${ExpandableOutput} text=${output} maxLines=${10} />`
+        : null}
+      ${result && truncationNotice && (expanded || result.isError)
+        ? html`<div class="read-truncation">${truncationNotice}</div>`
         : null}`;
   } else if (name === "write") {
     const filePath = str(args.file_path ?? args.path);
     const content = str(args.content);
-    const lineCount = content ? content.split("\n").length : 0;
+    const lineCount = compactLineCount(content || "");
+    const output = resultText(result);
     body = html`<div class="tool-header">
         <span class="tool-name">write</span>${" "}
         <span class="tool-path">${filePath === null ? invalid : shortenPath(filePath || "")}</span>
-        ${lineCount > 10 ? html` <span class="line-count">(${lineCount} lines)</span>` : null}
+        ${lineCount
+          ? html` <span class="line-count">· ${lineCount} line${lineCount === 1 ? "" : "s"}</span>`
+          : null}
       </div>
       ${content === null
         ? html`<div class="tool-error">[invalid content arg - expected string]</div>`
-        : content
-          ? html`<${ExpandableOutput} text=${content} maxLines=${10} />`
+        : expanded && content
+          ? html`<div class="tool-output"><${Lines} text=${content} /></div>`
           : null}
-      ${result && resultText(result).trim()
-        ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
+      ${result?.isError && output
+        ? expanded
+          ? html`<div class="tool-output error-output"><${Lines} text=${output} /></div>`
+          : html`<div class="compact-result error">${output.split("\n")[0]}</div>`
         : null}`;
   } else if (name === "edit") {
     const filePath = str(args.file_path ?? args.path);
+    const replacementCount = array(args.edits).length;
+    const output = resultText(result);
+    const diff = typeof result?.details?.diff === "string" ? result.details.diff : "";
+    const stats = diff ? diffStats(diff) : null;
     body = html`<div class="tool-header">
         <span class="tool-name">edit</span>${" "}
         <span class="tool-path">${filePath === null ? invalid : shortenPath(filePath || "")}</span>
+        ${replacementCount
+          ? html` <span class="line-count"
+              >· ${replacementCount} replacement${replacementCount === 1 ? "" : "s"}</span
+            >`
+          : null}
       </div>
-      ${result && result.details && result.details.diff
-        ? html`<${Diff} diff=${result.details.diff} />`
-        : result && resultText(result).trim()
-          ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
-          : null}`;
+      ${stats && !result?.isPartial
+        ? html`<div class="compact-result diff-stats">
+            <span>+${stats.additions}</span> / <b>-${stats.removals}</b>
+          </div>`
+        : result && !result.isPartial
+          ? expanded && output
+            ? html`<div class="tool-output ${result.isError ? "error-output" : "success-output"}">
+                <${Lines} text=${output} />
+              </div>`
+            : html`<div class="compact-result ${result.isError ? "error" : "success"}">
+                ${output.split("\n")[0] || "applied"}
+              </div>`
+          : null}
+      ${diff && expanded
+        ? html`<${Diff} diff=${diff} maxLines=${Number.MAX_SAFE_INTEGER} />`
+        : null}`;
+  } else if (name === "ffgrep" || name === "fffind") {
+    const pattern = str(args.pattern);
+    const searchPath = str(args.path);
+    const label = name === "ffgrep" ? "grep" : "find";
+    body = html`<div class="tool-header">
+        <span class="tool-name">${label}</span>${" "}
+        <span class="tool-path">${pattern === null ? invalid : pattern || "…"}</span>
+        ${searchPath === null
+          ? invalid
+          : searchPath
+            ? html` <span class="line-count">in ${shortenPath(searchPath)}</span>`
+            : null}
+      </div>
+      ${result && resultText(result).trim()
+        ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
+        : null}`;
+  } else if (Object.hasOwn(AGENTFLOW_LABELS, name)) {
+    const [label, argKey] = AGENTFLOW_LABELS[name];
+    const arg = Array.isArray(args[argKey]) ? args[argKey].join(", ") : str(args[argKey]);
+    body = html`<div class="tool-header custom-tool-header">
+        <span class="tool-name">${label}</span>
+        ${arg ? html`<span class="line-count"> · ${truncate(arg, 120)}</span>` : null}
+      </div>
+      ${result ? html`<${AgentflowResult} name=${name} result=${result} />` : null}`;
+  } else if (name.startsWith("background_")) {
+    const command = str(args.command);
+    const description = str(args.description);
+    body = html`<div class="tool-header custom-tool-header">
+        <span class="tool-name">${name.replaceAll("_", " ")}</span>
+        ${command
+          ? html`<span class="tool-command-inline"> · ${compactCommand(command)}</span>`
+          : null}
+        ${description ? html`<span class="line-count"> · ${description}</span>` : null}
+      </div>
+      ${result ? html`<${BackgroundResult} result=${result} />` : null}`;
   } else if (name === "ls") {
     const dirPath = str(args.path);
     body = html`<div class="tool-header">

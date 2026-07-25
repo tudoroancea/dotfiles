@@ -93,7 +93,7 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] keep the global background lighter than tool backgrounds in light themes, matching the TUI
 - [x] fix the markdown rendering of the thinking
 - [x] dynamically change the window title to `π – <session title>`
-- [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)
+- [x] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, Agentflow, and background-processes tools
 - [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
 - [ ] input box:
   - [ ] initial support for sending messages via a sticky text input are at the bottom
