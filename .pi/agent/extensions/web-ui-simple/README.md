@@ -69,7 +69,7 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 
 ## Roadmap
 
-- [ ] improve scroll behavior: stick to the bottom or stay fixed
+- [x] improve scroll behavior: stick to the bottom or stay fixed
 - [ ] hotkey support for showing thinking and expanding tool calls
       -> might be using tanstack hotkeys and some state management library such as tanstack store to persist this state to localstorage (demo of how in `~/Documents/Codex/2026-07-25/can/outputs/tiny-atoms-experiment`)
 - [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)

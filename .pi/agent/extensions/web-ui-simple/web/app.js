@@ -6,7 +6,13 @@
 // no client protocol, reducer, or virtualization.
 
 import { h, render } from "https://esm.sh/preact@10.24.3";
-import { useEffect, useMemo, useState } from "https://esm.sh/preact@10.24.3/hooks";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "https://esm.sh/preact@10.24.3/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { marked } from "https://esm.sh/marked@14.1.3";
 
@@ -498,9 +504,46 @@ const EMPTY_SNAPSHOT = {
   sessionName: undefined,
 };
 
+function useStickToBottom(snapshot) {
+  const stick = useRef(true);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const scrollToBottom = () => {
+    stick.current = true;
+    setAwayFromBottom(false);
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  };
+
+  useEffect(() => {
+    const atBottom = () =>
+      document.documentElement.scrollHeight - window.innerHeight - window.scrollY <= 2;
+    const onScroll = () => {
+      stick.current = atBottom();
+      setAwayFromBottom(!stick.current);
+    };
+    const onResize = () => stick.current && scrollToBottom();
+    const observer = new ResizeObserver(onResize);
+
+    observer.observe(document.getElementById("app"));
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (stick.current) scrollToBottom();
+  }, [snapshot]);
+
+  return { awayFromBottom, scrollToBottom };
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [connection, setConnection] = useState("connecting");
+  const { awayFromBottom, scrollToBottom } = useStickToBottom(snapshot);
 
   useEffect(() => {
     if (!snapshot.theme) return;
@@ -564,6 +607,16 @@ function App() {
   }, []);
 
   return html`<${StatusBar} snapshot=${snapshot} connection=${connection} />
+    ${awayFromBottom
+      ? html`<button
+          type="button"
+          class="scroll-to-bottom"
+          onClick=${scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          ↓ bottom
+        </button>`
+      : null}
     <${Transcript} snapshot=${snapshot} />`;
 }
 
