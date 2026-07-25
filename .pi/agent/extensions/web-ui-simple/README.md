@@ -39,9 +39,11 @@ composer, command input, or any way to act on the session from the browser.
   fragment never reaches the server during navigation.
 - **Snapshots**: on connect, after message/tool/session events, and when a small
   freshness check notices an otherwise unannounced session append, the server
-  sends `{ header, entries, leafId, sessionName, isRunning }` for the current
-  branch. In-progress assistant messages and running tool executions are overlaid
-  as synthetic entries until they are persisted.
+  sends `{ header, entries, leafId, sessionName, isRunning, theme }` for the
+  current branch. In-progress assistant messages and running tool executions are
+  overlaid as synthetic entries until they are persisted. The browser follows
+  Pi's configured theme; automatic light/dark pairs follow the browser color
+  scheme.
 - The server closes cleanly on `session_shutdown`.
 
 ## Scope / intentionally omitted
@@ -64,3 +66,22 @@ without installing project dependencies:
 nubx -y oxfmt .
 nubx -y oxlint --deny-warnings index.ts web/app.js
 ```
+
+## Roadmap
+
+- [ ] improve scroll behavior: stick to the bottom or stay fixed
+- [ ] hotkey support for showing thinking and expanding tool calls
+      -> might be using tanstack hotkeys and some state management library such as tanstack store to persist this state to localstorage (demo of how in `~/Documents/Codex/2026-07-25/can/outputs/tiny-atoms-experiment`)
+- [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)
+- [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
+- [ ] input box:
+  - [ ] initial support for sending messages via a sticky text input are at the bottom
+  - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
+  - [ ] global hotkey to focus the input box
+  - [ ] file autocompletions via @ (both in TUI and RPC modes by inspecting how the pi-fff extension implements it)
+  - [ ] command autocompletions support via /
+  - [ ] support for
+
+when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.
+
+- [ ] tailscale server command spawned in paralle with the node http server and adjust the copy url command.

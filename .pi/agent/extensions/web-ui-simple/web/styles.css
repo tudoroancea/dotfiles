@@ -1,7 +1,7 @@
 /*
  * Single-column transcript styling. This is a trimmed port of Pi's HTML
  * exporter (template.css) — sidebar, tree, header and metadata blocks removed —
- * plus a self-contained dark palette so the view needs no theme injection.
+ * plus a fallback palette used until Pi's active theme arrives over SSE.
  */
 
 :root {

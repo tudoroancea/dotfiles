@@ -503,6 +503,27 @@ function App() {
   const [connection, setConnection] = useState("connecting");
 
   useEffect(() => {
+    if (!snapshot.theme) return;
+    const variables = (palette) =>
+      Object.entries(palette)
+        .filter(([name]) => name !== "colorScheme")
+        .map(([name, value]) => `--${name}:${value};`)
+        .join("");
+    const { auto, light, dark } = snapshot.theme;
+    let style = document.getElementById("pi-theme");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "pi-theme";
+      document.head.append(style);
+    }
+    const css = auto
+      ? `:root{color-scheme:${dark.colorScheme};${variables(dark)}}` +
+        `@media(prefers-color-scheme:light){:root{color-scheme:${light.colorScheme};${variables(light)}}}`
+      : `:root{color-scheme:${dark.colorScheme};${variables(dark)}}`;
+    if (style.textContent !== css) style.textContent = css;
+  }, [snapshot.theme]);
+
+  useEffect(() => {
     let source;
     let cancelled = false;
 

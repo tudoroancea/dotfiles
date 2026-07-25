@@ -9,6 +9,10 @@ import {
   type ExtensionAPI,
   type ExtensionCommandContext,
   type ExtensionContext,
+  getAgentDir,
+  getPackageDir,
+  SettingsManager,
+  type Theme,
 } from "@earendil-works/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
@@ -41,11 +45,22 @@ interface LiveTool {
   hasResult: boolean;
 }
 
+interface ThemePalette {
+  [name: string]: string;
+}
+
+interface SnapshotTheme {
+  auto: boolean;
+  light: ThemePalette;
+  dark: ThemePalette;
+}
+
 interface Snapshot {
   header: unknown;
   leafId: string | null;
   sessionName: string | undefined;
   isRunning: boolean;
+  theme: SnapshotTheme | undefined;
   entries: unknown[];
 }
 
@@ -77,6 +92,197 @@ function timingSafeEqualString(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function ansi256ToHex(index: number): string {
+  const basic = [
+    "#000000",
+    "#800000",
+    "#008000",
+    "#808000",
+    "#000080",
+    "#800080",
+    "#008080",
+    "#c0c0c0",
+    "#808080",
+    "#ff0000",
+    "#00ff00",
+    "#ffff00",
+    "#0000ff",
+    "#ff00ff",
+    "#00ffff",
+    "#ffffff",
+  ];
+  if (index < 16) return basic[index];
+  if (index < 232) {
+    const cube = index - 16;
+    const channel = (value: number) => (value === 0 ? 0 : 55 + value * 40);
+    return `#${[Math.floor(cube / 36), Math.floor((cube % 36) / 6), cube % 6]
+      .map((value) => channel(value).toString(16).padStart(2, "0"))
+      .join("")}`;
+  }
+  const gray = Math.min(255, 8 + (index - 232) * 10)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${gray}${gray}${gray}`;
+}
+
+function ansiToHex(ansi: string, fallback: string): string {
+  const rgb = ansi.match(/\x1b\[(?:38|48);2;(\d+);(\d+);(\d+)m/);
+  if (rgb) {
+    return `#${rgb
+      .slice(1)
+      .map((value) => Number(value).toString(16).padStart(2, "0"))
+      .join("")}`;
+  }
+  const indexed = ansi.match(/\x1b\[(?:38|48);5;(\d+)m/);
+  return indexed ? ansi256ToHex(Number(indexed[1])) : fallback;
+}
+
+function colorLuminance(color: string): number {
+  const channels = color
+    .slice(1)
+    .match(/.{2}/g)!
+    .map((value) => Number.parseInt(value, 16) / 255)
+    .map((value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function adjustColor(color: string, factor: number): string {
+  return `#${color
+    .slice(1)
+    .match(/.{2}/g)!
+    .map((value) =>
+      Math.round(Number.parseInt(value, 16) * factor)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+function themePalette(theme: Theme, light: boolean): ThemePalette {
+  const foreground = [
+    "text",
+    "muted",
+    "dim",
+    "accent",
+    "success",
+    "error",
+    "warning",
+    "borderAccent",
+    "border",
+    "userMessageText",
+    "thinkingText",
+    "toolOutput",
+    "toolDiffAdded",
+    "toolDiffRemoved",
+    "toolDiffContext",
+    "customMessageLabel",
+    "customMessageText",
+    "mdHeading",
+    "mdLink",
+    "mdCode",
+    "mdQuote",
+    "mdQuoteBorder",
+    "mdListBullet",
+    "mdHr",
+    "mdCodeBlockBorder",
+  ] as const;
+  const background = [
+    "selectedBg",
+    "userMessageBg",
+    "customMessageBg",
+    "toolPendingBg",
+    "toolSuccessBg",
+    "toolErrorBg",
+  ] as const;
+  const palette: ThemePalette = {};
+  const base = ansiToHex(theme.getBgAnsi("userMessageBg"), light ? "#e8e8e8" : "#343541");
+  const isLight = colorLuminance(base) > 0.5;
+  const fallbackText = isLight ? "#1f2328" : "#e5e5e7";
+  for (const name of foreground) palette[name] = ansiToHex(theme.getFgAnsi(name), fallbackText);
+  for (const name of background) palette[name] = ansiToHex(theme.getBgAnsi(name), base);
+  return completePalette(palette);
+}
+
+function completePalette(palette: ThemePalette): ThemePalette {
+  palette.hover = palette.selectedBg;
+  const base = palette.userMessageBg;
+  const isLight = colorLuminance(base) > 0.5;
+  palette["body-bg"] = adjustColor(base, isLight ? 0.96 : 0.7);
+  palette["container-bg"] = adjustColor(base, isLight ? 1 : 0.85);
+  palette.colorScheme = isLight ? "light" : "dark";
+  return palette;
+}
+
+function resolveThemeValue(
+  value: unknown,
+  variables: Record<string, unknown>,
+  visited = new Set<string>(),
+): string | number {
+  if (
+    typeof value === "number" ||
+    value === "" ||
+    (typeof value === "string" && value.startsWith("#"))
+  ) {
+    return value;
+  }
+  if (typeof value !== "string" || visited.has(value) || !(value in variables)) {
+    throw new Error("Invalid theme color");
+  }
+  visited.add(value);
+  return resolveThemeValue(variables[value], variables, visited);
+}
+
+async function themePaletteFromFile(
+  name: string,
+  light: boolean,
+): Promise<ThemePalette | undefined> {
+  const paths = [
+    join(getAgentDir(), "themes", `${name}.json`),
+    join(getPackageDir(), "dist", "modes", "interactive", "theme", `${name}.json`),
+  ];
+  for (const path of paths) {
+    try {
+      const json = JSON.parse(await readFile(path, "utf8")) as {
+        vars?: Record<string, unknown>;
+        colors?: Record<string, unknown>;
+      };
+      if (!json.colors) continue;
+      const variables = json.vars ?? {};
+      const resolved = Object.fromEntries(
+        Object.entries(json.colors).map(([key, value]) => [
+          key,
+          resolveThemeValue(value, variables),
+        ]),
+      );
+      const baseValue = resolved.userMessageBg;
+      const base =
+        typeof baseValue === "number"
+          ? ansi256ToHex(baseValue)
+          : baseValue || (light ? "#e8e8e8" : "#343541");
+      const isLight = colorLuminance(base) > 0.5;
+      const fallbackText = isLight ? "#1f2328" : "#e5e5e7";
+      const palette = Object.fromEntries(
+        Object.entries(resolved).map(([key, value]) => [
+          key,
+          typeof value === "number"
+            ? ansi256ToHex(value)
+            : value || (key.endsWith("Bg") ? base : fallbackText),
+        ]),
+      );
+      return completePalette(palette);
+    } catch {
+      // Try the next standard theme location.
+    }
+  }
+  return undefined;
+}
+
+function parseAutomaticTheme(setting: string | undefined): [string, string] | undefined {
+  if (!setting) return undefined;
+  const names = setting.split("/").map((name) => name.trim());
+  return names.length === 2 && names.every(Boolean) ? [names[0], names[1]] : undefined;
 }
 
 function parseCookies(header: string | undefined): Map<string, string> {
@@ -117,6 +323,7 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
       last?.timestamp,
       snapshot.isRunning,
       snapshot.sessionName,
+      JSON.stringify(snapshot.theme),
     ].join("|");
   }
 
@@ -285,6 +492,9 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   let server: WebUiServer | undefined;
   let context: ExtensionContext | undefined;
   let broadcastTimer: NodeJS.Timeout | undefined;
+  let automaticTheme: [string, string] | undefined;
+  let automaticPalette: SnapshotTheme | undefined;
+  let cachedTheme: { key: string; value: SnapshotTheme } | undefined;
 
   // Live overlay: streaming assistant message plus in-progress tool executions
   // that are not yet persisted into the branch.
@@ -293,9 +503,30 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
 
   function buildSnapshot(): Snapshot {
     if (!context) {
-      return { header: null, leafId: null, sessionName: undefined, isRunning: false, entries: [] };
+      return {
+        header: null,
+        leafId: null,
+        sessionName: undefined,
+        isRunning: false,
+        theme: undefined,
+        entries: [],
+      };
     }
     const sm = context.sessionManager;
+    const themeKey = automaticTheme
+      ? `auto:${automaticTheme.join("/")}`
+      : `single:${context.ui.theme.name}`;
+    if (cachedTheme?.key !== themeKey) {
+      let value: SnapshotTheme;
+      if (automaticTheme && automaticPalette) {
+        value = automaticPalette;
+      } else {
+        const palette = themePalette(context.ui.theme, context.ui.theme.name === "light");
+        value = { auto: false, light: palette, dark: palette };
+      }
+      cachedTheme = { key: themeKey, value };
+    }
+    const snapshotTheme = cachedTheme.value;
     const entries: unknown[] = [...sm.getBranch()];
 
     if (liveAssistant) {
@@ -342,6 +573,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       leafId: sm.getLeafId(),
       sessionName: sm.getSessionName?.(),
       isRunning: !context.isIdle(),
+      theme: snapshotTheme,
       entries,
     };
   }
@@ -382,6 +614,22 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     if (server) await server.close();
     clearLive();
     context = ctx;
+    const settings = SettingsManager.create(ctx.cwd, getAgentDir(), {
+      projectTrusted: ctx.isProjectTrusted(),
+    });
+    automaticTheme = parseAutomaticTheme(settings.getThemeSetting());
+    if (automaticTheme) {
+      const lightTheme = ctx.ui.getTheme(automaticTheme[0]);
+      const darkTheme = ctx.ui.getTheme(automaticTheme[1]);
+      const light =
+        (lightTheme && themePalette(lightTheme, true)) ??
+        (await themePaletteFromFile(automaticTheme[0], true));
+      const dark =
+        (darkTheme && themePalette(darkTheme, false)) ??
+        (await themePaletteFromFile(automaticTheme[1], false));
+      if (light && dark) automaticPalette = { auto: true, light, dark };
+      else automaticTheme = undefined;
+    }
     server = await startServer(buildSnapshot);
     if (ctx.mode === "tui") {
       ctx.ui.notify(
@@ -474,6 +722,9 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     const active = server;
     server = undefined;
     context = undefined;
+    automaticTheme = undefined;
+    automaticPalette = undefined;
+    cachedTheme = undefined;
     clearLive();
     if (broadcastTimer) clearTimeout(broadcastTimer);
     broadcastTimer = undefined;
