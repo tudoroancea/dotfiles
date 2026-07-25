@@ -39,7 +39,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -491,6 +490,7 @@
     ]
   },
   "syntaxHighlightingDisabled": false,
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
   "editorMode": "vim",
@@ -499,5 +499,5 @@
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "tui": "fullscreen"
+  "effortLevel": "high"
 }

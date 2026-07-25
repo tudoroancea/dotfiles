@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.82.0",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
-  "defaultProvider": "openai-codex",
+  "defaultProvider": "pave",
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
@@ -49,7 +49,8 @@
     "-extensions/claude-style.ts",
     "-extensions/mac-system-theme.ts",
     "-extensions/worktrunk-statusline.ts",
-    "-extensions/double-escape.ts"
+    "-extensions/double-escape.ts",
+    "-extensions/web-ui/src/index.ts"
   ],
   "skills": [
     "+skills/frontend-design/SKILL.md"
