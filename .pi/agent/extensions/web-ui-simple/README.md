@@ -25,8 +25,10 @@ To open it, run:
 
 This copies an authenticated link
 (`http://127.0.0.1:<port>/<random-path>/#code=<one-time>`) to your clipboard. Paste it into a browser on the same machine. The page renders
-live and updates as the session progresses. It is **read-only** — there is no
-composer, command input, or any way to act on the session from the browser.
+live and updates as the session progresses. While Pi is running, the status bar
+mirrors the rotating message selected by `working-word.ts`. It is **read-only** —
+there is no composer, command input, or any way to act on the session from the
+browser.
 
 ### Display preferences
 
@@ -57,8 +59,8 @@ Hotkeys are ignored while a modifier is held (so browser shortcuts such as
   fragment never reaches the server during navigation.
 - **Snapshots**: on connect, after message/tool/session events, and when a small
   freshness check notices an otherwise unannounced session append, the server
-  sends `{ header, entries, leafId, sessionName, isRunning, theme, systemPrompt }` for the
-  current branch. In-progress assistant messages and running tool executions are
+  sends `{ header, entries, leafId, sessionName, isRunning, workingWord, theme, systemPrompt }`
+  for the current branch. In-progress assistant messages and running tool executions are
   overlaid as synthetic entries until they are persisted. The browser follows
   Pi's configured theme; automatic light/dark pairs follow the browser color
   scheme.
@@ -94,9 +96,9 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] fix the markdown rendering of the thinking (use marked)
 - [x] dynamically change the window title to `π – <session title>`
 - [x] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, Agentflow, and background-processes tools
-- [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
-- [ ] add working word that changes exactly as in `.pi/agent/extensions/working-word.ts`
+- [x] add working word that changes exactly as in `.pi/agent/extensions/working-word.ts`
 - [ ] tailscale server command spawned in paralle with the node http server and split the copy url command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
+- [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
 - [ ] input box:
   - [ ] initial support for sending messages via a sticky text input are at the bottom (with ability to both steer and queue via opt+enter and ctrl+enter, enter just creating a new line)
   - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
@@ -110,5 +112,6 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
   - [ ] ability to attach images in the input box
 - [ ] agentflow and background processes dashboards with status bar below the text input
 - [ ] allow to change models with opt-m (needs to be able to show the model selectors offered in pi, at first only the selected models not all of them)
+- [ ] add a git diff visualizer using @pierre/diffs
 
 > NOTE: when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.

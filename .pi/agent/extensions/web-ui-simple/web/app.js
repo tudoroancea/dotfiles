@@ -1250,7 +1250,9 @@ function StatusBar({ title, snapshot, connection }) {
     connection === "offline"
       ? html`<span class="status-state"><span class="status-dot offline"></span>disconnected</span>`
       : snapshot.isRunning
-        ? html`<span class="status-state"><span class="status-dot running"></span>running</span>`
+        ? html`<span class="status-state"
+            ><span class="status-dot running"></span>${snapshot.workingWord || "running"}</span
+          >`
         : html`<span class="status-state"><span class="status-dot"></span>idle</span>`;
   return html`<div class="status-bar">
     <span class="status-title">${title}</span>
@@ -1264,6 +1266,7 @@ const EMPTY_SNAPSHOT = {
   entries: [],
   leafId: null,
   isRunning: false,
+  workingWord: undefined,
   sessionName: undefined,
   systemPrompt: "",
 };

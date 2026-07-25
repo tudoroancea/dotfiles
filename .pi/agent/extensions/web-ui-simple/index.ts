@@ -62,6 +62,7 @@ interface Snapshot {
   leafId: string | null;
   sessionName: string | undefined;
   isRunning: boolean;
+  workingWord: string | undefined;
   theme: SnapshotTheme | undefined;
   systemPrompt: string;
   entries: unknown[];
@@ -353,6 +354,7 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
       last?.id,
       last?.timestamp,
       snapshot.isRunning,
+      snapshot.workingWord,
       snapshot.sessionName,
       snapshot.systemPrompt,
       JSON.stringify(snapshot.theme),
@@ -527,6 +529,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   let automaticTheme: [string, string] | undefined;
   let automaticPalette: SnapshotTheme | undefined;
   let cachedTheme: { key: string; value: SnapshotTheme } | undefined;
+  let workingWord: string | undefined;
 
   // Live overlay: streaming assistant message plus in-progress tool executions
   // that are not yet persisted into the branch.
@@ -540,6 +543,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
         leafId: null,
         sessionName: undefined,
         isRunning: false,
+        workingWord: undefined,
         theme: undefined,
         systemPrompt: "",
         entries: [],
@@ -607,6 +611,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       leafId: sm.getLeafId(),
       sessionName: sm.getSessionName?.(),
       isRunning: !context.isIdle(),
+      workingWord,
       theme: snapshotTheme,
       systemPrompt: context.getSystemPrompt(),
       entries,
@@ -674,6 +679,12 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     } else {
       process.stderr.write(`Pi Web UI (simple): ${server.url}\n`);
     }
+  });
+
+  pi.events.on("working-word:change", (data) => {
+    const message = (data as { message?: unknown } | undefined)?.message;
+    workingWord = typeof message === "string" ? message : undefined;
+    scheduleBroadcast();
   });
 
   pi.on("agent_start", () => scheduleBroadcast());
@@ -763,6 +774,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     automaticTheme = undefined;
     automaticPalette = undefined;
     cachedTheme = undefined;
+    workingWord = undefined;
     clearLive();
     if (broadcastTimer) clearTimeout(broadcastTimer);
     broadcastTimer = undefined;

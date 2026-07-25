@@ -398,11 +398,14 @@ const pickWord = () => {
 export default function workingWordExtension(pi: ExtensionAPI) {
   pi.on("turn_start", async (_event, ctx) => {
     if (!ctx.hasUI) return;
-    ctx.ui.setWorkingMessage(`${pickWord()}...`);
+    const message = `${pickWord()}...`;
+    ctx.ui.setWorkingMessage(message);
+    pi.events.emit("working-word:change", { message });
   });
 
   pi.on("agent_end", async (_event, ctx) => {
     if (!ctx.hasUI) return;
     ctx.ui.setWorkingMessage();
+    pi.events.emit("working-word:change", { message: undefined });
   });
 }
