@@ -2,9 +2,9 @@
 
 ## Objective
 
-Enable an authorized user on a private Tailscale network to choose a machine and an approved folder, start or resume a Pi session there, and attach to its web UI without turning the session-scoped web UI extension in `PLAN.md` into a process manager.
+Enable an authorized user on a private Tailscale network to choose a machine and an approved folder, start or resume a Pi session there, and attach to the session-scoped UI in `.pi/agent/extensions/web-ui-simple/` without turning that extension into a process manager.
 
-This is a follow-on architecture plan. It does not modify the active local web UI implementation plan.
+This is a follow-on architecture plan. It preserves the extension's standalone local/tailnet workflow while defining a separate managed mode for host-agent launches.
 
 ## Recommendation
 
@@ -25,13 +25,16 @@ Browser
        ├─ launch/list/attach/stop API
        ├─ stable route /_pi/s/<launch-id>/
        ├─ RPC subprocess supervision
-       └─ reverse proxy + WebSocket upgrade
-             ▼
+       └─ streaming HTTP/SSE reverse proxy
+          + command POSTs and optional WebSocket upgrades
+          ▼
        pi --mode rpc, cwd=/approved/project
              └─ session-scoped web UI extension on 127.0.0.1:ephemeral-port
 ```
 
 A central dashboard may discover machines and iframe their stable per-host session URLs, but it should not proxy all transcript traffic by default. Direct cross-origin iframes preserve isolation: the dashboard can display a child UI but cannot read its session DOM or content.
+
+The current `web-ui-simple` implementation already provides the correct session boundary: it starts an ephemeral loopback HTTP server in TUI/RPC mode, streams full active-branch snapshots over authenticated SSE, and closes its resources on session shutdown. Its extension-owned, per-session `tailscale serve` process is retained as a standalone convenience, not reused as the managed multi-session ingress.
 
 ## Daemon scope
 
@@ -87,8 +90,8 @@ The host agent must implement Pi's documented LF-only JSONL parser with a `Strin
 Avoid two independent controllers mutating one session.
 
 - During startup, the host agent may select/resume the session and send at most one idempotency-tracked kickoff prompt.
-- After the child reports ready, the session web UI becomes the normal owner of prompt, steer, follow-up, abort, model, and thinking commands.
-- The host agent continues draining RPC stdout/stderr but does not issue competing conversation mutations.
+- The current browser UI is read-only. When browser input is added, its HTTP command endpoints become the normal owner of prompt, steer, follow-up, abort, model, and thinking mutations and invoke Pi's session APIs inside the child.
+- After the child reports ready, the host agent continues draining RPC stdout/stderr but does not issue competing conversation mutations.
 - Stop is a host-agent lifecycle operation: request graceful shutdown/SIGTERM, wait for `session_shutdown`, then kill the process group after a deadline.
 
 Until RPC extension dialogs are bridged to the browser, the host agent must consume `extension_ui_request` records and cancel unsupported blocking dialogs so an unattended child cannot hang. A later browser bridge must integrate balanced `herdr:blocked` events for every awaited human interaction.
@@ -176,14 +179,16 @@ The host agent maps a stable route such as `/_pi/s/<launchId>/` to the current e
 
 Proxy behavior:
 
-- support HTTP and WebSocket upgrades;
+- support streaming HTTP/SSE without response buffering, ordinary command POSTs, and WebSocket upgrades only if a future child protocol uses them;
 - apply equal or tighter body/header/buffer limits than the child extension;
 - strip spoofable internal headers;
 - inject a per-child internal capability plus normalized principal and role;
 - return a clear temporary `503` while a child is reloading rather than routing to stale state;
 - never place the internal capability in URLs, browser storage, logs, or iframe messages.
 
-The child UI must use relative or configured-base-path URLs. In managed mode, framing is enabled only for the exact dashboard origin via CSP `frame-ancestors`; standalone mode remains non-frameable by default. Provide an “open in new tab” fallback.
+The child UI must use relative or configured-base-path URLs. The current `fetch("auth")` and `EventSource("events")` calls are already relative. In managed mode, framing is enabled only for the exact dashboard origin via CSP `frame-ancestors`; standalone mode remains non-frameable by default. Add `X-Content-Type-Options: nosniff` and a deliberate script CSP. The current CDN-loaded Preact, HTM, and Marked modules must either be allowed explicitly or, preferably before production remote control, bundled or served locally. Provide an “open in new tab” fallback.
+
+Do not depend on the standalone fragment exchange and `SameSite=Strict` cookie inside a cross-origin dashboard iframe. Third-party-cookie restrictions make that unreliable. Managed requests instead use the proxy-to-child capability and injected principal/role; no credential is placed in iframe URLs, browser storage, or `postMessage`. Exact external `Origin` validation is required for state-changing browser requests and WebSocket handshakes. Ordinary document and SSE GETs may not carry a useful `Origin`, so they are authorized by the trusted proxy capability and normalized identity headers.
 
 Avoid making a central dashboard a same-origin content proxy unless centralized transcript access is an explicit requirement. Such a proxy can read and control every session and therefore has a much larger security role.
 
@@ -218,39 +223,47 @@ For direct API calls from a Vercel origin, each daemon must allow that exact ori
 
 ## Minimal changes to the current web UI extension
 
-Add orchestration seams while preserving the current session-scoped lifecycle:
+Preserve two explicit startup modes and the current session-scoped lifecycle:
 
-1. **Managed startup configuration**
+1. **Standalone mode — current default**
+   - Keep the ephemeral loopback port and random path, one-use fragment bootstrap exchange, path-scoped cookie, `/copy-url`, and `/copy-remote-url` behavior.
+   - The extension may continue starting its own per-session foreground `tailscale serve` process in this mode.
+   - Default to `Content-Security-Policy: frame-ancestors 'none'`.
+
+2. **Managed startup configuration**
    - Read an opt-in, bounded configuration from inherited environment plus a private extra FD.
-   - Include loopback bind/port, external origin/base path, allowed frame ancestor, internal proxy capability, and readiness FD.
-   - Standalone mode remains the default bootstrap-token flow in `PLAN.md`.
+   - Include loopback bind/port, external origin/base path, exact allowed frame ancestor, internal proxy capability, and readiness FD.
+   - Do not start extension-owned `tailscale serve`; the host agent's fixed Serve endpoint is the only managed ingress.
 
-2. **Readiness protocol**
-   - After every `session_start`, write one machine-readable record to the readiness FD containing protocol version, generation, loopback endpoint, session ID/file metadata, and public-safe status.
+3. **Readiness protocol**
+   - After every `session_start`, write one machine-readable record to the readiness FD containing protocol version, generation, loopback endpoint and internal base path, session ID/file metadata, and public-safe status.
    - Write `stopping` during idempotent `session_shutdown`.
-   - Never use stdout; RPC owns it.
+   - Never use stdout; RPC owns it. Existing human-readable stderr diagnostics are not a machine protocol.
 
-3. **Base-path-safe browser assets and transport**
-   - Use relative asset/API/WebSocket URLs.
+4. **Base-path-safe browser assets and transport**
+   - Retain relative asset, auth, SSE, and future command URLs.
    - Scope standalone cookies/bootstrap state to the configured path.
-   - Avoid assumptions that the UI is mounted at `/`.
+   - Avoid assumptions that the UI is mounted at `/`; let the host agent map the stable external launch path to the current internal endpoint and generation.
 
-4. **Trusted-proxy authentication mode**
-   - Accept only loopback requests carrying the inherited per-child capability.
-   - Consume proxy-injected principal and role after validating the configured external Origin.
-   - Enforce viewer/controller permissions in the child protocol.
-   - Keep standalone one-use fragment bootstrap authentication separate.
+5. **Trusted-proxy authentication mode**
+   - Accept managed requests only from loopback carrying the inherited per-child capability.
+   - Consume proxy-injected principal and role after capability validation.
+   - Validate the configured external Origin on mutations and WebSocket handshakes, not as the sole authorization signal for document/SSE GETs.
+   - Enforce viewer/controller permissions on child command endpoints when browser input is introduced.
+   - Keep standalone one-use fragment bootstrap authentication separate; do not rely on its `SameSite=Strict` cookie in dashboard iframes.
 
-5. **Controlled framing**
-   - Default to `frame-ancestors 'none'`.
+6. **Controlled framing and browser policy**
+   - Default to `frame-ancestors 'none'` in standalone mode.
    - In managed mode allow exactly the configured dashboard origin.
    - Validate any optional `postMessage` origin and never transfer credentials or commands through it.
+   - Add explicit security headers and make the CDN dependency compatible with the chosen CSP or replace it with locally served assets.
 
-6. **No daemon behavior in the extension**
-   - Do not add host discovery, Tailscale CLI calls, subprocess spawning, cwd selection, persistent registries, or cross-session management.
+7. **No host-agent behavior in the extension**
+   - Do not add host discovery, Pi subprocess spawning, cwd selection, persistent registries, or cross-session management.
+   - Tailscale CLI spawning remains a standalone transport convenience only; managed mode disables it.
    - Continue starting resources only in `session_start` and closing them in `session_shutdown`.
 
-Because `.pi/agent/extensions/web-ui/src/index.ts` is currently a skeleton, these seams are cheapest to define before its Phase 1 transport API becomes fixed.
+The current implementation is `.pi/agent/extensions/web-ui-simple/index.ts`. Its loopback server, relative browser URLs, authenticated full-snapshot SSE stream, and shutdown lifecycle are the foundation for these seams; it is no longer a skeleton.
 
 ## Host-agent state and recovery
 
@@ -279,10 +292,11 @@ Lifecycle rules:
 
 ### Phase A — one-host proof using existing primitives
 
-- [ ] Complete the single-session web UI transport spike from `PLAN.md`.
-- [ ] Manually start `pi --mode rpc` in a selected cwd and confirm the extension can report readiness without touching RPC stdout.
-- [ ] Put a fixed local proxy in front with Tailscale Serve and verify HTTP, WebSocket, Origin, and iframe behavior on supported clients.
-- [ ] Validate graceful shutdown and extension reload endpoint churn.
+- [x] Implement the single-session read-only transport spike: loopback HTTP, full-snapshot SSE, one-use bootstrap authentication, and clean session shutdown.
+- [x] Prove direct per-session tailnet access with extension-owned Tailscale Serve as a standalone convenience.
+- [ ] Manually start `pi --mode rpc` in a selected cwd and confirm the extension can report structured readiness over a private FD without touching RPC stdout.
+- [ ] Put a fixed local proxy in front with Tailscale Serve and verify HTTP/SSE flushing, command POST forwarding, Origin policy, and iframe behavior on supported clients; test WebSocket upgrades only if the child adopts them.
+- [ ] Validate graceful shutdown and extension reload endpoint/generation churn.
 
 ### Phase B — minimal host agent
 
@@ -329,7 +343,8 @@ Do not grow this into the final dashboard architecture. It has weak cross-platfo
 - A cwd allowlist can be mistaken for sandboxing.
 - Competing RPC and web controllers can duplicate or reorder work.
 - Blocking extension dialogs can deadlock unattended RPC children.
-- Iframe cookies and framing policy can fail across origins.
+- Third-party cookie restrictions make the standalone bootstrap cookie unsuitable as managed iframe authentication.
+- Incorrect CSP/framing policy or continued reliance on third-party CDN scripts can weaken the remote-control boundary.
 - A central proxy or compromised host agent can expose every session it fronts.
 - Kickoff acceptance has a crash window without end-to-end idempotency support from Pi.
 - Session replacement changes extension generations and ephemeral ports.
@@ -337,4 +352,4 @@ Do not grow this into the final dashboard architecture. It has weak cross-platfo
 
 ## Decision summary
 
-The rough daemon idea works: the **per-machine host agent is the system-wide daemon**, with one independent instance on every machine that should accept remote launches. It is not a centralized cross-machine authority and should not be embedded into the web UI extension. Keep the extension responsible for exactly one live session; make each machine's host agent responsible for local launch policy, supervision, routing, and Tailscale-backed authorization.
+The rough daemon idea works: the **per-machine host agent is the system-wide daemon**, with one independent instance on every machine that should accept remote launches. It is not a centralized cross-machine authority and should not be embedded into the web UI extension. Keep `web-ui-simple` responsible for exactly one live session and preserve its existing direct-access behavior as standalone mode. Managed mode disables extension-owned Tailscale Serve and adds only readiness, stable-base-path, trusted-proxy authorization, framing, and future command seams. Each machine's host agent remains responsible for local launch policy, supervision, stable routing, and Tailscale-backed authorization.
