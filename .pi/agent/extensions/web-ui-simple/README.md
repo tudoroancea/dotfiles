@@ -91,20 +91,24 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] hotkey support for collapse/expand thinking (default collapsed), expanding/collapsing tool calls (default collapse), showing/hiding timestamps (default hide), showing/hiding model/thinking level switches (default hide), showing/hiding the effective system prompt (default hide)
       -> implemented natively with a tiny Preact context + `localStorage` + a single `document` keydown listener (no extra dependencies). See "Display preferences" above.
 - [x] keep the global background lighter than tool backgrounds in light themes, matching the TUI
-- [x] fix the markdown rendering of the thinking
+- [x] fix the markdown rendering of the thinking (use marked)
 - [x] dynamically change the window title to `π – <session title>`
 - [x] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, Agentflow, and background-processes tools
 - [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
+- [ ] add working word that changes exactly as in `.pi/agent/extensions/working-word.ts`
+- [ ] tailscale server command spawned in paralle with the node http server and split the copy url command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
 - [ ] input box:
-  - [ ] initial support for sending messages via a sticky text input are at the bottom
+  - [ ] initial support for sending messages via a sticky text input are at the bottom (with ability to both steer and queue via opt+enter and ctrl+enter, enter just creating a new line)
   - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
   - [ ] global hotkey to focus the input box
   - [ ] file autocompletions via @ (both in TUI and RPC modes by inspecting how the pi-fff extension implements it)
   - [ ] command autocompletions support via /
-  - [ ] support for
-
-when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.
-
-- [ ] tailscale server command spawned in paralle with the node http server and split the copy url command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
 - [ ] questionnaire tool rendering
 - [ ] notification system (like in `.pi/agent/extensions/notify.ts`) . I am not yet clear on what it takes to be able to send notifications (need a pwa?) or if we have to deal with a permission prompt for every new session server
+- [ ] image support compatible with remote machines:
+  - [ ] display images then in the user messages (there seem to be already some support for this in the read tool calls but it's unclear if it would work over the network)
+  - [ ] ability to attach images in the input box
+- [ ] agentflow and background processes dashboards with status bar below the text input
+- [ ] allow to change models with opt-m (needs to be able to show the model selectors offered in pi, at first only the selected models not all of them)
+
+> NOTE: when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.
