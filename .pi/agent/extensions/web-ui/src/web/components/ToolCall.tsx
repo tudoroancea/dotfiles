@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import type { ToolView } from "../lib/tool-model.js";
 import { resolveAdapter } from "../render/registry.js";
+import { useExpansion } from "./expansion.js";
 
 const STATUS_LABEL: Record<ToolView["status"], string> = {
   running: "Running",
@@ -10,6 +11,8 @@ const STATUS_LABEL: Record<ToolView["status"], string> = {
 
 export interface ToolCallProps {
   view: ToolView;
+  /** Stable ID that binds this disclosure to externalized expansion state. */
+  id?: string;
   expanded?: boolean;
   defaultExpanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
@@ -18,12 +21,20 @@ export interface ToolCallProps {
 /** Boxed terminal panel for a single tool call, driven by the registry. */
 export function ToolCall({
   view,
+  id,
   expanded,
   defaultExpanded = false,
   onExpandedChange,
 }: ToolCallProps) {
+  const expansion = useExpansion();
+  const controlled = expanded !== undefined;
+  const external = !controlled && id !== undefined && expansion !== null;
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState(defaultExpanded);
-  const isExpanded = expanded ?? uncontrolledExpanded;
+  const isExpanded = controlled
+    ? expanded
+    : external
+      ? expansion!.isExpanded(id!)
+      : uncontrolledExpanded;
   const adapter = resolveAdapter(view.name);
   const detail = adapter.detail?.(view);
   const bar = (expandable: boolean) => (
@@ -42,6 +53,7 @@ export function ToolCall({
     <article
       class={`tool tool--${view.status}`}
       data-tool={view.name}
+      {...(id ? { "data-tool-id": id } : {})}
       aria-busy={view.status === "running"}
     >
       {detail ? (
@@ -51,7 +63,8 @@ export function ToolCall({
             onClick={(event) => {
               event.preventDefault();
               const next = !isExpanded;
-              if (expanded === undefined) setUncontrolledExpanded(next);
+              if (external) expansion!.toggle(id!);
+              else if (!controlled) setUncontrolledExpanded(next);
               onExpandedChange?.(next);
             }}
           >

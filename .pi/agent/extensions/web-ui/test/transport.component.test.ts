@@ -98,4 +98,45 @@ describe("browser bootstrap and proxy-safe transport", () => {
     vi.advanceTimersByTime(10_000);
     expect(FakeWebSocket.instances).toHaveLength(2);
   });
+
+  it("sends a caller-supplied command id so history pages correlate exactly", () => {
+    const sent: string[] = [];
+    class FakeWebSocket extends EventTarget {
+      static readonly OPEN = 1;
+      static instances: FakeWebSocket[] = [];
+      readyState = FakeWebSocket.OPEN;
+      constructor(readonly url: string | URL) {
+        super();
+        FakeWebSocket.instances.push(this);
+      }
+      send(data: string) {
+        sent.push(data);
+      }
+      close() {
+        this.readyState = 3;
+      }
+    }
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    history.replaceState(null, "", "/");
+    const transport = connectWebSocket(
+      () => undefined,
+      () => undefined,
+    );
+
+    const explicit = transport.send("history_page", { cursor: "opaque" }, "correlation-1234");
+    expect(explicit).toBe("correlation-1234");
+    const generated = transport.send("ping");
+    expect(generated).not.toBe("correlation-1234");
+
+    const first = JSON.parse(sent[0]!) as { commandId: string; cursor: string; type: string };
+    expect(first).toMatchObject({
+      type: "history_page",
+      commandId: "correlation-1234",
+      cursor: "opaque",
+    });
+    const second = JSON.parse(sent[1]!) as { commandId: string };
+    expect(second.commandId).toBe(generated);
+    expect(second.commandId).not.toBe("correlation-1234");
+    transport.close();
+  });
 });

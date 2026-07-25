@@ -5,7 +5,7 @@ export type ConnectionState = "connecting" | "open" | "closed" | "unauthorized";
 
 export interface WebTransport {
   readonly socket: WebSocket;
-  send(type: string, fields?: Record<string, unknown>): string;
+  send(type: string, fields?: Record<string, unknown>, id?: string): string;
   close(): void;
 }
 
@@ -76,9 +76,8 @@ export function connectWebSocket(
     get socket() {
       return socket;
     },
-    send(type, fields = {}) {
+    send(type, fields = {}, id = commandId()) {
       if (socket.readyState !== WebSocket.OPEN) throw new Error("WebSocket is not open");
-      const id = commandId();
       socket.send(JSON.stringify({ type, commandId: id, ...fields }));
       return id;
     },

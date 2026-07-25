@@ -34,7 +34,7 @@ export function MessageView({
       isError: message.isError === true,
       status: message.isError ? "error" : "completed",
     });
-    return <ToolCall view={view} />;
+    return <ToolCall view={view} {...(message.toolCallId ? { id: message.toolCallId } : {})} />;
   }
 
   const role = message.role;

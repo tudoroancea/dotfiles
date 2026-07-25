@@ -255,8 +255,8 @@ Owned files:
 
 Tasks:
 
-- [ ] Generate deterministic thousands-entry sessions with mixed Markdown, images, and tool heights.
-- [ ] Prepare browser assertions for bounded DOM row count, page completeness, anchoring, live-follow behavior, expansion persistence, and reset races.
+- [x] Generate deterministic thousands-entry sessions with mixed Markdown, images, and tool heights.
+- [x] Prepare browser assertions for bounded DOM row count, page completeness, anchoring, live-follow behavior, expansion persistence, and reset races.
 - [ ] Add desktop/mobile exporter-parity screenshots with reduced motion and deterministic data.
 
 This stream may author tests against the frozen contract while 2A/2B implement it. It must not weaken assertions merely to match an incomplete implementation.
@@ -270,14 +270,28 @@ Owned integration files:
 - timeline/virtualization CSS
 - transport wiring
 
-- [ ] Connect initial tail snapshots and correlated older-page requests to the chunked store.
-- [ ] Render the virtual row model and live tail without flattening/rebuilding all history on every update.
-- [ ] Implement top loading, retry, prepend anchoring, initial latest positioning, bottom-follow threshold, unseen count, and jump-to-latest.
-- [ ] Preserve tool expansion and keyboard focus through virtual unmount/remount.
-- [ ] Rotate cleanly on extension/history generations and ignore stale page responses.
-- [ ] Remove the old “Earlier history is not shown” truncation state; represent only actionable loading/error/end-of-history states.
+- [x] Connect initial tail snapshots and correlated older-page requests to the chunked store.
+- [x] Render the virtual row model and live tail without flattening/rebuilding all history on every update.
+- [x] Implement top loading, retry, prepend anchoring, initial latest positioning, bottom-follow threshold, unseen count, and jump-to-latest.
+- [x] Preserve tool expansion and keyboard focus through virtual unmount/remount.
+- [x] Rotate cleanly on extension/history generations and ignore stale page responses.
+- [x] Remove the old “Earlier history is not shown” truncation state; represent only actionable loading/error/end-of-history states.
 
 Pagination plus virtualization is complete only when integrated and passing large-session browser tests.
+
+### Phase 3.5 — exporter-faithful client rendering (after Phase 3, before Phase 4)
+
+Authoritative handoff: `RENDERING_HANDOFF.md`. Use the local Pi source under `~/dev/pi/packages/coding-agent/src/core/export-html/` as the behavioral and visual specification.
+
+- [ ] Port exporter transcript typography, 12px/18px density, spacing, colors, message hierarchy, and disclosure behavior onto the virtualized Preact timeline without changing its paging/row architecture.
+- [ ] Reproduce the exporter’s browser-rendered `bash`, `read`, `write`, `edit`, and `ls` presentations from `template.js` and `template.css` using safe semantic Preact nodes.
+- [ ] Render terminal-like output as escaped `.ansi-line`/span components; add a bounded client-side ANSI parser only where actual ANSI parity requires it, never raw injected server HTML.
+- [ ] Hand-port useful terminal presentations for other known tools while preserving focused Agentflow, background-job, and questionnaire renderers.
+- [ ] Make the unknown-tool fallback compact, terminal-like, safe, and consistent.
+- [ ] Preserve controlled expansion/focus across virtual unmounts and trigger correct row remeasurement on expansion and live output.
+- [ ] Add exporter-source fixtures, component assertions, and deterministic Playwright parity screenshots while keeping large-session DOM, anchoring, paging, and live-follow checks green.
+
+This phase is client-only. It must not import private Pi internals, invoke TUI renderers, serialize components, add server-rendered tool HTML, or replace the virtualized timeline.
 
 ### Phase 4 — complete-session search and accessibility (parallel after stable row APIs)
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { CompletionItem, ProviderMessage, ServerMessage } from "../shared/wire.js";
 import { AgentflowDashboard } from "./components/AgentflowDashboard.js";
 import { BackgroundDashboard } from "./components/BackgroundDashboard.js";
@@ -17,8 +17,6 @@ import "./styles.css";
 
 export function App() {
   const transport = useRef<WebTransport>();
-  const timeline = useRef<HTMLElement | null>(null);
-  const stickToBottom = useRef(true);
   const sessionStore = useRef(new BrowserSessionStore()).current;
   const providerStore = useRef(new BrowserProviderStore()).current;
   const session = useBrowserSession(sessionStore);
@@ -55,7 +53,10 @@ export function App() {
               return;
             }
             if (record.type === "command_response") {
-              setMessage(record.accepted ? "Command accepted" : String(record.error));
+              const applied = sessionStore.apply(event as ServerMessage);
+              if (applied === "ignored" && record.command !== "history_page") {
+                setMessage(record.accepted ? "Command accepted" : String(record.error));
+              }
               return;
             }
             const result = sessionStore.apply(event as ServerMessage);
@@ -85,10 +86,28 @@ export function App() {
 
   const isRunning = session.state?.live.isRunning;
 
-  useLayoutEffect(() => {
-    const element = timeline.current;
-    if (element && stickToBottom.current) element.scrollTop = element.scrollHeight;
-  }, [session.revision, session.state]);
+  const requestOlderHistory = useCallback((): boolean => {
+    const active = transport.current;
+    if (!active || active.socket.readyState !== WebSocket.OPEN) return false;
+    const commandId = crypto.randomUUID();
+    const command = sessionStore.requestOlderHistory(commandId);
+    if (!command) return false;
+    try {
+      active.send(
+        "history_page",
+        {
+          generation: command.generation,
+          historyGeneration: command.historyGeneration,
+          cursor: command.cursor,
+        },
+        command.commandId,
+      );
+      return true;
+    } catch {
+      sessionStore.failOlderHistory(commandId, "Lost the connection while loading earlier history");
+      return false;
+    }
+  }, [sessionStore]);
 
   const submit = (delivery?: "steer" | "follow_up") => {
     const value = content.trim();
@@ -144,59 +163,55 @@ export function App() {
         {connectionStatus}
       </p>
 
-      <main
-        ref={timeline}
-        class="timeline-scroll"
-        aria-live="polite"
-        aria-relevant="additions text"
-        onScroll={(event) => {
-          const element = event.currentTarget;
-          stickToBottom.current =
-            element.scrollHeight - element.scrollTop - element.clientHeight < 48;
-        }}
-      >
+      <main class="view-region">
         {view === "timeline" ? (
           session.state ? (
-            <Timeline state={session.state} />
+            <Timeline store={sessionStore} session={session} onRequestOlder={requestOlderHistory} />
           ) : (
-            <p class="timeline__empty">Waiting for the session snapshot…</p>
+            <div class="timeline-scroll">
+              <p class="timeline__empty">Waiting for the session snapshot…</p>
+            </div>
           )
         ) : view === "agentflow" ? (
-          <AgentflowDashboard
-            data={providers.agentflow?.data}
-            connected={ready}
-            onAction={(action, payload) => {
-              if (!session.generation || !ready) return;
-              try {
-                transport.current?.send("provider_action", {
-                  generation: session.generation,
-                  provider: "agentflow",
-                  action,
-                  payload,
-                });
-              } catch {
-                setMessage("Agentflow action could not be sent while reconnecting.");
-              }
-            }}
-          />
+          <div class="dashboard-scroll">
+            <AgentflowDashboard
+              data={providers.agentflow?.data}
+              connected={ready}
+              onAction={(action, payload) => {
+                if (!session.generation || !ready) return;
+                try {
+                  transport.current?.send("provider_action", {
+                    generation: session.generation,
+                    provider: "agentflow",
+                    action,
+                    payload,
+                  });
+                } catch {
+                  setMessage("Agentflow action could not be sent while reconnecting.");
+                }
+              }}
+            />
+          </div>
         ) : (
-          <BackgroundDashboard
-            data={providers.background?.data}
-            connected={ready}
-            onAction={(action, payload) => {
-              if (!session.generation || !ready) return;
-              try {
-                transport.current?.send("provider_action", {
-                  generation: session.generation,
-                  provider: "background",
-                  action,
-                  payload,
-                });
-              } catch {
-                setMessage("Background action could not be sent while reconnecting.");
-              }
-            }}
-          />
+          <div class="dashboard-scroll">
+            <BackgroundDashboard
+              data={providers.background?.data}
+              connected={ready}
+              onAction={(action, payload) => {
+                if (!session.generation || !ready) return;
+                try {
+                  transport.current?.send("provider_action", {
+                    generation: session.generation,
+                    provider: "background",
+                    action,
+                    payload,
+                  });
+                } catch {
+                  setMessage("Background action could not be sent while reconnecting.");
+                }
+              }}
+            />
+          </div>
         )}
       </main>
 
