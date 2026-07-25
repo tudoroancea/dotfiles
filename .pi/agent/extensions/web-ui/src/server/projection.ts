@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { homedir } from "node:os";
+import { type ExtensionContext, VERSION } from "@earendil-works/pi-coding-agent";
 import { LIMITS } from "../shared/limits.js";
 import type {
   PersistedEntry,
@@ -428,6 +429,8 @@ export function projectMetadata(
   return {
     cwd: String(context.cwd).slice(0, 4_096),
     isIdle: context.isIdle(),
+    piVersion: String(VERSION).slice(0, 64),
+    home: String(homedir()).slice(0, 4_096),
     ...(context.model
       ? {
           model: {

@@ -2,7 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { cleanup, render, screen } from "@testing-library/preact";
+import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SessionState } from "../src/shared/wire.js";
 import { Timeline } from "../src/web/components/Timeline.js";
@@ -51,9 +51,14 @@ describe("tool renderer registry", () => {
 
   it("matches compact bash, edit, and write information hierarchy", () => {
     const { rerender, container } = render(<ToolCall view={view("bash")} />);
-    expect(screen.getByText(/nub test/)).toBeTruthy();
+    // The bar shows a compacted, single-line command; the multi-line original
+    // is revealed in the expandable body alongside the output.
+    expect(container.querySelector(".tool__command")?.textContent).toContain("nub test");
+    expect(container.querySelector(".tool__command")?.textContent).not.toContain("\n");
+    const bashCode = [...container.querySelectorAll(".tool__body code")].map((c) => c.textContent);
+    expect(bashCode.some((text) => text?.includes("printf"))).toBe(true);
+    expect(bashCode.some((text) => text?.includes("12 tests passed"))).toBe(true);
     expect(screen.getByText("2 output lines")).toBeTruthy();
-    expect(screen.getByText("12 tests passed", { exact: false })).toBeTruthy();
 
     rerender(<ToolCall view={view("edit")} />);
     expect(container.querySelector(".tool__command")?.textContent).toContain("src/app.ts");
@@ -65,6 +70,32 @@ describe("tool renderer registry", () => {
     expect(screen.getByText(/src\/new\.ts/)).toBeTruthy();
     expect(screen.getByText(/2 lines/)).toBeTruthy();
     expect(container.querySelector("code")?.textContent).toContain("export const answer = 42;");
+  });
+
+  it("expands a long single-line bash command without colliding with status chrome", () => {
+    const command = `printf '%s' ${"long-argument ".repeat(12)}`;
+    const { container } = render(
+      <ToolCall
+        view={normalizeTool({
+          toolName: "bash",
+          args: { command },
+          result: { content: [{ type: "text", text: "finished" }] },
+          status: "completed",
+        })}
+      />,
+    );
+    const disclosure = container.querySelector("details")!;
+    const compact = container.querySelector(".tool__command")?.textContent ?? "";
+    expect(compact.length).toBeLessThan(command.length);
+    expect(compact.endsWith("...")).toBe(true);
+    expect(disclosure.hasAttribute("open")).toBe(false);
+
+    const barChildren = [...container.querySelector(".tool__bar")!.children];
+    expect(barChildren.at(-2)?.classList.contains("tool__status")).toBe(true);
+    expect(barChildren.at(-1)?.classList.contains("tool__toggle")).toBe(true);
+    fireEvent.click(container.querySelector("summary")!);
+    expect(disclosure.hasAttribute("open")).toBe(true);
+    expect(container.querySelector(".tool__body code")?.textContent).toContain(command);
   });
 
   it("renders Agentflow, background, and questionnaire semantic details", () => {

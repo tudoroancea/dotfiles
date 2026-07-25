@@ -123,3 +123,14 @@ export function shortenPath(value: string, maxLength = 48): string {
   if (clean.length <= maxLength) return clean;
   return `…${clean.slice(clean.length - maxLength + 1)}`;
 }
+
+/** Replace a leading home directory with `~`, as the TUI and shells display it. */
+export function withHome(path: string, home: string | undefined): string {
+  const clean = sanitizeText(path);
+  if (!home) return clean;
+  const base = sanitizeText(home).replace(/\/+$/, "");
+  if (!base) return clean;
+  if (clean === base) return "~";
+  if (clean.startsWith(`${base}/`)) return `~${clean.slice(base.length)}`;
+  return clean;
+}

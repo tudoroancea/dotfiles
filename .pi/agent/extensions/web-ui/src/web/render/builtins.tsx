@@ -51,8 +51,19 @@ export const bashAdapter: ToolAdapter = {
     </span>
   ),
   summary: (view) => (view.isPartial && !view.text ? "working…" : outputSummary(view)),
-  detail: (view) =>
-    view.text ? <CodeBlock code={view.text} variant="output" language="bash" /> : undefined,
+  detail: (view) => {
+    const command = str(view.args.command) ?? "";
+    // The bar shows a compacted, truncated command; reveal the full command in
+    // the expanded body when it was shortened, alongside the output.
+    const showCommand = command.length > 0 && (command.length > 100 || /\n/.test(command));
+    if (!showCommand && !view.text) return undefined;
+    return (
+      <>
+        {showCommand ? <CodeBlock code={command} variant="code" language="bash" /> : null}
+        {view.text ? <CodeBlock code={view.text} variant="output" language="bash" /> : null}
+      </>
+    );
+  },
 };
 
 export const editAdapter: ToolAdapter = {

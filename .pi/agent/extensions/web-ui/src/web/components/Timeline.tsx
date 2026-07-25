@@ -8,6 +8,7 @@ import type {
 import { asArray, asRecord, normalizeTool } from "../lib/tool-model.js";
 import { JsonView } from "./JsonView.js";
 import { CustomMessageView, MessageView } from "./Message.js";
+import { SessionIntro } from "./SessionIntro.js";
 import { ToolCall } from "./ToolCall.js";
 
 const INTERNAL_CUSTOM_TYPE = "web-ui-startup";
@@ -162,6 +163,7 @@ function LiveSequence({
 /** The conversation timeline: persisted branch plus live overlays. */
 export function Timeline({ state }: { state: SessionState }) {
   const { persisted, live } = state;
+  const intro = <SessionIntro metadata={state.metadata} sessionId={persisted.sessionId} />;
   const entries = persisted.entries.filter(isRenderable);
   const persistedLive = persistedMessageState(entries);
   const liveMessages = live.finalizedMessages.filter(
@@ -180,6 +182,7 @@ export function Timeline({ state }: { state: SessionState }) {
   if (isEmpty) {
     return (
       <div class="timeline timeline--empty">
+        {intro}
         <p class="timeline__empty">
           No activity yet. Send a prompt to start driving this Pi session.
         </p>
@@ -189,6 +192,7 @@ export function Timeline({ state }: { state: SessionState }) {
 
   return (
     <div class="timeline">
+      {intro}
       {persisted.entriesTruncated ? (
         <p class="timeline__truncated">Earlier history is not shown.</p>
       ) : null}

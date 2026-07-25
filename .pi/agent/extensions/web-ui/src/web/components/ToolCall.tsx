@@ -11,13 +11,14 @@ const STATUS_LABEL: Record<ToolView["status"], string> = {
 export function ToolCall({ view }: { view: ToolView }) {
   const adapter = resolveAdapter(view.name);
   const detail = adapter.detail?.(view);
-  const summary = (
+  const bar = (expandable: boolean) => (
     <div class="tool__bar">
       <span class="tool__glyph" aria-hidden="true">
         {adapter.glyph}
       </span>
       <span class="tool__title">{adapter.title(view)}</span>
       <span class={`tool__status tool__status--${view.status}`}>{STATUS_LABEL[view.status]}</span>
+      {expandable ? <span class="tool__toggle" aria-hidden="true" /> : null}
     </div>
   );
   const summaryLine = <div class="tool__summary">{adapter.summary(view)}</div>;
@@ -31,15 +32,14 @@ export function ToolCall({ view }: { view: ToolView }) {
       {detail ? (
         <details class="tool__disclosure">
           <summary class="tool__head">
-            {summary}
+            {bar(true)}
             {summaryLine}
-            <span class="tool__toggle" aria-hidden="true" />
           </summary>
           <div class="tool__body">{detail}</div>
         </details>
       ) : (
         <div class="tool__head tool__head--static">
-          {summary}
+          {bar(false)}
           {summaryLine}
         </div>
       )}

@@ -7,21 +7,25 @@ import { Composer } from "../src/web/components/Composer.js";
 
 function Harness({
   request,
+  running = false,
+  onSend = vi.fn(),
+  onAbort = vi.fn(),
 }: {
   request: (kind: "slash" | "mention", query: string) => Promise<any[]>;
+  running?: boolean;
+  onSend?: (delivery?: "steer" | "follow_up") => void;
+  onAbort?: () => void;
 }) {
   const [content, setContent] = useState("");
   return (
     <Composer
-      running={false}
+      running={running}
       connected
       content={content}
-      mode="prompt"
       notice="Ready"
       onContent={setContent}
-      onMode={vi.fn()}
-      onSend={vi.fn()}
-      onAbort={vi.fn()}
+      onSend={onSend}
+      onAbort={onAbort}
       requestCompletion={request}
     />
   );
@@ -50,6 +54,32 @@ describe("composer completion popover", () => {
     expect(textarea.getAttribute("aria-activedescendant")).toBe("completion-1");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(textarea.value).toBe("/compact");
+  });
+
+  it("gives modified submission and abort shortcuts precedence over an open completion", async () => {
+    vi.useFakeTimers();
+    const onSend = vi.fn();
+    const onAbort = vi.fn();
+    render(
+      <Harness
+        running
+        onSend={onSend}
+        onAbort={onAbort}
+        request={async () => [{ value: "/compact", label: "/compact" }]}
+      />,
+    );
+    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    fireEvent.input(textarea, { target: { value: "/co", selectionStart: 3 } });
+    await vi.advanceTimersByTimeAsync(120);
+    expect(await screen.findByRole("listbox")).toBeTruthy();
+
+    fireEvent.keyDown(textarea, { key: "Enter", altKey: true });
+    expect(onSend).toHaveBeenLastCalledWith();
+    expect(textarea.value).toBe("/co");
+    fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+    expect(onSend).toHaveBeenLastCalledWith("follow_up");
+    fireEvent.keyDown(textarea, { key: "≥", code: "Period", altKey: true });
+    expect(onAbort).toHaveBeenCalledOnce();
   });
 
   it("clears stale candidates immediately when the target changes", async () => {

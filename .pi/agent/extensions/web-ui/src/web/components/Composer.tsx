@@ -2,16 +2,29 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import type { CompletionItem, SessionMetadata } from "../../shared/wire.js";
 import { applyCompletion, detectCompletion, type CompletionTarget } from "../completion.js";
 import { CompletionPopover } from "./CompletionPopover.js";
-import { shortenPath } from "../lib/text.js";
+import { shortenPath, withHome } from "../lib/text.js";
 
-export type ComposerMode = "prompt" | "steer" | "follow_up";
-
+/** Context usage as a rounded percentage of the model's max context window. */
 function usageLabel(metadata: SessionMetadata | undefined): string {
   const usage = metadata?.contextUsage;
   if (!usage) return "context —";
-  const tokens = usage.tokens === null ? "—" : Math.round(usage.tokens).toLocaleString();
-  const percent = usage.percent === null ? "" : ` · ${Math.round(usage.percent)}%`;
-  return `${tokens} tok${percent}`;
+  const percent =
+    usage.percent !== null
+      ? usage.percent
+      : usage.tokens !== null && usage.contextWindow > 0
+        ? (usage.tokens / usage.contextWindow) * 100
+        : null;
+  if (percent === null) return "context —";
+  return `${Math.round(percent)}% context`;
+}
+
+/** Session cost rounded up to whole cents, so a fraction of a cent still shows. */
+function costLabel(cost: number): string {
+  const cents = cost * 100;
+  const nearestCent = Math.round(cents);
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(cents)) * 4;
+  const roundedCents = Math.abs(cents - nearestCent) <= tolerance ? nearestCent : Math.ceil(cents);
+  return `$${(roundedCents / 100).toFixed(2)}`;
 }
 
 export function Composer({
@@ -20,10 +33,8 @@ export function Composer({
   running,
   connected,
   content,
-  mode,
   notice,
   onContent,
-  onMode,
   onSend,
   onAbort,
   requestCompletion,
@@ -33,11 +44,9 @@ export function Composer({
   running: boolean;
   connected: boolean;
   content: string;
-  mode: ComposerMode;
   notice: string;
   onContent: (value: string) => void;
-  onMode: (mode: ComposerMode) => void;
-  onSend: () => void;
+  onSend: (delivery?: "steer" | "follow_up") => void;
   onAbort: () => void;
   requestCompletion: (kind: "slash" | "mention", query: string) => Promise<CompletionItem[]>;
 }) {
@@ -47,7 +56,31 @@ export function Composer({
   const [items, setItems] = useState<CompletionItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [itemsTarget, setItemsTarget] = useState("");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [abortArmed, setAbortArmed] = useState(false);
   const requestSequence = useRef(0);
+
+  useEffect(() => {
+    if (!running) {
+      setAbortArmed(false);
+      return;
+    }
+    const keyDown = (event: KeyboardEvent) => {
+      if (event.altKey) setAbortArmed(true);
+    };
+    const keyUp = (event: KeyboardEvent) => {
+      if (event.key === "Alt" || !event.altKey) setAbortArmed(false);
+    };
+    const blur = () => setAbortArmed(false);
+    window.addEventListener("keydown", keyDown);
+    window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", keyDown);
+      window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", blur);
+    };
+  }, [running]);
 
   const targetKey = (value: CompletionTarget | undefined) =>
     value ? `${value.kind}:${value.start}:${value.end}:${value.query}` : "";
@@ -116,7 +149,7 @@ export function Composer({
         <div class="composer__meta composer__meta--top">
           <span>{usageLabel(metadata)}</span>
           {metadata?.sessionCost !== undefined ? (
-            <span>${metadata.sessionCost.toFixed(4)}</span>
+            <span>{costLabel(metadata.sessionCost)}</span>
           ) : null}
           <span class="composer__meta-spacer" />
           {model ? (
@@ -149,12 +182,35 @@ export function Composer({
               refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart);
             }}
             onKeyDown={(event) => {
+              if (
+                connected &&
+                running &&
+                event.altKey &&
+                (event.code === "Period" || event.key === ".")
+              ) {
+                event.preventDefault();
+                onAbort();
+                return;
+              }
+              if (connected && event.key === "Enter" && event.altKey) {
+                event.preventDefault();
+                onSend();
+                return;
+              }
+              if (connected && event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                onSend(running ? "follow_up" : undefined);
+                return;
+              }
               if (items.length === 0) return;
               if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                 event.preventDefault();
                 const delta = event.key === "ArrowDown" ? 1 : -1;
                 setActiveIndex((activeIndex + delta + items.length) % items.length);
-              } else if (event.key === "Enter" || event.key === "Tab") {
+              } else if (
+                (event.key === "Enter" && !event.altKey && !event.ctrlKey && !event.metaKey) ||
+                event.key === "Tab"
+              ) {
                 event.preventDefault();
                 select(items[activeIndex]!);
               } else if (event.key === "Escape") {
@@ -175,37 +231,78 @@ export function Composer({
         <div class="composer__controls">
           <div class="composer__meta composer__meta--bottom">
             {metadata?.cwd ? (
-              <span title={metadata.cwd}>{shortenPath(metadata.cwd, 44)}</span>
+              <span title={metadata.cwd}>
+                {shortenPath(withHome(metadata.cwd, metadata.home), 44)}
+              </span>
             ) : null}
             {sessionId ? <span title={sessionId}>session {sessionId.slice(0, 8)}</span> : null}
           </div>
-          {running ? (
-            <label class="composer__mode" for="mode">
-              <span class="composer__mode-label">Deliver as</span>
-              <select
-                id="mode"
-                value={mode === "follow_up" ? "follow_up" : "steer"}
-                onChange={(event) => onMode(event.currentTarget.value as ComposerMode)}
-              >
-                <option value="steer">Steer</option>
-                <option value="follow_up">Follow-up</option>
-              </select>
-            </label>
-          ) : (
-            <span class="composer__idle-mode">Prompt</span>
-          )}
           <div class="composer__actions">
-            <button
-              type="button"
-              class="btn btn--ghost"
-              disabled={!connected || !running}
-              onClick={onAbort}
-            >
-              Abort
-            </button>
-            <button type="submit" class="btn btn--send" disabled={!connected || !content.trim()}>
-              Send
-            </button>
+            <div class="composer__shortcuts">
+              <button
+                type="button"
+                class="composer__shortcuts-toggle"
+                aria-expanded={shortcutsOpen}
+                onClick={() => setShortcutsOpen((open) => !open)}
+              >
+                ⌨ Shortcuts
+              </button>
+              {shortcutsOpen ? (
+                <dl class="composer__shortcuts-panel" aria-label="Keyboard shortcuts">
+                  <div>
+                    <dt>Enter</dt>
+                    <dd>New line</dd>
+                  </div>
+                  <div>
+                    <dt>⌥ Enter</dt>
+                    <dd>{running ? "Steer the running turn" : "Send"}</dd>
+                  </div>
+                  <div>
+                    <dt>⌃ Enter</dt>
+                    <dd>{running ? "Queue a follow-up" : "Send"}</dd>
+                  </div>
+                  <div>
+                    <dt>⌥ .</dt>
+                    <dd>Stop the running turn</dd>
+                  </div>
+                </dl>
+              ) : null}
+            </div>
+            {running ? (
+              <>
+                <button
+                  type="button"
+                  class="btn btn--queue"
+                  disabled={!connected || !content.trim()}
+                  onClick={() => onSend("follow_up")}
+                >
+                  Queue
+                </button>
+                {abortArmed ? (
+                  <button
+                    type="button"
+                    class="btn btn--stop"
+                    disabled={!connected}
+                    onClick={onAbort}
+                    title="Stop the running turn (⌥.)"
+                  >
+                    Stop
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    class="btn btn--send"
+                    disabled={!connected || !content.trim()}
+                  >
+                    Steer
+                  </button>
+                )}
+              </>
+            ) : (
+              <button type="submit" class="btn btn--send" disabled={!connected || !content.trim()}>
+                Send
+              </button>
+            )}
           </div>
         </div>
       </form>

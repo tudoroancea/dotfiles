@@ -165,11 +165,11 @@ Do not weaken the existing single-use fragment-to-HttpOnly-cookie authentication
 
 ### Phase 0 — reconcile and stabilize the exporter-parity pass (sequential, in progress)
 
-- [ ] Review the current partial diff against the local Pi exporter source, installed 0.82 assets, exported session HTML, and supplied screenshots.
-- [ ] Finish compact transcript/tool styling, session intro, composer metadata/shortcuts, bash expansion, and status/chevron fixes.
-- [ ] Remove the rejected raised-budget/full-history experiment.
-- [ ] Make all existing format, lint, typecheck, Vitest, and production-build checks pass.
-- [ ] Audit Herdr lifecycle behavior without editing the generated authority.
+- [x] Review the current partial diff against the local Pi exporter source, installed 0.82 assets, exported session HTML, and supplied screenshots.
+- [x] Finish compact transcript/tool styling, session intro, composer metadata/shortcuts, bash expansion, and status/chevron fixes.
+- [x] Remove the rejected raised-budget/full-history experiment.
+- [x] Make all existing format, lint, typecheck, Vitest, and production-build checks pass.
+- [x] Audit Herdr lifecycle behavior without editing the generated authority.
 
 This phase must be stable before parallel large-session work starts.
 

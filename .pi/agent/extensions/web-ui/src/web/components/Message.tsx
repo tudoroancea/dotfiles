@@ -47,12 +47,6 @@ export function MessageView({
         <span class="message__glyph">{roleGlyph(role)}</span>
       </div>
       <div class="message__body">
-        {message.model ? (
-          <div class="message__byline">
-            {message.provider ? `${message.provider}/` : ""}
-            {message.model}
-          </div>
-        ) : null}
         <ContentBlocks content={message.content} />
         {message.errorMessage ? <p class="message__error">{message.errorMessage}</p> : null}
         {partial ? (

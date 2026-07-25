@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preac
 import type { CompletionItem, ProviderMessage, ServerMessage } from "../shared/wire.js";
 import { AgentflowDashboard } from "./components/AgentflowDashboard.js";
 import { BackgroundDashboard } from "./components/BackgroundDashboard.js";
-import { Composer, type ComposerMode } from "./components/Composer.js";
+import { Composer } from "./components/Composer.js";
 import { DashboardNav, type ViewName } from "./components/DashboardNav.js";
 import { Timeline } from "./components/Timeline.js";
 import { BrowserProviderStore, useProviders } from "./provider-store.js";
@@ -15,13 +15,6 @@ import {
 } from "./transport.js";
 import "./styles.css";
 
-const CONNECTION_LABEL: Record<ConnectionState, string> = {
-  connecting: "Connecting",
-  open: "Live",
-  closed: "Reconnecting",
-  unauthorized: "Not authorized",
-};
-
 export function App() {
   const transport = useRef<WebTransport>();
   const timeline = useRef<HTMLElement | null>(null);
@@ -31,9 +24,8 @@ export function App() {
   const session = useBrowserSession(sessionStore);
   const providers = useProviders(providerStore);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
-  const [message, setMessage] = useState("Authenticate with /copy-remote-url in Pi.");
+  const [message, setMessage] = useState("");
   const [content, setContent] = useState("");
-  const [mode, setMode] = useState<ComposerMode>("prompt");
   const [view, setView] = useState<ViewName>("timeline");
   const completionRequests = useRef(new Map<string, (items: CompletionItem[]) => void>());
 
@@ -92,21 +84,18 @@ export function App() {
   }, [sessionStore]);
 
   const isRunning = session.state?.live.isRunning;
-  useEffect(() => {
-    if (isRunning !== undefined) setMode(isRunning ? "steer" : "prompt");
-  }, [isRunning]);
 
   useLayoutEffect(() => {
     const element = timeline.current;
     if (element && stickToBottom.current) element.scrollTop = element.scrollHeight;
   }, [session.revision, session.state]);
 
-  const submit = () => {
+  const submit = (delivery?: "steer" | "follow_up") => {
     const value = content.trim();
     if (!value || !session.generation || transport.current?.socket.readyState !== WebSocket.OPEN)
       return;
-    const delivery = isRunning ? (mode === "follow_up" ? "follow_up" : "steer") : "prompt";
-    transport.current.send(delivery, { content: value, generation: session.generation });
+    const kind = isRunning ? (delivery ?? "steer") : "prompt";
+    transport.current.send(kind, { content: value, generation: session.generation });
     setContent("");
     setMessage("Sending…");
   };
@@ -133,28 +122,27 @@ export function App() {
 
   const metadata = session.state?.metadata;
   const ready = connection === "open" && Boolean(session.generation);
+  const connectionStatus =
+    connection === "open"
+      ? isRunning
+        ? "Agent working"
+        : "Connected"
+      : connection === "connecting"
+        ? "Connecting…"
+        : connection === "closed"
+          ? "Reconnecting…"
+          : "Not authorized";
 
   return (
     <div class="shell">
-      <header class="topbar">
-        <div class="topbar__brand">
-          <span class="topbar__mark" aria-hidden="true">
-            pi
-          </span>
-          <h1 class="topbar__title">Session timeline</h1>
-        </div>
-        <span
-          class={`conn conn--${connection}`}
-          role="status"
-          aria-live="polite"
-          data-running={connection === "open" && isRunning ? "true" : "false"}
-        >
-          <span class="conn__dot" aria-hidden="true" />
-          {connection === "open" && isRunning ? "Working" : CONNECTION_LABEL[connection]}
-        </span>
-      </header>
-
       <DashboardNav value={view} onChange={setView} />
+      <p
+        class={connection === "open" ? "connection-status sr-only" : "connection-status"}
+        role="status"
+        aria-live="polite"
+      >
+        {connectionStatus}
+      </p>
 
       <main
         ref={timeline}
@@ -220,15 +208,16 @@ export function App() {
         running={Boolean(isRunning)}
         connected={ready}
         content={content}
-        mode={mode}
         notice={message}
         onContent={setContent}
-        onMode={setMode}
         onSend={submit}
         requestCompletion={requestCompletion}
         onAbort={() => {
-          if (session.generation) {
+          if (!session.generation || !ready) return;
+          try {
             transport.current?.send("abort", { generation: session.generation });
+          } catch {
+            setMessage("The running turn could not be stopped while reconnecting.");
           }
         }}
       />

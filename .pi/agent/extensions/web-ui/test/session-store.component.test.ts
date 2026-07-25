@@ -3,6 +3,7 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import { SessionStateStore } from "../src/server/state.js";
+import { PROTOCOL_VERSION } from "../src/shared/wire.js";
 import { BrowserSessionStore } from "../src/web/session-store.js";
 
 const context = {
@@ -51,7 +52,7 @@ describe("browser session store", () => {
     expect(
       browser.apply({
         type: "ready",
-        protocolVersion: 5,
+        protocolVersion: PROTOCOL_VERSION,
         generation: "generation-new",
         revision: 0,
       }),

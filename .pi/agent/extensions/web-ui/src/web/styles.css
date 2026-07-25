@@ -122,94 +122,57 @@ a {
   margin: 0 auto;
 }
 
-.topbar {
+/* ---- Session intro (in-flow, scrolls with transcript) ---------------- */
+
+.intro {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.7rem var(--gap);
-  border-bottom: 1px solid var(--border-strong);
-  background: var(--bg);
+  gap: 1.1rem;
+  padding: 0.25rem 0 0.75rem;
 }
 
-.topbar__brand {
+.intro__mark {
+  font-family: var(--font-mono);
+  font-size: 3.2rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--accent-2);
+  flex: none;
+  width: 3.4rem;
+  text-align: center;
+}
+
+.intro__lines {
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
+  flex-direction: column;
+  gap: 0.05rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   min-width: 0;
 }
 
-.topbar__mark {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--bg);
-  background: var(--accent);
-  padding: 0.05rem 0.4rem;
-  border-radius: var(--radius-sm);
-}
-
-.topbar__title {
+.intro__lines p {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.intro__version {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.intro__model {
+  color: var(--fg);
+}
+
+.intro__cwd {
   color: var(--fg-muted);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* Connection / activity indicator */
-.conn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.intro__meta,
+.intro__session {
   color: var(--fg-dim);
-  white-space: nowrap;
-}
-
-.conn__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--fg-dim);
-}
-
-.conn--open .conn__dot {
-  background: var(--accent);
-}
-
-.conn--connecting .conn__dot,
-.conn--closed .conn__dot {
-  background: var(--gold);
-}
-
-.conn--unauthorized {
-  color: var(--love);
-}
-
-.conn--unauthorized .conn__dot {
-  background: var(--love);
-}
-
-.conn[data-running="true"] .conn__dot {
-  background: var(--gold);
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
+  font-size: 0.76rem;
 }
 
 /* ---- Timeline -------------------------------------------------------- */
@@ -226,19 +189,18 @@ a {
   gap: 1.1rem;
 }
 
-.timeline__truncated,
 .timeline__empty {
   color: var(--fg-dim);
   font-family: var(--font-mono);
   font-size: 0.8rem;
-}
-
-.timeline__empty {
   padding: 2rem 0;
   text-align: center;
 }
 
 .timeline__truncated {
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   border-bottom: 1px dashed var(--border-strong);
   padding-bottom: 0.75rem;
 }
@@ -599,15 +561,18 @@ a {
 }
 
 .tool__toggle {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.75rem;
-  width: 0.6rem;
-  height: 0.6rem;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0 0.1rem 0 0.15rem;
   border-right: 1.5px solid var(--fg-dim);
   border-bottom: 1.5px solid var(--fg-dim);
   transform: rotate(45deg);
   transition: transform 0.15s ease;
+}
+
+.tool__disclosure > summary.tool__head:hover .tool__toggle {
+  border-color: var(--fg);
 }
 
 .tool__disclosure[open] .tool__toggle {
@@ -973,6 +938,27 @@ a {
 
 /* ---- Native dashboards ---------------------------------------------- */
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.connection-status {
+  margin: 0;
+  padding: 0.3rem var(--gap);
+  color: var(--gold);
+  border-bottom: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
 .dash-nav {
   display: flex;
   gap: 0.35rem;
@@ -1137,14 +1123,6 @@ a {
   color: var(--gold);
 }
 
-.composer__idle-mode {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
 .composer__editor {
   position: relative;
 }
@@ -1220,30 +1198,67 @@ a {
   margin-top: 0.5rem;
 }
 
-.composer__mode {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.composer__mode-label {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
-}
-
-.composer__mode select {
-  background: var(--panel-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.4rem;
-}
-
 .composer__actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+}
+
+/* Discoverable keyboard-shortcut overlay */
+.composer__shortcuts {
+  position: relative;
+}
+
+.composer__shortcuts-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--fg-dim);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.55rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.composer__shortcuts-toggle:hover,
+.composer__shortcuts-toggle[aria-expanded="true"] {
+  color: var(--fg);
+  border-color: var(--border-bright);
+}
+
+.composer__shortcuts-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 20;
+  margin: 0;
+  min-width: 15rem;
+  padding: 0.5rem 0.65rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 -0.5rem 2rem rgba(0, 0, 0, 0.25);
+}
+
+.composer__shortcuts-panel > div {
+  display: contents;
+}
+
+.composer__shortcuts-panel dt {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.composer__shortcuts-panel dd {
+  margin: 0;
+  color: var(--fg-muted);
 }
 
 .btn {
@@ -1262,8 +1277,14 @@ a {
   font-weight: 600;
 }
 
-.btn--ghost {
-  color: var(--fg-muted);
+.btn--stop {
+  color: var(--love);
+  border-color: color-mix(in oklab, var(--love) 45%, var(--border-bright));
+  font-weight: 600;
+}
+
+.btn--stop:hover:not(:disabled) {
+  border-color: var(--love);
 }
 
 .btn:disabled {

@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import { LIMITS } from "./limits.js";
 
-export const PROTOCOL_VERSION = 5 as const;
+export const PROTOCOL_VERSION = 6 as const;
 
 const RevisionSchema = Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
 const GenerationSchema = Type.String({ minLength: 1, maxLength: 128 });
@@ -100,6 +100,8 @@ export const SessionMetadataSchema = Type.Object(
     ),
     activeTools: Type.Array(Type.String()),
     sessionCost: Type.Optional(Type.Number({ minimum: 0 })),
+    piVersion: Type.Optional(Type.String()),
+    home: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );

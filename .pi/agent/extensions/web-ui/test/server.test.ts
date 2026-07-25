@@ -9,6 +9,7 @@ import WebSocket from "ws";
 import { readWebUiConfig } from "../src/server/config.js";
 import { ProviderRegistry } from "../src/server/providers.js";
 import { startWebUiServer, type WebUiRuntime } from "../src/server/server.js";
+import { PROTOCOL_VERSION } from "../src/shared/wire.js";
 
 const temporaryDirectories: string[] = [];
 const runtimes: WebUiRuntime[] = [];
@@ -93,7 +94,7 @@ describe("web UI server", () => {
     const health = await fetch(new URL("health", runtime.diagnosticUrl));
     expect(await health.json()).toEqual({
       status: "ok",
-      protocolVersion: 5,
+      protocolVersion: PROTOCOL_VERSION,
       generation: "generation-1",
       isIdle: true,
     });

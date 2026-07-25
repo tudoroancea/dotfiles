@@ -7,8 +7,11 @@ import { App } from "../src/web/app.js";
 afterEach(cleanup);
 
 describe("web shell", () => {
-  it("mounts the session timeline shell", () => {
+  it("mounts the session timeline shell without a sticky title bar", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Session timeline" })).toBeTruthy();
+    // The transcript intro replaced the old sticky topbar heading.
+    expect(screen.queryByRole("banner")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Connecting…");
+    expect(screen.getByText("Waiting for the session snapshot…")).toBeTruthy();
   });
 });
