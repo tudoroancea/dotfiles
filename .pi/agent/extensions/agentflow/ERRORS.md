@@ -122,3 +122,14 @@ Each report should include the date, tool, run ID when available, expected and a
 - Evidence: parent session `/Users/tudoroancea/.pi/agent/sessions/--Users-tudoroancea-dotfiles--/2026-07-24T12-56-41-036Z_019f9433-0b4c-7300-9a87-912efe93cf69.jsonl`.
 - Fallback: run the focused dashboard suite separately; all 13 dashboard tests pass.
 - Status: open; likely a workflow subprocess/artifact-write cleanup race unrelated to the dashboard changes.
+
+## 2026-07-25 — Delegate failed with unexplained invalid model content
+
+- Tool: `agentflow_delegate`
+- Run: `af_ms054z1z_6`
+- Expected: implement a bounded, explicitly owned server pagination task or return an actionable child-task failure.
+- Actual: after seven successful repository reads, the run failed with only `The model produced invalid content` and request ID `05343e86-ef2a-4d47-b2e2-c6f0bd279f72`; no malformed content or remediation detail was exposed.
+- Reproduction: launch a background delegate owning the web UI shared/server history files with explicit pagination acceptance criteria and focused Vitest/lint commands.
+- Evidence: `~/.pi/agent/agentflow/af_ms054z1z_6/` and continuation session `/tmp/agentflow-web-ui-history-server.json`.
+- Fallback: split the implementation into smaller bounded delegate tasks and continue from direct source inspection; the failed run made no edits.
+- Status: open.
