@@ -24,6 +24,7 @@ interface WebUiFixtures {
   runtime: WebUiRuntime;
   bootstrapUrl: string;
   largeSession: SessionController;
+  parityUrl: string;
   cspGuard: void;
 }
 
@@ -131,6 +132,98 @@ export function buildBranch(count: number, prefix: string, label: string): Branc
   return { branch, leafId: parentId, sessionId: `${prefix}-session-abcdef12` };
 }
 
+/** Deterministic exporter-parity transcript covering every common built-in. */
+export function parityBranch(): BranchState {
+  let parentId: string | null = null;
+  const branch: unknown[] = [];
+  let index = 0;
+  const push = (message: Record<string, unknown>) => {
+    const id = `parity-${index}`;
+    const timestamp = new Date(BASE_TIME + index * 1_000).toISOString();
+    branch.push({ id, parentId, timestamp, type: "message", message });
+    parentId = id;
+    index += 1;
+  };
+  const tool = (
+    id: string,
+    name: string,
+    args: Record<string, unknown>,
+    text: string,
+    options: { details?: Record<string, unknown>; images?: unknown[]; isError?: boolean } = {},
+  ) => {
+    push({
+      role: "assistant",
+      content: [{ type: "toolCall", id, name, arguments: args }],
+      timestamp: BASE_TIME + index * 1_000,
+    });
+    push({
+      role: "toolResult",
+      toolCallId: id,
+      toolName: name,
+      content: [...(options.images ?? []), { type: "text", text }],
+      details: options.details,
+      isError: options.isError ?? false,
+    });
+  };
+  const lines = (count: number, prefix: string) =>
+    Array.from({ length: count }, (_, line) => `${prefix} ${line + 1}`).join("\n");
+
+  push({
+    role: "user",
+    content: [{ type: "text", text: "Exercise exporter tool formatting." }],
+    timestamp: BASE_TIME,
+  });
+  push({
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text: "## Export parity\n\nThis fixture checks **inline output**, `paths`, lists, and safe Markdown.",
+      },
+    ],
+    timestamp: BASE_TIME + 1_000,
+  });
+  tool("bash-short", "bash", { command: "printf 'short\\n'", timeout: 30 }, "short");
+  tool(
+    "bash-long",
+    "bash",
+    { command: "printf 'wrapped command with all arguments'" },
+    lines(8, "bash"),
+  );
+  tool(
+    "read-short",
+    "read",
+    { file_path: "/Users/e2e/project/short.ts" },
+    "export const ok = true;",
+    { images: [{ type: "image", mimeType: "image/png", data: "eA==" }] },
+  );
+  tool(
+    "read-long",
+    "read",
+    { path: "/home/e2e/project/range.ts", offset: 5, limit: 10 },
+    lines(13, "read"),
+  );
+  tool(
+    "write-short",
+    "write",
+    { file_path: "src/short.ts", content: "one\ntwo" },
+    "Wrote src/short.ts",
+  );
+  tool(
+    "write-long",
+    "write",
+    { path: "src/long.ts", content: lines(13, "content") },
+    "Wrote src/long.ts",
+  );
+  tool("edit-diff", "edit", { file_path: "src/edit.ts" }, "Applied 1 edit", {
+    details: { diff: "@@ -1 +1 @@\n-old value\n+new value" },
+  });
+  tool("ls-long", "ls", { path: "src", limit: 50 }, lines(23, "entry"));
+  tool("bash-error", "bash", { command: "exit 1" }, "command failed", { isError: true });
+  tool("generic-fallback", "custom_unknown", { safe: "<value>" }, lines(12, "generic"));
+  return { branch, leafId: parentId, sessionId: "parity-session-abcdef12" };
+}
+
 async function startRuntime(state: BranchState): Promise<WebUiRuntime> {
   return startWebUiServer({
     pi: {
@@ -201,6 +294,15 @@ export const test = base.extend<WebUiFixtures>({
     await use(runtime.createBootstrapUrl());
   },
   // oxlint-disable-next-line no-empty-pattern
+  parityUrl: async ({}, use) => {
+    const runtime = await startRuntime(parityBranch());
+    try {
+      await use(runtime.createBootstrapUrl());
+    } finally {
+      await runtime.close();
+    }
+  },
+  // oxlint-disable-next-line no-empty-pattern
   largeSession: async ({}, use) => {
     const state = buildBranch(2400, "big", "User");
     const runtime = await startRuntime(state);
@@ -246,7 +348,14 @@ export const test = base.extend<WebUiFixtures>({
               role: "toolResult",
               toolCallId,
               toolName: "bash",
-              content: [{ type: "text", text: "persisted live result" }],
+              content: [
+                {
+                  type: "text",
+                  text: Array.from({ length: 8 }, (_, index) => `live result ${index + 1}`).join(
+                    "\n",
+                  ),
+                },
+              ],
               isError: false,
             },
           },

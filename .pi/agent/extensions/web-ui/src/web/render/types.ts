@@ -6,6 +6,11 @@ import type { ToolView } from "../lib/tool-model.js";
  * summary, and the optional expandable detail for one tool. They never receive
  * or execute TUI renderer code — only the normalized, already-bounded view.
  */
+export interface InlineToolRenderContext {
+  expanded: boolean;
+  onExpandedChange(expanded: boolean): void;
+}
+
 export interface ToolAdapter {
   /** Rail/label glyph, echoing the local compact renderers where one exists. */
   readonly glyph: string;
@@ -15,6 +20,10 @@ export interface ToolAdapter {
   title(view: ToolView): ComponentChildren;
   /** Collapsed one-line status/summary. */
   summary(view: ToolView): ComponentChildren;
-  /** Expanded detail; omit when the tool has nothing more to show. */
+  /** Expanded detail for rich/custom disclosures. */
   detail?(view: ToolView): ComponentChildren;
+  /** Exporter-style inline body. Its expansion toggles output preview only. */
+  inline?(view: ToolView, context: InlineToolRenderContext): ComponentChildren;
+  /** Optional body modifier selected from normalized view data (for exporter spacing exceptions). */
+  inlineBodyClass?(view: ToolView): string | undefined;
 }

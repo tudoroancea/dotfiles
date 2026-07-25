@@ -1,10 +1,12 @@
 /*
- * Rosé Pine terminal timeline.
- * Signature: every tool call is a boxed terminal panel with a corner-inset
- * label bar, hung off a role "spine" gutter — the boxed-editor / TUI box-draw
- * intent expressed in semantic HTML. System sans carries human-readable prose;
- * ui-monospace carries every machine artifact (commands, paths, code, diffs).
- * No inline styles anywhere (CSP style-src 'self').
+ * Exporter-faithful terminal transcript.
+ * The Pi HTML exporter (packages/coding-agent/src/core/export-html) is the
+ * visual and behavioral specification: 12px ui-monospace on an 18px line-height
+ * rhythm, an 800px measure, status-tinted tool panels, plain per-line terminal
+ * output, and theme-role colors. Everything — prose, commands, paths, code,
+ * diffs — is rendered in the same monospace system, exactly as the exporter and
+ * the terminal UI present it. Palette mirrors the Rosé Pine theme used by the
+ * supplied exported session. No inline styles anywhere (CSP style-src 'self').
  */
 
 :root {
@@ -39,13 +41,29 @@
   --del: #eb6f92;
   --del-bg: rgba(235, 111, 146, 0.08);
 
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  /* Exporter theme roles (message/tool backgrounds), mapped onto Rosé Pine. */
+  --user-msg-bg: #21202e;
+  --custom-msg-bg: #2a2837;
+  --custom-msg-label: var(--rose);
+  --tool-pending-bg: #201f2d;
+  --tool-success-bg: #1c1b28;
+  --tool-error-bg: #2b2130;
+  --tool-title: var(--rose);
+  --tool-output: var(--fg-muted);
 
-  --radius: 8px;
-  --radius-sm: 5px;
-  --gap: clamp(0.75rem, 2.4vw, 1.25rem);
-  --measure: 54rem;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  /* 12px font on a 1.5 line-height, exactly as the exporter (--line-height). */
+  --line-height: 18px;
+
+  --radius: 4px;
+  --radius-sm: 3px;
+  --gap: var(--line-height);
+  --measure: 800px;
+  /* 800px transcript plus the exporter's 36px inline content padding per side. */
+  --shell-measure: 872px;
 
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
 }
@@ -78,6 +96,15 @@
     --add-bg: rgba(86, 148, 159, 0.1);
     --del: #b4637a;
     --del-bg: rgba(180, 99, 122, 0.1);
+
+    --user-msg-bg: #f4ede8;
+    --custom-msg-bg: #f2e9e1;
+    --custom-msg-label: var(--rose);
+    --tool-pending-bg: #f2e9e1;
+    --tool-success-bg: #f4ede8;
+    --tool-error-bg: #efe2e0;
+    --tool-title: var(--rose);
+    --tool-output: var(--fg);
   }
 }
 
@@ -94,9 +121,10 @@ body {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.55;
+  /* The exporter renders the whole transcript in one monospace system. */
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: var(--line-height);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -118,7 +146,7 @@ a {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100dvh;
-  max-width: var(--measure);
+  max-width: var(--shell-measure);
   margin: 0 auto;
 }
 
@@ -199,22 +227,30 @@ a {
   overflow-y: auto;
   /* One anchoring authority: the virtualizer, not the browser. */
   overflow-anchor: none;
-  padding: var(--gap);
-  padding-bottom: 2rem;
+  /* Exporter #content rhythm: 18px block, 36px inline. */
+  padding: var(--line-height) calc(var(--line-height) * 2) calc(var(--line-height) * 2);
 }
 
 .dashboard-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--gap);
-  padding-bottom: 2rem;
+  padding: var(--line-height) calc(var(--line-height) * 2) calc(var(--line-height) * 2);
+}
+
+@media (max-width: 56.25rem) {
+  .timeline-scroll {
+    padding-inline: 16px;
+  }
 }
 
 .timeline {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: var(--line-height);
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
 }
 
 /* Marker for the CSP virtual-style manager. Dynamic height/offset rules are
@@ -230,7 +266,7 @@ a {
   top: 0;
   left: 0;
   width: 100%;
-  padding-bottom: 1.1rem;
+  padding-bottom: var(--line-height);
 }
 
 .timeline__empty {
@@ -304,76 +340,58 @@ a {
   font-weight: 700;
 }
 
-/* ---- Messages (spine + gutter glyph) --------------------------------- */
+/* ---- Messages (exporter hierarchy: role via background, not a gutter) - */
 
+/* The exporter distinguishes roles through block background and padding, not a
+   spine/glyph gutter. The gutter DOM stays for semantic role data but carries
+   no visual weight. */
 .message {
-  display: grid;
-  grid-template-columns: 1.6rem 1fr;
-  gap: 0.65rem;
+  min-width: 0;
 }
 
 .message__gutter {
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
-
-.message__gutter::before {
-  content: "";
-  position: absolute;
-  top: 1.6rem;
-  bottom: -1.75rem;
-  width: 1px;
-  background: var(--border-strong);
-}
-
-.message:last-child .message__gutter::before {
   display: none;
-}
-
-.message__glyph {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  line-height: 1.5rem;
-  color: var(--fg-dim);
-}
-
-.message--user .message__glyph {
-  color: var(--rose);
-}
-
-.message--assistant .message__glyph {
-  color: var(--accent-2);
-}
-
-.message--custom .message__glyph {
-  color: var(--pine);
 }
 
 .message__body {
   min-width: 0;
 }
 
+/* user-message: tinted block, 18px padding, 4px radius. */
 .message--user .message__body {
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
+  background: var(--user-msg-bg);
+  color: var(--fg);
   border-radius: var(--radius);
-  padding: 0.35rem 0.85rem;
+  padding: var(--line-height);
+}
+
+/* assistant-message: flat, no background (exporter .assistant-message). */
+.message--assistant .message__body {
+  padding: 0;
+}
+
+/* Exporter assistant text has 18px top/inline and no bottom padding. */
+.message--assistant .message__body > .prose {
+  padding: var(--line-height);
+  padding-bottom: 0;
+}
+
+/* custom/hook messages: customMessageBg block. */
+.message--custom .message__body {
+  background: var(--custom-msg-bg);
+  border-radius: var(--radius);
+  padding: var(--line-height);
 }
 
 .message__byline {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-dim);
-  margin-bottom: 0.2rem;
+  font-weight: bold;
+  color: var(--custom-msg-label);
+  margin-bottom: var(--line-height);
 }
 
 .message__error {
   color: var(--love);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+  padding-top: var(--line-height);
 }
 
 .message--partial .message__body > .prose:last-of-type,
@@ -393,7 +411,7 @@ a {
   }
 }
 
-/* ---- Prose ----------------------------------------------------------- */
+/* ---- Prose (exporter .markdown-content) ------------------------------ */
 
 .prose {
   overflow-wrap: anywhere;
@@ -407,26 +425,58 @@ a {
   margin-bottom: 0;
 }
 
-.prose p,
-.prose ul,
-.prose ol,
-.prose blockquote {
-  margin: 0.5rem 0;
+.prose p {
+  margin: 0;
+}
+
+.prose p + p {
+  margin-top: var(--line-height);
 }
 
 .prose h1,
 .prose h2,
 .prose h3,
-.prose h4 {
-  font-size: 1rem;
-  margin: 1rem 0 0.4rem;
-  line-height: 1.3;
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: var(--accent-2);
+  margin: var(--line-height) 0 0 0;
+  font-weight: bold;
+  font-size: 1em;
+  line-height: var(--line-height);
+}
+
+.prose a {
+  color: var(--pine);
+  text-decoration: underline;
 }
 
 .prose blockquote {
-  border-left: 2px solid var(--border-bright);
-  padding-left: 0.8rem;
+  border-left: 3px solid var(--border-bright);
+  padding-left: var(--line-height);
+  margin: var(--line-height) 0;
   color: var(--fg-muted);
+  font-style: italic;
+}
+
+.prose ul,
+.prose ol {
+  margin: var(--line-height) 0;
+  padding-left: calc(var(--line-height) * 2);
+}
+
+.prose li {
+  margin: 0;
+}
+
+.prose li::marker {
+  color: var(--rose);
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border-strong);
+  margin: var(--line-height) 0;
 }
 
 .prose a:focus-visible {
@@ -436,42 +486,91 @@ a {
 
 .prose table {
   border-collapse: collapse;
-  font-size: 0.85rem;
+  margin: var(--line-height) 0;
+  width: 100%;
 }
 
 .prose th,
 .prose td {
   border: 1px solid var(--border-strong);
-  padding: 0.3rem 0.55rem;
+  padding: 6px 10px;
   text-align: left;
+}
+
+.prose th {
+  background: rgba(128, 128, 128, 0.1);
+  font-weight: bold;
+}
+
+.prose pre {
+  margin: var(--line-height) 0;
 }
 
 .code-inline {
   font-family: var(--font-mono);
-  font-size: 0.85em;
-  background: var(--panel-2);
-  border-radius: 4px;
-  padding: 0.05em 0.35em;
+  background: rgba(128, 128, 128, 0.2);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
 }
 
 /* ---- Code + diff ----------------------------------------------------- */
 
+/* Exporter code/output: borderless, transparent, on the panel/message tint. */
 .code-block {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  line-height: 1.5;
   margin: 0;
-  padding: 0.6rem 0.75rem;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  padding: 0;
+  background: transparent;
+  border: 0;
   overflow-x: auto;
-  white-space: pre;
-  tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 3;
 }
 
 .code-block--output {
-  color: var(--fg-muted);
+  color: var(--tool-output);
+}
+
+/* Escaped per-line terminal output (exporter .tool-output > div / .ansi-line).
+   Untrusted text is rendered as text nodes only — never raw HTML. */
+.ansi-output {
+  color: var(--tool-output);
+  overflow-x: auto;
+}
+
+.exporter-output {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exporter-output:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ansi-line {
+  display: block;
+  min-height: var(--line-height);
+  margin: 0;
+  padding: 0;
+  line-height: var(--line-height);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ansi-output__hint {
+  color: var(--tool-output);
+  opacity: 0.85;
 }
 
 .code-block .hljs-comment,
@@ -511,31 +610,28 @@ a {
   color: var(--syntax-variable);
 }
 
+/* Exporter .tool-diff: 11px, borderless, colored lines. */
 .diff {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: var(--line-height);
   margin: 0;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
   overflow-x: auto;
+  white-space: pre;
 }
 
 .diff__line {
   display: block;
-  padding: 0 0.75rem;
-  white-space: pre;
 }
 
 .diff__line--added {
   color: var(--add);
-  background: var(--add-bg);
 }
 
 .diff__line--removed {
   color: var(--del);
-  background: var(--del-bg);
 }
 
 .diff__line--hunk {
@@ -546,26 +642,35 @@ a {
   color: var(--fg-dim);
 }
 
-/* ---- Tool box (the signature) --------------------------------------- */
+.diff__line--context {
+  color: var(--fg-dim);
+}
 
+/* ---- Tool execution (exporter .tool-execution) ---------------------- */
+
+/* Status is conveyed by background tint, exactly like the exporter, not by a
+   bordered box or pill. Panel padding is the 18px rhythm. */
 .tool {
-  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  background: var(--panel);
-  overflow: hidden;
+  padding: var(--line-height);
+  background: var(--tool-pending-bg);
 }
 
 .tool--running {
-  border-color: color-mix(in oklab, var(--gold) 45%, var(--border-strong));
+  background: var(--tool-pending-bg);
+}
+
+.tool--completed {
+  background: var(--tool-success-bg);
 }
 
 .tool--error {
-  border-color: color-mix(in oklab, var(--love) 45%, var(--border-strong));
+  background: var(--tool-error-bg);
 }
 
 .tool__head {
   display: block;
-  padding: 0.5rem 0.75rem;
+  padding: 0;
   cursor: default;
 }
 
@@ -581,24 +686,22 @@ a {
 
 .tool__bar {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: 1ch;
 }
 
+/* The tool name / "$" — bold, like exporter .tool-name / .tool-command. */
 .tool__glyph {
   font-family: var(--font-mono);
-  color: var(--accent);
-  font-weight: 700;
+  color: var(--fg);
+  font-weight: bold;
   flex: none;
 }
 
-.tool--error .tool__glyph {
-  color: var(--love);
-}
-
+/* The command or path after the name. Paths carry .tool__path (accent). */
 .tool__title {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-weight: bold;
   color: var(--fg);
   min-width: 0;
   flex: 1;
@@ -607,8 +710,20 @@ a {
   white-space: nowrap;
 }
 
+.tool--inline .tool__title {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .tool__command {
   display: inline;
+}
+
+.tool__path {
+  color: var(--accent);
+  word-break: break-all;
 }
 
 .tool__role {
@@ -618,52 +733,53 @@ a {
 
 .tool__hint {
   color: var(--fg-dim);
+  font-weight: normal;
+}
+
+.tool__range {
+  color: var(--gold);
+}
+
+.tool__error {
+  color: var(--love);
 }
 
 .tool__status {
   flex: none;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0.08rem 0.4rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-bright);
   color: var(--fg-dim);
 }
 
 .tool__status--running {
   color: var(--gold);
-  border-color: color-mix(in oklab, var(--gold) 50%, transparent);
 }
 
 .tool__status--completed {
   color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
 }
 
 .tool__status--error {
   color: var(--love);
-  border-color: color-mix(in oklab, var(--love) 50%, transparent);
 }
 
 .tool__summary {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--fg-muted);
-  margin-top: 0.3rem;
-  padding-left: 1.2rem;
+  color: var(--tool-output);
+  margin-top: 0.35rem;
 }
 
 .tool--error .tool__summary {
   color: var(--love);
 }
 
+/* Disclosure caret, right-aligned. */
 .tool__toggle {
   flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin: 0 0.1rem 0 0.15rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: auto;
   border-right: 1.5px solid var(--fg-dim);
   border-bottom: 1.5px solid var(--fg-dim);
   transform: rotate(45deg);
@@ -686,11 +802,21 @@ a {
   color: var(--fg-dim);
 }
 
+/* .tool-output rhythm: 18px above the command/header. */
 .tool__body {
-  padding: 0 0.75rem 0.75rem;
+  margin-top: var(--line-height);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--line-height);
+}
+
+.tool__body--inline {
+  color: var(--tool-output);
+}
+
+/* Exporter diffs start immediately below the header; ordinary output keeps 18px. */
+.tool__body--flush {
+  margin-top: 0;
 }
 
 .diffstat--add {
@@ -983,35 +1109,33 @@ a {
 /* ---- Thinking + images ----------------------------------------------- */
 
 .thinking {
-  margin: 0.4rem 0;
+  margin: var(--line-height) 0;
 }
 
 .thinking > summary {
   cursor: pointer;
-  color: var(--accent-2);
+  color: var(--fg-muted);
   font-family: var(--font-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.04em;
+  font-style: italic;
 }
 
 .thinking__body {
-  border-left: 2px solid var(--accent-2);
-  padding-left: 0.75rem;
-  margin-top: 0.4rem;
+  padding-left: var(--line-height);
+  margin-top: var(--line-height);
   color: var(--fg-muted);
+  font-style: italic;
 }
 
 .image {
   max-width: 100%;
+  max-height: 500px;
   height: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  margin: 0.4rem 0;
+  border-radius: var(--radius);
+  margin: var(--line-height) 0;
 }
 
 .image--omitted {
   font-family: var(--font-mono);
-  font-size: 0.76rem;
   color: var(--fg-dim);
   border: 1px dashed var(--border-bright);
   border-radius: var(--radius-sm);

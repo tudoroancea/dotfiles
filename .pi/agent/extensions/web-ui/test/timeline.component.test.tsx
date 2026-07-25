@@ -255,9 +255,9 @@ describe("virtual transcript", () => {
     );
     const scroller = rendered.container.querySelector<HTMLElement>(".timeline-scroll")!;
     act(() => observerFor(scroller).triggerHeight(scroller, 300));
-    const summary = rendered.container.querySelector<HTMLElement>(".tool__head")!;
-    act(() => summary.focus());
-    expect(document.activeElement).toBe(summary);
+    const output = rendered.container.querySelector<HTMLElement>(".exporter-output")!;
+    act(() => output.focus());
+    expect(document.activeElement).toBe(output);
     const request = store.requestOlderHistory("older-1")!;
     const older = Array.from({ length: 20 }, (_, index) => message(100 + index));
 
@@ -412,7 +412,7 @@ const persistedToolEntries = (prefix: string, callId = "tool-1"): PersistedEntry
         role: "toolResult",
         toolCallId: callId,
         toolName: "bash",
-        content: [{ type: "text", text: `${prefix} result` }],
+        content: [{ type: "text", text: "line 1\nline 2\nline 3\nline 4\nline 5\nline 6" }],
       },
     },
   },
@@ -422,13 +422,29 @@ const bashView = () =>
   normalizeTool({
     toolName: "bash",
     args: { command: "ls -a" },
-    result: { content: [{ type: "text", text: "file-a\nfile-b" }] },
+    result: { content: [{ type: "text", text: "1\n2\n3\n4\n5\n6" }] },
     status: "completed",
   });
 
-function ExpansionHarness() {
+function ExpansionHarness({ generic = false }: { generic?: boolean }) {
   const [mounted, setMounted] = useState(true);
   const expansion = useExpansionState();
+  const view = generic
+    ? normalizeTool({
+        toolName: "unknown_virtual_tool",
+        args: { dense: true },
+        result: {
+          content: [
+            {
+              type: "text",
+              text: Array.from({ length: 12 }, (_, index) => `generic ${index + 1}`).join("\n"),
+            },
+          ],
+          details: { retained: true },
+        },
+        status: "completed",
+      })
+    : bashView();
   return (
     <ExpansionContext.Provider value={expansion}>
       <button
@@ -438,7 +454,7 @@ function ExpansionHarness() {
       >
         toggle
       </button>
-      {mounted ? <ToolCall id="tool-1" view={bashView()} /> : <p data-testid="unmounted">gone</p>}
+      {mounted ? <ToolCall id="tool-1" view={view} /> : <p data-testid="unmounted">gone</p>}
     </ExpansionContext.Provider>
   );
 }
@@ -458,7 +474,9 @@ describe("externalized tool expansion", () => {
               ordinal: 0,
               status: "completed",
               args: { command: "ls" },
-              result: { content: [{ type: "text", text: "live result" }] },
+              result: {
+                content: [{ type: "text", text: "line 1\nline 2\nline 3\nline 4\nline 5\nline 6" }],
+              },
               isError: false,
             },
           ],
@@ -470,18 +488,18 @@ describe("externalized tool expansion", () => {
     );
     const scroller = rendered.container.querySelector<HTMLElement>(".timeline-scroll")!;
     act(() => observerFor(scroller).triggerHeight(scroller, 400));
-    const disclosure = () =>
-      rendered.container.querySelector<HTMLDetailsElement>(
-        '[data-tool-id="tool-1"] details.tool__disclosure',
+    const output = () =>
+      rendered.container.querySelector<HTMLButtonElement>(
+        '[data-tool-id="tool-1"] .exporter-output',
       );
     act(() => {
-      fireEvent.click(rendered.container.querySelector<HTMLElement>(".tool__head")!);
+      fireEvent.click(output()!);
     });
-    expect(disclosure()?.open).toBe(true);
-    const summary = rendered.container.querySelector<HTMLElement>(".tool__head")!;
-    act(() => summary.focus());
-    expect(document.activeElement).toBe(summary);
-    expect(summary.closest<HTMLElement>("[data-row-key]")?.dataset.rowKey).toBe("tool:tool-1");
+    expect(output()?.getAttribute("aria-expanded")).toBe("true");
+    const outputButton = output()!;
+    act(() => outputButton.focus());
+    expect(document.activeElement).toBe(outputButton);
+    expect(outputButton.closest<HTMLElement>("[data-row-key]")?.dataset.rowKey).toBe("tool:tool-1");
 
     act(() => {
       store.apply(snapshotWith(persistedToolEntries("persisted"), false, { revision: 1 }));
@@ -490,9 +508,9 @@ describe("externalized tool expansion", () => {
       );
     });
     expect(rendered.container.querySelectorAll('[data-tool-id="tool-1"]')).toHaveLength(1);
-    expect(disclosure()?.open).toBe(true);
-    expect(document.activeElement).toBe(summary);
-    expect(summary.closest<HTMLElement>("[data-row-key]")?.dataset.rowKey).toBe("tool:tool-1");
+    expect(output()?.getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(outputButton);
+    expect(outputButton.closest<HTMLElement>("[data-row-key]")?.dataset.rowKey).toBe("tool:tool-1");
   });
 
   it("resets expansion and follow-bottom state on an equal-size history generation change", () => {
@@ -508,11 +526,11 @@ describe("externalized tool expansion", () => {
     });
     act(() => observerFor(scroller).triggerHeight(scroller, 400));
     act(() => {
-      fireEvent.click(rendered.container.querySelector<HTMLElement>(".tool__head")!);
+      fireEvent.click(rendered.container.querySelector<HTMLElement>(".exporter-output")!);
     });
-    expect(rendered.container.querySelector<HTMLDetailsElement>(".tool__disclosure")?.open).toBe(
-      true,
-    );
+    expect(
+      rendered.container.querySelector(".exporter-output")?.getAttribute("aria-expanded"),
+    ).toBe("true");
     act(() => {
       scroller.scrollTop = 300;
       fireEvent.scroll(scroller);
@@ -532,21 +550,23 @@ describe("externalized tool expansion", () => {
     });
     expect(rendered.container.querySelector(".timeline__jump")).toBeNull();
     expect(scroller.scrollTop).toBe(scroller.scrollHeight);
-    expect(rendered.container.querySelector<HTMLDetailsElement>(".tool__disclosure")?.open).toBe(
-      false,
-    );
+    expect(
+      rendered.container.querySelector(".exporter-output")?.getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
-  it("survives an unmount and remount because state is keyed by a stable id", () => {
-    const rendered = render(<ExpansionHarness />);
-    const summary = () => rendered.container.querySelector<HTMLElement>(".tool__head");
-    const details = () => rendered.container.querySelector<HTMLDetailsElement>(".tool__disclosure");
+  it.each([
+    ["built-in", false],
+    ["generic fallback", true],
+  ])("survives an unmount and remount for %s output", (_label, generic) => {
+    const rendered = render(<ExpansionHarness generic={generic} />);
+    const output = () => rendered.container.querySelector<HTMLButtonElement>(".exporter-output");
 
-    expect(details()?.open).toBe(false);
+    expect(output()?.getAttribute("aria-expanded")).toBe("false");
     act(() => {
-      fireEvent.click(summary()!);
+      fireEvent.click(output()!);
     });
-    expect(details()?.open).toBe(true);
+    expect(output()?.getAttribute("aria-expanded")).toBe("true");
 
     act(() => {
       fireEvent.click(rendered.getByTestId("toggle-mount"));
@@ -557,7 +577,7 @@ describe("externalized tool expansion", () => {
     act(() => {
       fireEvent.click(rendered.getByTestId("toggle-mount"));
     });
-    // Remounted row reads the externalized state and reopens without a re-click.
-    expect(details()?.open).toBe(true);
+    // Remounted row reads the externalized state and restores full output.
+    expect(output()?.getAttribute("aria-expanded")).toBe("true");
   });
 });

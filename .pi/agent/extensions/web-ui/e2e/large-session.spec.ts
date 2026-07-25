@@ -178,7 +178,13 @@ test("anchors the first transcript row through a top-sentinel final prepend", as
   const delayed = await delayNextHistoryPage(page);
   await openLargeSession(page, largeSession.bootstrapUrl);
 
-  await page.locator(scroller).evaluate((element) => {
+  // Let the virtual range catch up before crossing the automatic top sentinel.
+  await page.locator(scroller).evaluate(async (element) => {
+    element.scrollTop = 320;
+    element.dispatchEvent(new Event("scroll"));
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
     element.scrollTop = 0;
     element.dispatchEvent(new Event("scroll"));
   });
@@ -195,19 +201,17 @@ test("anchors the first transcript row through a top-sentinel final prepend", as
   await expect.poll(() => historyLength(page)).toBe(150);
   expect(await isComplete(page)).toBe(true);
   await expect
-    .poll(async () => {
-      const row = page.locator(`[data-row-key="${before.key}"]`);
-      if ((await row.count()) === 0) return Number.POSITIVE_INFINITY;
-      return row.evaluate(
-        (element, offset) =>
-          Math.abs(
-            element.getBoundingClientRect().top -
-              element.closest<HTMLElement>(".timeline-scroll")!.getBoundingClientRect().top -
-              offset,
-          ),
-        before.offset,
-      );
-    })
+    .poll(() =>
+      page.locator(scroller).evaluate((scroll, anchor) => {
+        const row = [...scroll.querySelectorAll<HTMLElement>("[data-row-key]")].find(
+          (candidate) => candidate.dataset.rowKey === anchor.key,
+        );
+        if (!row) return Number.POSITIVE_INFINITY;
+        return Math.abs(
+          row.getBoundingClientRect().top - scroll.getBoundingClientRect().top - anchor.offset,
+        );
+      }, before),
+    )
     .toBeLessThan(8);
 });
 
@@ -361,21 +365,28 @@ test("preserves focus and expansion when a live tool persists", async ({ page, l
   largeSession.broadcast("tool_execution_end", {
     toolCallId,
     toolName: "bash",
-    result: { content: [{ type: "text", text: "live result" }] },
+    result: {
+      content: [
+        {
+          type: "text",
+          text: Array.from({ length: 8 }, (_, index) => `live result ${index + 1}`).join("\n"),
+        },
+      ],
+    },
     isError: false,
   });
 
   const row = page.locator(`[data-row-key="tool:${toolCallId}"]`);
-  const head = row.locator(".tool__head");
-  await head.click();
-  await head.focus();
-  await expect(row.locator("details.tool__disclosure")).toHaveJSProperty("open", true);
-  await expect(head).toBeFocused();
+  const output = row.locator(".exporter-output");
+  await output.click();
+  await output.focus();
+  await expect(output).toHaveAttribute("aria-expanded", "true");
+  await expect(output).toBeFocused();
 
   largeSession.persistTool(toolCallId);
   await expect(page.locator(`[data-tool-id="${toolCallId}"]`)).toHaveCount(1);
-  await expect(row.locator("details.tool__disclosure")).toHaveJSProperty("open", true);
-  await expect(head).toBeFocused();
+  await expect(output).toHaveAttribute("aria-expanded", "true");
+  await expect(output).toBeFocused();
 });
 
 test("preserves an expanded tool across virtual unmount and remount", async ({
@@ -386,10 +397,10 @@ test("preserves an expanded tool across virtual unmount and remount", async ({
 
   const tool = page.locator("[data-tool-id]").last();
   const toolId = await tool.getAttribute("data-tool-id");
-  const disclosure = page.locator(`[data-tool-id="${toolId}"] details.tool__disclosure`);
+  const disclosure = page.locator(`[data-tool-id="${toolId}"] .exporter-output`);
 
-  await tool.locator(".tool__head").click();
-  await expect(disclosure).toHaveJSProperty("open", true);
+  await disclosure.click();
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
 
   // Scroll far away without entering the prepend sentinel, then back to it.
   await page.locator(scroller).evaluate((element) => {
@@ -403,9 +414,10 @@ test("preserves an expanded tool across virtual unmount and remount", async ({
     element.scrollTop = element.scrollHeight;
   });
   await expect(page.locator(`[data-tool-id="${toolId}"]`)).toHaveCount(1);
-  await expect(
-    page.locator(`[data-tool-id="${toolId}"] details.tool__disclosure`),
-  ).toHaveJSProperty("open", true);
+  await expect(page.locator(`[data-tool-id="${toolId}"] .exporter-output`)).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
 });
 
 test("resets cleanly on a history-generation change without mixing branches", async ({

@@ -47,72 +47,74 @@ describe("tool renderer registry", () => {
     }
   });
 
-  it("matches compact bash, edit, and write information hierarchy", () => {
+  it("matches exporter bash, edit, and write information hierarchy", () => {
     const { rerender, container } = render(<ToolCall view={view("bash")} />);
-    // The bar shows a compacted, single-line command; the multi-line original
-    // is revealed in the expandable body alongside the output.
-    expect(container.querySelector(".tool__command")?.textContent).toContain("nub test");
-    expect(container.querySelector(".tool__command")?.textContent).not.toContain("\n");
-    const bashCode = [...container.querySelectorAll(".tool__body code")].map((c) => c.textContent);
-    expect(bashCode.some((text) => text?.includes("printf"))).toBe(true);
-    expect(bashCode.some((text) => text?.includes("12 tests passed"))).toBe(true);
-    expect(screen.getByText("2 output lines")).toBeTruthy();
+    expect(container.querySelector(".tool__command")?.textContent).toContain("nub test\nprintf");
+    expect(container.querySelector(".tool__status")).toBeNull();
+    expect(container.querySelector(".tool__summary")).toBeNull();
+    expect(container.querySelector(".tool__body .ansi-output")).toBeTruthy();
+    expect(container.querySelector(".ansi-output")?.textContent).toContain("12 tests passed");
 
     rerender(<ToolCall view={view("edit")} />);
     expect(container.querySelector(".tool__command")?.textContent).toContain("src/app.ts");
-    expect(screen.getByText("+1")).toBeTruthy();
-    expect(screen.getByText("-1")).toBeTruthy();
     expect(screen.getByText("+new", { exact: false })).toBeTruthy();
+    expect(container.querySelector(".tool__body")?.textContent).not.toContain("Updated src/app.ts");
 
     rerender(<ToolCall view={view("write")} />);
-    expect(screen.getByText(/src\/new\.ts/)).toBeTruthy();
-    expect(screen.getByText(/2 lines/)).toBeTruthy();
-    expect(container.querySelector("code")?.textContent).toContain("export const answer = 42;");
+    expect(container.querySelector(".tool__path")?.textContent).toBe("src/new.ts");
+    expect(container.querySelector(".tool__hint")).toBeNull();
+    expect(container.querySelector(".ansi-output")?.textContent).toContain(
+      "export const answer = 42;",
+    );
   });
 
-  it("supports externally keyed expansion across unmount and remount", () => {
+  it("supports controlled long-output expansion across unmount and remount", () => {
     let expanded = false;
+    const longView = normalizeTool({
+      toolName: "bash",
+      args: { command: "printf output" },
+      result: { content: [{ type: "text", text: "1\n2\n3\n4\n5\n6" }] },
+      status: "completed",
+    });
     const first = render(
       <ToolCall
-        view={view("bash")}
+        view={longView}
         expanded={expanded}
         onExpandedChange={(next) => {
           expanded = next;
         }}
       />,
     );
-    fireEvent.click(first.container.querySelector("summary")!);
+    expect(first.container.querySelector(".ansi-output__hint")?.textContent).toBe(
+      "... (1 more lines)",
+    );
+    fireEvent.click(first.container.querySelector(".exporter-output")!);
     expect(expanded).toBe(true);
     first.unmount();
 
-    const second = render(<ToolCall view={view("bash")} expanded={expanded} />);
-    expect(second.container.querySelector("details")?.hasAttribute("open")).toBe(true);
+    const second = render(<ToolCall view={longView} expanded={expanded} />);
+    expect(second.container.querySelector(".exporter-output")?.getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(second.container.querySelectorAll(".ansi-line")).toHaveLength(6);
   });
 
-  it("expands a long single-line bash command without colliding with status chrome", () => {
+  it("shows the full wrapped bash command and no timeout/status chrome", () => {
     const command = `printf '%s' ${"long-argument ".repeat(12)}`;
     const { container } = render(
       <ToolCall
         view={normalizeTool({
           toolName: "bash",
-          args: { command },
+          args: { command, timeout: 30 },
           result: { content: [{ type: "text", text: "finished" }] },
           status: "completed",
         })}
       />,
     );
-    const disclosure = container.querySelector("details")!;
-    const compact = container.querySelector(".tool__command")?.textContent ?? "";
-    expect(compact.length).toBeLessThan(command.length);
-    expect(compact.endsWith("...")).toBe(true);
-    expect(disclosure.hasAttribute("open")).toBe(false);
-
-    const barChildren = [...container.querySelector(".tool__bar")!.children];
-    expect(barChildren.at(-2)?.classList.contains("tool__status")).toBe(true);
-    expect(barChildren.at(-1)?.classList.contains("tool__toggle")).toBe(true);
-    fireEvent.click(container.querySelector("summary")!);
-    expect(disclosure.hasAttribute("open")).toBe(true);
-    expect(container.querySelector(".tool__body code")?.textContent).toContain(command);
+    expect(container.querySelector(".tool__command")?.textContent).toBe(command);
+    expect(container.textContent).not.toContain("timeout");
+    expect(container.querySelector(".tool__status")).toBeNull();
+    expect(container.querySelector(".tool__summary")).toBeNull();
   });
 
   it("renders Agentflow, background, and questionnaire semantic details", () => {
@@ -152,7 +154,7 @@ describe("tool renderer registry", () => {
     );
     expect(container.querySelectorAll("img")).toHaveLength(1);
     expect(screen.getAllByText(/Image omitted/)).toHaveLength(2);
-    expect(container.querySelectorAll("code")[0]?.textContent).toContain("Image Size: 1x1");
+    expect(container.querySelector(".ansi-output")?.textContent).toContain("Image Size: 1x1");
   });
 
   it("handles list, error, empty, and running custom-tool shapes", () => {
@@ -319,7 +321,10 @@ describe("tool renderer registry", () => {
       />,
     );
     expect(screen.getByText("unknown_tool")).toBeTruthy();
-    expect(container.querySelector(".tool__summary")?.textContent).toContain("failed safely");
+    expect(container.querySelector(".tool__summary")).toBeNull();
+    expect(container.querySelector('[aria-label="unknown_tool output"]')?.textContent).toContain(
+      "failed safely",
+    );
     expect(document.querySelector("script")).toBeNull();
   });
 
@@ -339,7 +344,7 @@ describe("tool renderer registry", () => {
         })}
       />,
     );
-    expect(container.textContent?.match(/mixed output/g) ?? []).toHaveLength(2);
+    expect(container.textContent?.match(/mixed output/g) ?? []).toHaveLength(1);
     expect(container.querySelectorAll("img")).toHaveLength(1);
   });
 });

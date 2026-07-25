@@ -26,6 +26,11 @@ export function sanitizeText(value: string): string {
   return value.replace(ANSI_PATTERN, "").replace(/\r\n?/g, "\n").replace(CONTROL_PATTERN, "");
 }
 
+/** Sanitize, bound, and normalize terminal tabs exactly as the exporter does. */
+export function normalizeTerminalText(value: string): string {
+  return truncateText(sanitizeText(value)).text.replace(/\t/g, "   ");
+}
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -117,11 +122,9 @@ export function formatBytes(bytes: unknown): string | undefined {
   return `${(bytes / (1_024 * 1_024)).toFixed(1)} MB`;
 }
 
-/** Shorten a filesystem path for a compact label, keeping the tail meaningful. */
-export function shortenPath(value: string, maxLength = 48): string {
-  const clean = sanitizeText(value);
-  if (clean.length <= maxLength) return clean;
-  return `…${clean.slice(clean.length - maxLength + 1)}`;
+/** Match exporter path display: abbreviate only a conventional home prefix. */
+export function shortenPath(value: string, _maxLength?: number): string {
+  return sanitizeText(value).replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
 }
 
 /** Replace a leading home directory with `~`, as the TUI and shells display it. */

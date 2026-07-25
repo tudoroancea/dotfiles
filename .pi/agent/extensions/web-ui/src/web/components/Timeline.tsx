@@ -245,6 +245,10 @@ export function Timeline({ store, session, onRequestOlder }: TimelineProps) {
     getItemKey,
     rangeExtractor,
   });
+  // TanStack exposes this as an instance hook rather than an option in the
+  // installed version. Its default would keep correcting after user release.
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () =>
+    restoringAnchorRef.current !== undefined;
 
   const historyGeneration = history.historyGeneration;
   const previousGenerationRef = useRef(historyGeneration);
@@ -292,6 +296,10 @@ export function Timeline({ store, session, onRequestOlder }: TimelineProps) {
     const pending = pendingAnchorRef.current;
     if (!pending || history.loadingOlder) return;
     pendingAnchorRef.current = undefined;
+    if (history.error) {
+      restoringAnchorRef.current = undefined;
+      return;
+    }
     const firstId = historyStore.at(0)?.id;
     const prepended =
       historyLength > pending.baselineLength &&
@@ -302,22 +310,48 @@ export function Timeline({ store, session, onRequestOlder }: TimelineProps) {
     const element = scrollRef.current;
     if (!element) return;
     const { anchor } = pending;
-    const start = findRowStart(virtualizer.measurementsCache, anchor.key);
-    if (start === undefined) return;
+    const index = keyToIndexRef.current.get(anchor.key);
+    if (index === undefined) return;
     restoringAnchorRef.current = anchor;
-    virtualizer.scrollToOffset(anchorScrollOffset(start, anchor.delta));
-    stickRef.current = distanceFromBottom(element) < BOTTOM_THRESHOLD;
+    // Mount the stable row before relying on its position. A large density
+    // change can put the row far outside the estimate-derived virtual range.
+    stickRef.current = false;
+    virtualizer.scrollToIndex(index, { align: "start" });
   }, [history.loadingOlder, history.error, history.version, historyLength, historyStore]);
 
   // Re-apply the stable anchor while newly mounted prepended rows settle from
   // estimates to measured heights. User input below releases this ownership.
   const totalSize = virtualizer.getTotalSize();
+  const items = virtualizer.getVirtualItems();
+  const restoringKey = restoringAnchorRef.current?.key;
+  const restoringRowMounted =
+    restoringKey !== undefined && items.some((item) => String(item.key) === restoringKey);
   useLayoutEffect(() => {
     const anchor = restoringAnchorRef.current;
     if (!anchor) return;
+    const index = keyToIndexRef.current.get(anchor.key);
+    if (index === undefined) {
+      restoringAnchorRef.current = undefined;
+      return;
+    }
+    if (!restoringRowMounted) {
+      virtualizer.scrollToIndex(index, { align: "start" });
+      return;
+    }
     const start = findRowStart(virtualizer.measurementsCache, anchor.key);
-    if (start !== undefined) virtualizer.scrollToOffset(anchorScrollOffset(start, anchor.delta));
-  }, [history.version, totalSize]);
+    if (start === undefined) return;
+    virtualizer.scrollToOffset(anchorScrollOffset(start, anchor.delta));
+
+    // ResizeObserver delivery and TanStack's scroll reconciliation happen over
+    // separate frames. Release only after both have had a stable frame; a new
+    // measurement reruns this effect and postpones release.
+    let releaseFrame = window.requestAnimationFrame(() => {
+      releaseFrame = window.requestAnimationFrame(() => {
+        if (restoringAnchorRef.current === anchor) restoringAnchorRef.current = undefined;
+      });
+    });
+    return () => window.cancelAnimationFrame(releaseFrame);
+  }, [history.version, totalSize, restoringRowMounted]);
 
   // Keep the latest content in view while the reader is following the bottom.
   useLayoutEffect(() => {
@@ -387,7 +421,6 @@ export function Timeline({ store, session, onRequestOlder }: TimelineProps) {
     setAtBottom(true);
   }, []);
 
-  const items = virtualizer.getVirtualItems();
   const isEmpty = rowCount === 1 && !history.hasOlder;
 
   useLayoutEffect(() => () => virtualStyles.dispose(), [virtualStyles]);

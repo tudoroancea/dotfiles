@@ -1,5 +1,5 @@
-import { CodeBlock } from "../components/CodeBlock.js";
 import { ContentBlocks } from "../components/ContentBlocks.js";
+import { ExporterOutput } from "../components/ExporterOutput.js";
 import { JsonView } from "../components/JsonView.js";
 import type { ToolView } from "../lib/tool-model.js";
 import type { ToolAdapter } from "./types.js";
@@ -17,7 +17,7 @@ function hasImages(view: ToolView): boolean {
   );
 }
 
-/** Safe fallback for tools without a dedicated adapter. */
+/** Safe exporter-style fallback for tools without a dedicated adapter. */
 export const genericAdapter: ToolAdapter = {
   glyph: "▸",
   label: "tool",
@@ -27,7 +27,7 @@ export const genericAdapter: ToolAdapter = {
     if (view.isPartial && !view.text) return "working…";
     return firstLine(view.text) || "done";
   },
-  detail: (view) => {
+  inline: (view, context) => {
     const hasArgs = Object.keys(view.args).length > 0;
     const hasDetails = Object.keys(view.details).length > 0;
     if (!view.text && !hasArgs && !hasDetails && !hasImages(view)) return undefined;
@@ -42,7 +42,13 @@ export const genericAdapter: ToolAdapter = {
         {view.text ? (
           <section class="generic__section">
             <h4 class="generic__title">Output</h4>
-            <CodeBlock code={view.text} variant="output" />
+            <ExporterOutput
+              text={view.text}
+              previewLines={10}
+              expanded={context.expanded}
+              onExpandedChange={context.onExpandedChange}
+              label={`${view.name} output`}
+            />
           </section>
         ) : null}
         {hasImages(view) ? (

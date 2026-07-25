@@ -37,35 +37,59 @@ export function ToolCall({
       : uncontrolledExpanded;
   const adapter = resolveAdapter(view.name);
   const detail = adapter.detail?.(view);
-  const bar = (expandable: boolean) => (
+  const setExpanded = (next: boolean) => {
+    if (external) expansion!.toggle(id!);
+    else if (!controlled) setUncontrolledExpanded(next);
+    onExpandedChange?.(next);
+  };
+  const bar = (expandable: boolean, showStatus = true) => (
     <div class="tool__bar">
       <span class="tool__glyph" aria-hidden="true">
         {adapter.glyph}
       </span>
       <span class="tool__title">{adapter.title(view)}</span>
-      <span class={`tool__status tool__status--${view.status}`}>{STATUS_LABEL[view.status]}</span>
+      {showStatus ? (
+        <span class={`tool__status tool__status--${view.status}`}>{STATUS_LABEL[view.status]}</span>
+      ) : null}
       {expandable ? <span class="tool__toggle" aria-hidden="true" /> : null}
     </div>
   );
   const summaryLine = <div class="tool__summary">{adapter.summary(view)}</div>;
+  const isInline = adapter.inline !== undefined;
+  const inline = adapter.inline?.(view, {
+    expanded: isExpanded,
+    onExpandedChange: setExpanded,
+  });
+  const inlineBodyClass = adapter.inlineBodyClass?.(view);
 
   return (
     <article
-      class={`tool tool--${view.status}`}
+      class={`tool tool--${view.status}${isInline ? " tool--inline" : ""}`}
       data-tool={view.name}
       {...(id ? { "data-tool-id": id } : {})}
       aria-busy={view.status === "running"}
     >
-      {detail ? (
+      <span class="sr-only" role="status">
+        {STATUS_LABEL[view.status]}
+      </span>
+      {isInline ? (
+        <>
+          <div class="tool__head tool__head--static">{bar(false, false)}</div>
+          {inline ? (
+            <div
+              class={`tool__body tool__body--inline${inlineBodyClass ? ` ${inlineBodyClass}` : ""}`}
+            >
+              {inline}
+            </div>
+          ) : null}
+        </>
+      ) : detail ? (
         <details class="tool__disclosure" open={isExpanded}>
           <summary
             class="tool__head"
             onClick={(event) => {
               event.preventDefault();
-              const next = !isExpanded;
-              if (external) expansion!.toggle(id!);
-              else if (!controlled) setUncontrolledExpanded(next);
-              onExpandedChange?.(next);
+              setExpanded(!isExpanded);
             }}
           >
             {bar(true)}

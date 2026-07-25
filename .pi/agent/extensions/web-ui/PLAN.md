@@ -257,7 +257,7 @@ Tasks:
 
 - [x] Generate deterministic thousands-entry sessions with mixed Markdown, images, and tool heights.
 - [x] Prepare browser assertions for bounded DOM row count, page completeness, anchoring, live-follow behavior, expansion persistence, and reset races.
-- [ ] Add desktop/mobile exporter-parity screenshots with reduced motion and deterministic data.
+- [x] Add desktop/mobile exporter-parity screenshots with reduced motion and deterministic data.
 
 This stream may author tests against the frozen contract while 2A/2B implement it. It must not weaken assertions merely to match an incomplete implementation.
 
@@ -283,13 +283,13 @@ Pagination plus virtualization is complete only when integrated and passing larg
 
 Authoritative handoff: `RENDERING_HANDOFF.md`. Use the local Pi source under `~/dev/pi/packages/coding-agent/src/core/export-html/` as the behavioral and visual specification.
 
-- [ ] Port exporter transcript typography, 12px/18px density, spacing, colors, message hierarchy, and disclosure behavior onto the virtualized Preact timeline without changing its paging/row architecture.
-- [ ] Reproduce the exporter’s browser-rendered `bash`, `read`, `write`, `edit`, and `ls` presentations from `template.js` and `template.css` using safe semantic Preact nodes.
-- [ ] Render terminal-like output as escaped `.ansi-line`/span components; add a bounded client-side ANSI parser only where actual ANSI parity requires it, never raw injected server HTML.
-- [ ] Hand-port useful terminal presentations for other known tools while preserving focused Agentflow, background-job, and questionnaire renderers.
-- [ ] Make the unknown-tool fallback compact, terminal-like, safe, and consistent.
-- [ ] Preserve controlled expansion/focus across virtual unmounts and trigger correct row remeasurement on expansion and live output.
-- [ ] Add exporter-source fixtures, component assertions, and deterministic Playwright parity screenshots while keeping large-session DOM, anchoring, paging, and live-follow checks green.
+- [x] Port exporter transcript typography, 12px/18px density, spacing, colors, message hierarchy, and disclosure behavior onto the virtualized Preact timeline without changing its paging/row architecture.
+- [x] Reproduce the exporter’s browser-rendered `bash`, `read`, `write`, `edit`, and `ls` presentations from `template.js` and `template.css` using safe semantic Preact nodes.
+- [x] Render terminal-like output as escaped `.ansi-line`/span components; add a bounded client-side ANSI parser only where actual ANSI parity requires it, never raw injected server HTML.
+- [x] Hand-port useful terminal presentations for other known tools while preserving focused Agentflow, background-job, and questionnaire renderers.
+- [x] Make the unknown-tool fallback compact, terminal-like, safe, and consistent.
+- [x] Preserve controlled expansion/focus across virtual unmounts and trigger correct row remeasurement on expansion and live output.
+- [x] Add exporter-source fixtures, component assertions, and deterministic Playwright parity screenshots while keeping large-session DOM, anchoring, paging, and live-follow checks green.
 
 This phase is client-only. It must not import private Pi internals, invoke TUI renderers, serialize components, add server-rendered tool HTML, or replace the virtualized timeline.
 
