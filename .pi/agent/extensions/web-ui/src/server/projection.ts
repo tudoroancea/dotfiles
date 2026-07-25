@@ -2,12 +2,7 @@ import { Buffer } from "node:buffer";
 import { homedir } from "node:os";
 import { type ExtensionContext, VERSION } from "@earendil-works/pi-coding-agent";
 import { LIMITS } from "../shared/limits.js";
-import type {
-  PersistedEntry,
-  PersistedState,
-  ProjectedMessage,
-  SessionMetadata,
-} from "../shared/wire.js";
+import type { PersistedEntry, ProjectedMessage, SessionMetadata } from "../shared/wire.js";
 
 export type JsonValue =
   | null
@@ -25,7 +20,6 @@ const SENSITIVE_KEY = /^(?:api[-_]?key|authorization|cookie|credential|password|
 const PROJECTED_VALUE_BYTES = 32 * 1024;
 const PROJECTED_MESSAGE_BYTES = 128 * 1024;
 const PROJECTED_TOOL_RESULT_BYTES = 1536 * 1024;
-const PERSISTED_STATE_BYTES = Math.floor(LIMITS.snapshotBytes / 2);
 const TRUNCATED = "…[truncated]";
 
 interface ProjectionBudget {
@@ -302,7 +296,7 @@ export function projectToolResult(input: unknown): JsonValue {
   return output;
 }
 
-function projectEntry(
+function projectEntryWithBudget(
   input: unknown,
   projectionBudget: ProjectionBudget,
 ): PersistedEntry | undefined {
@@ -351,23 +345,8 @@ function projectEntry(
   };
 }
 
-export function projectPersistedState(context: ExtensionContext): PersistedState {
-  const branch = context.sessionManager.getBranch();
-  const selected: PersistedEntry[] = [];
-  const projectionBudget = budget(PERSISTED_STATE_BYTES);
-  let index = branch.length - 1;
-  for (; index >= 0 && projectionBudget.remaining > 1024; index -= 1) {
-    const entry = projectEntry(branch[index], projectionBudget);
-    if (entry) selected.push(entry);
-  }
-  const entriesTruncated = index >= 0;
-  selected.reverse();
-  return {
-    sessionId: String(context.sessionManager.getSessionId()).slice(0, 256),
-    leafId: context.sessionManager.getLeafId(),
-    entries: selected,
-    entriesTruncated,
-  };
+export function projectPersistedEntry(input: unknown): PersistedEntry | undefined {
+  return projectEntryWithBudget(input, budget(PROJECTED_TOOL_RESULT_BYTES));
 }
 
 function sessionCost(context: ExtensionContext): number {

@@ -72,6 +72,25 @@ describe("tool renderer registry", () => {
     expect(container.querySelector("code")?.textContent).toContain("export const answer = 42;");
   });
 
+  it("supports externally keyed expansion across unmount and remount", () => {
+    let expanded = false;
+    const first = render(
+      <ToolCall
+        view={view("bash")}
+        expanded={expanded}
+        onExpandedChange={(next) => {
+          expanded = next;
+        }}
+      />,
+    );
+    fireEvent.click(first.container.querySelector("summary")!);
+    expect(expanded).toBe(true);
+    first.unmount();
+
+    const second = render(<ToolCall view={view("bash")} expanded={expanded} />);
+    expect(second.container.querySelector("details")?.hasAttribute("open")).toBe(true);
+  });
+
   it("expands a long single-line bash command without colliding with status chrome", () => {
     const command = `printf '%s' ${"long-argument ".repeat(12)}`;
     const { container } = render(
@@ -343,7 +362,13 @@ describe("timeline rendering", () => {
       isError: false,
     });
     const state = {
-      persisted: { sessionId: "session", leafId: null, entries: [], entriesTruncated: false },
+      persisted: {
+        sessionId: "session",
+        leafId: null,
+        historyGeneration: "history-1",
+        entries: [],
+        hasOlder: false,
+      },
       live: {
         isRunning: true,
         finalizedMessages: [
@@ -401,7 +426,8 @@ describe("timeline rendering", () => {
       persisted: {
         sessionId: "session",
         leafId: "result",
-        entriesTruncated: false,
+        historyGeneration: "history-1",
+        hasOlder: false,
         entries: [
           {
             id: "assistant",

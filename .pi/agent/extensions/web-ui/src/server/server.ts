@@ -115,6 +115,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
   const providers = options.providerRegistry ?? new ProviderRegistry();
   const store = new SessionStateStore(context, generation, pi.getActiveTools());
   const clients = new Map<WebSocket, ClientQueue>();
+  const pendingHistory = new WeakSet<ClientQueue>();
   let closed = false;
   let closePromise: Promise<void> | undefined;
   let coalesceTimer: NodeJS.Timeout | undefined;
@@ -318,7 +319,7 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
       ...(commandId ? { commandId } : {}),
       ...(command ? { command } : {}),
       accepted: false,
-      error,
+      error: error.slice(0, 512),
     };
     sendControl(channel, message);
   }
@@ -375,6 +376,24 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
         flushUpdate();
         accepted(channel, command);
         channel.enqueueSnapshot(snapshotSerialized(command.commandId));
+        return;
+      }
+      case "history_page": {
+        if (!channel.isOpen()) throw new Error("History connection is closed");
+        if (pendingHistory.has(channel)) {
+          throw new Error("An earlier history page is still being delivered");
+        }
+        pendingHistory.add(channel);
+        try {
+          const serialized = serialize(store.historyPage(command));
+          if (!channel.enqueueControl(serialized, () => pendingHistory.delete(channel))) {
+            pendingHistory.delete(channel);
+            throw new Error("History connection is closed");
+          }
+        } catch (error) {
+          pendingHistory.delete(channel);
+          throw error;
+        }
         return;
       }
       case "provider_snapshot": {
@@ -590,6 +609,9 @@ export async function startWebUiServer(options: StartWebUiServerOptions): Promis
           return;
         case "session_tree":
         case "session_compact":
+          store.rotateHistory(context);
+          snapshotBarrier();
+          return;
         case "session_info_changed":
           store.reconcile(context, { activeTools: pi.getActiveTools() });
           snapshotBarrier();

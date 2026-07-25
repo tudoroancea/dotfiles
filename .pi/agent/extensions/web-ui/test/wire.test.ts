@@ -5,6 +5,7 @@ import { SessionStateStore } from "../src/server/state.js";
 import {
   ClientCommandSchema,
   CommandResponseMessageSchema,
+  HistoryPageMessageSchema,
   PongMessageSchema,
   PROTOCOL_VERSION,
   ReadyMessageSchema,
@@ -48,6 +49,18 @@ describe("current protocol schemas", () => {
       }),
     ).toBe(true);
     expect(Check(ClientCommandSchema, { type: "abort", commandId: "abort-1" })).toBe(false);
+    const historyPage = {
+      type: "history_page",
+      commandId: "history-1",
+      generation: "generation-wire",
+      historyGeneration: "history-generation-wire",
+      cursor: "opaque-cursor",
+    };
+    expect(Check(ClientCommandSchema, historyPage)).toBe(true);
+    expect(Check(ClientCommandSchema, { ...historyPage, generation: undefined })).toBe(false);
+    expect(Check(ClientCommandSchema, { ...historyPage, historyGeneration: undefined })).toBe(
+      false,
+    );
   });
 
   it("allows snapshot diagnostics with a known generation and revision", () => {
@@ -84,6 +97,19 @@ describe("current protocol schemas", () => {
         },
       },
       { schema: SnapshotMessageSchema, value: snapshot },
+      {
+        schema: HistoryPageMessageSchema,
+        value: {
+          type: "history_page",
+          protocolVersion: PROTOCOL_VERSION,
+          commandId: "history-1",
+          generation: "generation-wire",
+          historyGeneration: snapshot.state.persisted.historyGeneration,
+          revision: store.revision,
+          entries: [],
+          hasOlder: false,
+        },
+      },
       { schema: StateUpdateMessageSchema, value: update },
       {
         schema: CommandResponseMessageSchema,
@@ -123,5 +149,16 @@ describe("current protocol schemas", () => {
       expect(Check(ServerMessageSchema, { ...value, protocolVersion: 1 })).toBe(false);
     }
     expect(Check(StatePatchSchema, {})).toBe(false);
+    expect(
+      Check(CommandResponseMessageSchema, {
+        type: "command_response",
+        protocolVersion: PROTOCOL_VERSION,
+        generation: "generation-wire",
+        commandId: "history-1",
+        command: "history_page",
+        accepted: false,
+        error: "x".repeat(513),
+      }),
+    ).toBe(false);
   });
 });

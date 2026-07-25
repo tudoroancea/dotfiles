@@ -9,6 +9,7 @@ interface Frame {
   data: string;
   bytes: number;
   key?: string;
+  onSettled?: () => void;
 }
 
 export class ClientQueue {
@@ -23,8 +24,17 @@ export class ClientQueue {
     private readonly currentSnapshot: () => string,
   ) {}
 
-  enqueueControl(serialized: string): void {
-    this.enqueue({ kind: "control", data: serialized, bytes: Buffer.byteLength(serialized) });
+  enqueueControl(serialized: string, onSettled?: () => void): boolean {
+    return this.enqueue({
+      kind: "control",
+      data: serialized,
+      bytes: Buffer.byteLength(serialized),
+      ...(onSettled ? { onSettled } : {}),
+    });
+  }
+
+  isOpen(): boolean {
+    return !this.closed && this.websocket.readyState === WebSocket.OPEN;
   }
 
   enqueueState(serialized: string): void {
@@ -60,6 +70,7 @@ export class ClientQueue {
     if (this.closed) return;
     this.closed = true;
     if (this.slowTimer) clearTimeout(this.slowTimer);
+    for (const frame of this.frames) frame.onSettled?.();
     this.frames.length = 0;
     this.queuedBytes = 0;
     if (this.websocket.readyState === WebSocket.OPEN) this.websocket.close(code, reason);
@@ -70,11 +81,11 @@ export class ClientQueue {
     this.websocket.terminate();
   }
 
-  private enqueue(frame: Frame): void {
-    if (this.closed || this.websocket.readyState !== WebSocket.OPEN) return;
+  private enqueue(frame: Frame): boolean {
+    if (this.closed || this.websocket.readyState !== WebSocket.OPEN) return false;
     if (frame.bytes > LIMITS.outboundMessageBytes) {
       this.close(1009, "Outbound message exceeds the limit");
-      return;
+      return false;
     }
     this.frames.push(frame);
     this.queuedBytes += frame.bytes;
@@ -86,12 +97,13 @@ export class ClientQueue {
         this.frames.pop();
         this.queuedBytes -= frame.bytes;
         this.enqueueSnapshot();
-        return;
+        return false;
       }
       this.close(1013, "Client is too slow");
-      return;
+      return false;
     }
     this.pump();
+    return true;
   }
 
   private pump(): void {
@@ -110,6 +122,7 @@ export class ClientQueue {
       if (this.slowTimer) clearTimeout(this.slowTimer);
       this.slowTimer = undefined;
       this.sending = false;
+      frame.onSettled?.();
       if (error) {
         this.terminate();
         return;

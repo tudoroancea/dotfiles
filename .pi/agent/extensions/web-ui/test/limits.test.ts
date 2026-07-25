@@ -34,6 +34,13 @@ describe("remote input limits", () => {
     expect(largestProjectedMessage).toBeLessThanOrEqual(LIMITS.outboundMessageBytes);
   });
 
+  it("freezes bounded history page and cursor limits", () => {
+    expect(LIMITS.historyPageEntries).toBe(100);
+    expect(LIMITS.historyPageBytes).toBe(512 * 1024);
+    expect(LIMITS.historyCursorBytes).toBe(512);
+    expect(LIMITS.historyPageBytes).toBeLessThanOrEqual(LIMITS.outboundMessageBytes);
+  });
+
   it("bounds clients, queue depth, and bootstrap lifetime", () => {
     expect(LIMITS.connectedClients).toBeGreaterThan(0);
     expect(LIMITS.outboundMessagesPerClient).toBeGreaterThan(0);

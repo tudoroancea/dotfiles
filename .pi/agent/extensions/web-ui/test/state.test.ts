@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
-import { projectJson, projectMetadata, projectPersistedState } from "../src/server/projection.js";
+import { HistoryManager } from "../src/server/history.js";
+import { projectJson, projectMetadata } from "../src/server/projection.js";
 import { mergeStateUpdates, SessionStateStore } from "../src/server/state.js";
 
 const fixtures = JSON.parse(
@@ -38,6 +39,21 @@ function harness(initialBranch: unknown[] = fixtures.persistedBranch) {
 function contentText(result: unknown): string | undefined {
   const record = result as { content?: Array<{ text?: string }> };
   return record.content?.[0]?.text;
+}
+
+function historyEntry(index: number, cost = 0) {
+  return {
+    type: "message",
+    id: `history-${index}`,
+    parentId: index === 0 ? null : `history-${index - 1}`,
+    timestamp: new Date(1_700_000_000_000 + index).toISOString(),
+    message: {
+      role: "assistant",
+      content: [{ type: "text", text: `entry ${index}` }],
+      usage: { cost: { total: cost } },
+      timestamp: index,
+    },
+  };
 }
 
 describe("SessionStateStore", () => {
@@ -271,6 +287,63 @@ describe("SessionStateStore", () => {
     expect(Buffer.byteLength(JSON.stringify(store.snapshot()))).toBeLessThan(8 * 1024 * 1024);
   });
 
+  it("preserves history lineage on strict appends and rotates it on replacement or demand", () => {
+    const source = Array.from({ length: 120 }, (_, index) =>
+      historyEntry(index, index === 0 ? 1 : 0),
+    );
+    const session = harness(source);
+    const store = new SessionStateStore(session.context, "generation-history-state");
+    const initial = store.state().persisted;
+    const request = {
+      type: "history_page" as const,
+      commandId: "history-state-page",
+      generation: "generation-history-state",
+      historyGeneration: initial.historyGeneration,
+      cursor: initial.olderCursor!,
+    };
+    const pageBeforeAppend = store.historyPage(request);
+
+    session.setBranch([...source, historyEntry(120, 2)]);
+    const append = store.reconcile(session.context)!;
+    expect(append.patch.persisted?.historyGeneration).toBe(initial.historyGeneration);
+    expect(append.patch.metadata?.sessionCost).toBe(3);
+    expect(store.historyPage(request)).toMatchObject({
+      historyGeneration: initial.historyGeneration,
+      entries: pageBeforeAppend.entries,
+      hasOlder: pageBeforeAppend.hasOlder,
+    });
+
+    session.setBranch([...source.map((item) => ({ ...item })), historyEntry(120, 2)]);
+    const replacement = store.reconcile(session.context)!;
+    expect(replacement.patch.persisted?.historyGeneration).not.toBe(initial.historyGeneration);
+    expect(() => store.historyPage(request)).toThrow("invalid or stale");
+
+    const replacementGeneration = store.state().persisted.historyGeneration;
+    store.rotateHistory(session.context);
+    expect(store.state().persisted.historyGeneration).not.toBe(replacementGeneration);
+  });
+
+  it("does not rescan the whole branch for cost on unchanged hot reconciles", () => {
+    const source = Array.from({ length: 150 }, (_, index) =>
+      historyEntry(index, index === 149 ? 4 : 0),
+    );
+    let branchReads = 0;
+    const session = harness(source);
+    const manager = session.context.sessionManager;
+    const originalGetBranch = manager.getBranch.bind(manager);
+    manager.getBranch = () => {
+      branchReads += 1;
+      return originalGetBranch();
+    };
+    const store = new SessionStateStore(session.context, "generation-cost-cache");
+    expect(store.state().metadata.sessionCost).toBe(4);
+    const readsAfterConstruction = branchReads;
+
+    expect(store.reconcile(session.context)).toBeUndefined();
+    expect(branchReads - readsAfterConstruction).toBe(1);
+    expect(store.state().metadata.sessionCost).toBe(4);
+  });
+
   it("merges contiguous replacement-complete patches without inventing revisions", () => {
     const session = harness([]);
     const store = new SessionStateStore(session.context, "generation-4");
@@ -365,7 +438,7 @@ describe("safe projection", () => {
         message: { role: "user", content: [images[0]], timestamp: 3 },
       },
     ]);
-    const persisted = projectPersistedState(session.context);
+    const persisted = new HistoryManager(session.context, "generation-images").window();
     const first = persisted.entries[0]!.payload as {
       message: { content: Array<{ omitted?: boolean }> };
     };

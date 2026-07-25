@@ -26,6 +26,27 @@ describe("client command validation", () => {
         type,
       });
     }
+    expect(
+      parseClientCommand(
+        JSON.stringify({
+          type: "history_page",
+          commandId: "history-1",
+          generation: "generation-1",
+          historyGeneration: "history-generation-1",
+          cursor: "opaque-cursor",
+        }),
+      ),
+    ).toMatchObject({ type: "history_page", cursor: "opaque-cursor" });
+    expect(() =>
+      parseClientCommand(
+        JSON.stringify({
+          type: "history_page",
+          commandId: "history-2",
+          historyGeneration: "history-generation-1",
+          cursor: "opaque-cursor",
+        }),
+      ),
+    ).toThrow("Invalid command payload");
   });
 
   it("rejects unknown fields, invalid JSON, and UTF-8 byte overflow", () => {

@@ -9,6 +9,7 @@ import WebSocket from "ws";
 import { readWebUiConfig } from "../src/server/config.js";
 import { ProviderRegistry } from "../src/server/providers.js";
 import { startWebUiServer, type WebUiRuntime } from "../src/server/server.js";
+import { LIMITS } from "../src/shared/limits.js";
 import { PROTOCOL_VERSION } from "../src/shared/wire.js";
 
 const temporaryDirectories: string[] = [];
@@ -45,7 +46,7 @@ function context() {
     sessionManager: {
       getSessionId: () => "session-test",
       getBranch: () => branch,
-      getLeafId: () => null,
+      getLeafId: () => (branch.at(-1) as { id?: string } | undefined)?.id ?? null,
     },
     isIdle: () => idle,
     getContextUsage: () => ({ tokens: 100, contextWindow: 1_000, percent: 10 }),
@@ -77,6 +78,61 @@ function nextMessage(websocket: WebSocket, type: string): Promise<Record<string,
     };
     websocket.on("message", listener);
   });
+}
+
+interface ReceivedMessage {
+  value: Record<string, unknown>;
+  serialized: string;
+}
+
+function messageInbox(websocket: WebSocket) {
+  const queued: ReceivedMessage[] = [];
+  const waiters: Array<{
+    predicate: (message: Record<string, unknown>) => boolean;
+    resolve: (message: ReceivedMessage) => void;
+  }> = [];
+  websocket.on("message", (data) => {
+    const serialized = data.toString();
+    const received = {
+      value: JSON.parse(serialized) as Record<string, unknown>,
+      serialized,
+    };
+    const waiterIndex = waiters.findIndex(({ predicate }) => predicate(received.value));
+    if (waiterIndex < 0) queued.push(received);
+    else waiters.splice(waiterIndex, 1)[0]!.resolve(received);
+  });
+  return {
+    queued,
+    next(predicate: (message: Record<string, unknown>) => boolean): Promise<ReceivedMessage> {
+      const index = queued.findIndex(({ value }) => predicate(value));
+      if (index >= 0) return Promise.resolve(queued.splice(index, 1)[0]!);
+      return new Promise((resolve) => waiters.push({ predicate, resolve }));
+    },
+  };
+}
+
+function persistedEntry(index: number, text = `entry ${index}`) {
+  return {
+    type: "message",
+    id: `server-entry-${index}`,
+    parentId: index === 0 ? null : `server-entry-${index - 1}`,
+    timestamp: new Date(1_700_000_000_000 + index).toISOString(),
+    message: { role: "user", content: [{ type: "text", text }], timestamp: index },
+  };
+}
+
+async function authenticatedSocket(runtime: WebUiRuntime): Promise<WebSocket> {
+  const link = new URL(runtime.createBootstrapUrl());
+  const credential = new URLSearchParams(link.hash.slice(1)).get("bootstrap")!;
+  const origin = new URL(runtime.diagnosticUrl).origin;
+  const exchange = await fetch(new URL("api/bootstrap", runtime.diagnosticUrl), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}`, Origin: origin },
+  });
+  const cookie = exchange.headers.get("set-cookie")!.split(";", 1)[0]!;
+  const websocketUrl = new URL("ws", runtime.diagnosticUrl);
+  websocketUrl.protocol = "ws:";
+  return openWebSocket(websocketUrl.href, cookie, origin);
 }
 
 describe("web UI server", () => {
@@ -457,6 +513,189 @@ describe("web UI server", () => {
       patch: { persisted: { entries: [{ id: "persisted-user" }] } },
     });
     second.close();
+  });
+
+  it("pages large history privately without revisions, gaps, duplicates, or lineage leaks", async () => {
+    const source = Array.from({ length: 251 }, (_, index) =>
+      persistedEntry(index, `entry ${index} ${'🙂\\"'.repeat(200)}`),
+    );
+    const session = context();
+    session.setBranch(source);
+    const runtime = await startWebUiServer({
+      pi: controller(),
+      context: session.value,
+      config: configuration(),
+      assetRoot: await assets(),
+      generation: "history-server-generation",
+    });
+    runtimes.push(runtime);
+
+    const requesterSocket = await authenticatedSocket(runtime);
+    const requester = messageInbox(requesterSocket);
+    const peerSocket = await authenticatedSocket(runtime);
+    const peer = messageInbox(peerSocket);
+    const initial = (await requester.next((message) => message.type === "snapshot")).value as {
+      revision: number;
+      state: {
+        persisted: {
+          historyGeneration: string;
+          entries: Array<{ id: string }>;
+          hasOlder: boolean;
+          olderCursor: string;
+        };
+      };
+    };
+    await peer.next((message) => message.type === "snapshot");
+    expect(initial.state.persisted.entries).toHaveLength(LIMITS.historyPageEntries);
+    expect(initial.state.persisted.hasOlder).toBe(true);
+
+    const firstRequest = {
+      type: "history_page",
+      commandId: "history-page-1",
+      generation: "history-server-generation",
+      historyGeneration: initial.state.persisted.historyGeneration,
+      cursor: initial.state.persisted.olderCursor,
+    };
+    requesterSocket.send(JSON.stringify(firstRequest));
+    const firstPage = await requester.next(
+      (message) => message.type === "history_page" && message.commandId === "history-page-1",
+    );
+    expect(Buffer.byteLength(firstPage.serialized)).toBeLessThanOrEqual(LIMITS.historyPageBytes);
+    expect(firstPage.value.revision).toBe(initial.revision);
+    expect(requester.queued).not.toContainEqual(
+      expect.objectContaining({ value: expect.objectContaining({ commandId: "history-page-1" }) }),
+    );
+
+    requesterSocket.send(JSON.stringify(firstRequest));
+    const retry = await requester.next(
+      (message) => message.type === "history_page" && message.commandId === "history-page-1",
+    );
+    expect(retry.serialized).toBe(firstPage.serialized);
+
+    const chunks = [initial.state.persisted.entries];
+    let page = firstPage.value as {
+      entries: Array<{ id: string }>;
+      hasOlder: boolean;
+      olderCursor?: string;
+    };
+    chunks.unshift(page.entries);
+    let requestIndex = 2;
+    while (page.hasOlder) {
+      const commandId = `history-page-${requestIndex++}`;
+      requesterSocket.send(
+        JSON.stringify({
+          ...firstRequest,
+          commandId,
+          cursor: page.olderCursor,
+        }),
+      );
+      const received = await requester.next(
+        (message) => message.type === "history_page" && message.commandId === commandId,
+      );
+      expect(Buffer.byteLength(received.serialized)).toBeLessThanOrEqual(LIMITS.historyPageBytes);
+      expect(received.value.revision).toBe(initial.revision);
+      page = received.value as typeof page;
+      chunks.unshift(page.entries);
+    }
+    const retrievedIds = chunks.flat().map(({ id }) => id);
+    expect(retrievedIds).toEqual(source.map((item) => item.id));
+    expect(new Set(retrievedIds).size).toBe(source.length);
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(
+      peer.queued.some(({ value }) =>
+        typeof value.commandId === "string" ? value.commandId.startsWith("history-page-") : false,
+      ),
+    ).toBe(false);
+
+    session.setBranch([...source, persistedEntry(251)]);
+    const appendUpdate = requester.next((message) => message.type === "state_update");
+    runtime.reconcile();
+    const appendPersisted = (await appendUpdate).value as {
+      revision: number;
+      patch: { persisted: { historyGeneration: string } };
+    };
+    expect(appendPersisted.patch.persisted.historyGeneration).toBe(
+      initial.state.persisted.historyGeneration,
+    );
+    requesterSocket.send(JSON.stringify({ ...firstRequest, commandId: "history-after-append" }));
+    const afterAppend = await requester.next(
+      (message) => message.type === "history_page" && message.commandId === "history-after-append",
+    );
+    expect(afterAppend.value).toMatchObject({
+      revision: appendPersisted.revision,
+      historyGeneration: initial.state.persisted.historyGeneration,
+      entries: firstPage.value.entries,
+      olderCursor: firstPage.value.olderCursor,
+    });
+
+    const cursor = initial.state.persisted.olderCursor;
+    const tamperedCursor = `${cursor.slice(0, -1)}${cursor.endsWith("A") ? "B" : "A"}`;
+    requesterSocket.send(
+      JSON.stringify({
+        ...firstRequest,
+        commandId: "history-tampered",
+        cursor: tamperedCursor,
+      }),
+    );
+    const tampered = await requester.next(
+      (message) => message.type === "command_response" && message.commandId === "history-tampered",
+    );
+    expect(tampered.value).toMatchObject({
+      accepted: false,
+      command: "history_page",
+      error: expect.stringContaining("fresh snapshot"),
+    });
+    expect(tampered.value).not.toHaveProperty("historyGeneration");
+    expect(tampered.serialized).not.toContain(cursor);
+    expect(Buffer.byteLength(tampered.serialized)).toBeLessThanOrEqual(LIMITS.historyPageBytes);
+
+    session.setBranch(source.slice(0, 180));
+    const resetUpdate = requester.next((message) => message.type === "state_update");
+    runtime.reconcile();
+    const resetGeneration = (
+      (await resetUpdate).value as { patch: { persisted: { historyGeneration: string } } }
+    ).patch.persisted.historyGeneration;
+    expect(resetGeneration).not.toBe(initial.state.persisted.historyGeneration);
+
+    const forcedSnapshot = requester.next((message) => message.type === "snapshot");
+    runtime.broadcast("session_tree", {});
+    const forced = (await forcedSnapshot).value as {
+      revision: number;
+      state: { persisted: { historyGeneration: string } };
+    };
+    expect(forced.state.persisted.historyGeneration).not.toBe(resetGeneration);
+
+    requesterSocket.send(JSON.stringify({ ...firstRequest, commandId: "history-stale" }));
+    const stale = await requester.next(
+      (message) => message.type === "command_response" && message.commandId === "history-stale",
+    );
+    expect(stale.value).toMatchObject({
+      accepted: false,
+      command: "history_page",
+      error: expect.stringContaining("fresh snapshot"),
+    });
+    expect(stale.value).not.toHaveProperty("historyGeneration");
+    expect(stale.value).not.toHaveProperty("cursor");
+    expect(stale.serialized).not.toContain(initial.state.persisted.historyGeneration);
+    expect(Buffer.byteLength(stale.serialized)).toBeLessThanOrEqual(LIMITS.historyPageBytes);
+
+    requesterSocket.send(
+      JSON.stringify({
+        ...firstRequest,
+        commandId: "history-wrong-session-generation",
+        generation: "stale-session-generation",
+      }),
+    );
+    expect(
+      (
+        await requester.next(
+          (message) =>
+            message.type === "command_response" &&
+            message.commandId === "history-wrong-session-generation",
+        )
+      ).value,
+    ).toMatchObject({ accepted: false, error: expect.stringContaining("fresh snapshot") });
   });
 
   it("releases a fixed port for a fresh replacement runtime", async () => {

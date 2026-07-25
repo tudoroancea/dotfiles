@@ -69,6 +69,20 @@ describe("ClientQueue", () => {
     expect(socket.close).not.toHaveBeenCalled();
   });
 
+  it("reports control delivery settlement and rejects closed admission", () => {
+    const socket = new FakeWebSocket();
+    const queue = new ClientQueue(socket as unknown as WebSocket, () => "snapshot");
+    const settled = vi.fn();
+    expect(queue.enqueueControl("history-page", settled)).toBe(true);
+    expect(settled).not.toHaveBeenCalled();
+    socket.completeNext();
+    expect(settled).toHaveBeenCalledOnce();
+
+    queue.close();
+    expect(queue.isOpen()).toBe(false);
+    expect(queue.enqueueControl("too-late", vi.fn())).toBe(false);
+  });
+
   it("disconnects a send that exceeds the slow-client deadline", () => {
     vi.useFakeTimers();
     const socket = new FakeWebSocket();

@@ -1,3 +1,4 @@
+import { useState } from "preact/hooks";
 import type { ToolView } from "../lib/tool-model.js";
 import { resolveAdapter } from "../render/registry.js";
 
@@ -7,8 +8,22 @@ const STATUS_LABEL: Record<ToolView["status"], string> = {
   error: "Failed",
 };
 
+export interface ToolCallProps {
+  view: ToolView;
+  expanded?: boolean;
+  defaultExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+}
+
 /** Boxed terminal panel for a single tool call, driven by the registry. */
-export function ToolCall({ view }: { view: ToolView }) {
+export function ToolCall({
+  view,
+  expanded,
+  defaultExpanded = false,
+  onExpandedChange,
+}: ToolCallProps) {
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(defaultExpanded);
+  const isExpanded = expanded ?? uncontrolledExpanded;
   const adapter = resolveAdapter(view.name);
   const detail = adapter.detail?.(view);
   const bar = (expandable: boolean) => (
@@ -30,8 +45,16 @@ export function ToolCall({ view }: { view: ToolView }) {
       aria-busy={view.status === "running"}
     >
       {detail ? (
-        <details class="tool__disclosure">
-          <summary class="tool__head">
+        <details class="tool__disclosure" open={isExpanded}>
+          <summary
+            class="tool__head"
+            onClick={(event) => {
+              event.preventDefault();
+              const next = !isExpanded;
+              if (expanded === undefined) setUncontrolledExpanded(next);
+              onExpandedChange?.(next);
+            }}
+          >
             {bar(true)}
             {summaryLine}
           </summary>

@@ -193,9 +193,6 @@ export function Timeline({ state }: { state: SessionState }) {
   return (
     <div class="timeline">
       {intro}
-      {persisted.entriesTruncated ? (
-        <p class="timeline__truncated">Earlier history is not shown.</p>
-      ) : null}
       {entries.map((entry) => (
         <EntryView key={entry.id} entry={entry} toolCalls={toolCalls} />
       ))}

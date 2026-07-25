@@ -221,12 +221,12 @@ Owned files:
 
 Tasks:
 
-- [ ] Implement bounded page projection and exact serialized-envelope accounting.
-- [ ] Implement opaque validated cursors and strict-append history-generation tracking.
-- [ ] Handle page requests without state revisions or broadcasts.
-- [ ] Reject stale/malformed/out-of-range requests safely.
-- [ ] Avoid repeated whole-branch work on hot reconciliation paths; cache append-derived session cost/index metadata and recompute on lineage rotation.
-- [ ] Test first/last pages, count and byte boundaries, escaped content, idempotence, appends, branch resets, compaction, concurrent clients, and slow-client limits.
+- [x] Implement bounded page projection and exact serialized-envelope accounting.
+- [x] Implement opaque validated cursors and strict-append history-generation tracking.
+- [x] Handle page requests without state revisions or broadcasts.
+- [x] Reject stale/malformed/out-of-range requests safely.
+- [x] Avoid repeated whole-branch work on hot reconciliation paths; cache append-derived session cost/index metadata and recompute on lineage rotation.
+- [x] Test first/last pages, count and byte boundaries, escaped content, idempotence, appends, branch resets, compaction, concurrent clients, and slow-client limits.
 
 #### 2B. Browser store and virtualizer workstream
 
@@ -239,11 +239,11 @@ Owned files:
 
 Tasks:
 
-- [ ] Implement chunked history storage, ID deduplication, indexed row access, and lineage reset.
-- [ ] Keep history snapshots stable across live token updates.
-- [ ] Implement the pinned `@tanstack/virtual-core` Preact adapter with variable-height measurement and cleanup.
-- [ ] Externalize tool expansion state and preserve focused rows.
-- [ ] Unit-test stale responses, duplicate pages, tail merges, reset races, measurement updates, and observer disposal.
+- [x] Implement chunked history storage, ID deduplication, indexed row access, and lineage reset.
+- [x] Keep history snapshots stable across live token updates.
+- [x] Implement the pinned `@tanstack/virtual-core` Preact adapter with variable-height measurement and cleanup.
+- [x] Externalize tool expansion state and preserve focused rows.
+- [x] Unit-test stale responses, duplicate pages, tail merges, reset races, measurement updates, and observer disposal.
 
 #### 2C. Playwright scenario workstream
 

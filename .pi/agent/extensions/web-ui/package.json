@@ -24,6 +24,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@tanstack/virtual-core": "3.13.21",
     "dompurify": "3.4.12",
     "highlight.js": "11.11.1",
     "marked": "17.0.6",

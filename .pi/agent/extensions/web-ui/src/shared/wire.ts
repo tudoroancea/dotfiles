@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import { LIMITS } from "./limits.js";
 
-export const PROTOCOL_VERSION = 6 as const;
+export const PROTOCOL_VERSION = 7 as const;
 
 const RevisionSchema = Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
 const GenerationSchema = Type.String({ minLength: 1, maxLength: 128 });
@@ -44,8 +44,10 @@ export const PersistedStateSchema = Type.Object(
   {
     sessionId: Type.String(),
     leafId: Type.Union([Type.String(), Type.Null()]),
-    entries: Type.Array(PersistedEntrySchema),
-    entriesTruncated: Type.Boolean(),
+    historyGeneration: GenerationSchema,
+    entries: Type.Array(PersistedEntrySchema, { maxItems: LIMITS.historyPageEntries }),
+    hasOlder: Type.Boolean(),
+    olderCursor: Type.Optional(Type.String({ minLength: 1, maxLength: LIMITS.historyCursorBytes })),
   },
   { additionalProperties: false },
 );
@@ -163,6 +165,16 @@ export const ClientCommandSchema = Type.Union([
   ),
   Type.Object(
     {
+      type: Type.Literal("history_page"),
+      commandId: CommandIdSchema,
+      generation: GenerationSchema,
+      historyGeneration: GenerationSchema,
+      cursor: Type.String({ minLength: 1, maxLength: LIMITS.historyCursorBytes }),
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
       type: Type.Literal("provider_snapshot"),
       commandId: CommandIdSchema,
       generation: GenerationSchema,
@@ -215,6 +227,21 @@ export const SnapshotMessageSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const HistoryPageMessageSchema = Type.Object(
+  {
+    type: Type.Literal("history_page"),
+    protocolVersion: ProtocolVersionSchema,
+    commandId: CommandIdSchema,
+    generation: GenerationSchema,
+    historyGeneration: GenerationSchema,
+    revision: RevisionSchema,
+    entries: Type.Array(PersistedEntrySchema, { maxItems: LIMITS.historyPageEntries }),
+    hasOlder: Type.Boolean(),
+    olderCursor: Type.Optional(Type.String({ minLength: 1, maxLength: LIMITS.historyCursorBytes })),
+  },
+  { additionalProperties: false },
+);
+
 export const StateUpdateMessageSchema = Type.Object(
   {
     type: Type.Literal("state_update"),
@@ -235,7 +262,7 @@ export const CommandResponseMessageSchema = Type.Object(
     commandId: Type.Optional(CommandIdSchema),
     command: Type.Optional(Type.String()),
     accepted: Type.Boolean(),
-    error: Type.Optional(Type.String()),
+    error: Type.Optional(Type.String({ maxLength: 512 })),
   },
   { additionalProperties: false },
 );
@@ -296,7 +323,7 @@ export const ResyncRequiredMessageSchema = Type.Object(
     protocolVersion: ProtocolVersionSchema,
     generation: GenerationSchema,
     revision: RevisionSchema,
-    reason: Type.String(),
+    reason: Type.String({ maxLength: 512 }),
   },
   { additionalProperties: false },
 );
@@ -304,6 +331,7 @@ export const ResyncRequiredMessageSchema = Type.Object(
 export const ServerMessageSchema = Type.Union([
   ReadyMessageSchema,
   SnapshotMessageSchema,
+  HistoryPageMessageSchema,
   StateUpdateMessageSchema,
   CommandResponseMessageSchema,
   PongMessageSchema,
@@ -323,6 +351,8 @@ export type StatePatch = Static<typeof StatePatchSchema>;
 export type ClientCommand = Static<typeof ClientCommandSchema>;
 export type ReadyMessage = Static<typeof ReadyMessageSchema>;
 export type SnapshotMessage = Static<typeof SnapshotMessageSchema>;
+export type HistoryPageMessage = Static<typeof HistoryPageMessageSchema>;
+export type HistoryPageCommand = Extract<ClientCommand, { type: "history_page" }>;
 export type StateUpdateMessage = Static<typeof StateUpdateMessageSchema>;
 export type CommandResponseMessage = Static<typeof CommandResponseMessageSchema>;
 export type PongMessage = Static<typeof PongMessageSchema>;

@@ -3,6 +3,8 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { LIMITS } from "../shared/limits.js";
 import { PROTOCOL_VERSION } from "../shared/wire.js";
 import type {
+  HistoryPageCommand,
+  HistoryPageMessage,
   LiveState,
   ProjectedMessage,
   SessionMetadata,
@@ -12,13 +14,8 @@ import type {
   StateUpdateMessage,
   ToolExecution,
 } from "../shared/wire.js";
-import {
-  projectJson,
-  projectMessage,
-  projectMetadata,
-  projectPersistedState,
-  projectToolResult,
-} from "./projection.js";
+import { projectJson, projectMessage, projectMetadata, projectToolResult } from "./projection.js";
+import { HistoryManager } from "./history.js";
 
 const MAX_FINALIZED_OVERLAYS = 8;
 const MAX_LIVE_TOOLS = 32;
@@ -48,6 +45,7 @@ export interface ToolEndEventLike {
 export class SessionStateStore {
   readonly generation: string;
   private revisionValue = 0;
+  private readonly history: HistoryManager;
   private persistedState;
   private metadataState: SessionMetadata;
   private isRunning: boolean;
@@ -58,7 +56,8 @@ export class SessionStateStore {
 
   constructor(context: ExtensionContext, generation: string, activeTools: readonly string[] = []) {
     this.generation = generation;
-    this.persistedState = projectPersistedState(context);
+    this.history = new HistoryManager(context, generation);
+    this.persistedState = this.history.window();
     this.metadataState = projectMetadata(context, activeTools);
     this.isRunning = !context.isIdle();
   }
@@ -85,6 +84,15 @@ export class SessionStateStore {
       ...(commandId ? { commandId } : {}),
       state,
     };
+  }
+
+  historyPage(command: HistoryPageCommand): HistoryPageMessage {
+    return this.history.page(command, this.revisionValue);
+  }
+
+  rotateHistory(context: ExtensionContext): StateUpdateMessage | undefined {
+    this.history.refresh(true);
+    return this.reconcileProjected(context, {}, true);
   }
 
   agentStart(): StateUpdateMessage | undefined {
@@ -193,13 +201,24 @@ export class SessionStateStore {
     context: ExtensionContext,
     options: { settled?: boolean; activeTools?: readonly string[] } = {},
   ): StateUpdateMessage | undefined {
-    const persisted = projectPersistedState(context);
-    const metadata = projectMetadata(
+    this.history.refresh();
+    return this.reconcileProjected(context, options);
+  }
+
+  private reconcileProjected(
+    context: ExtensionContext,
+    options: { settled?: boolean; activeTools?: readonly string[] } = {},
+    forceCostRefresh = false,
+  ): StateUpdateMessage | undefined {
+    const persisted = this.history.window();
+    const persistedChanged = !equal(persisted, this.persistedState);
+    const metadata = this.projectReconciledMetadata(
       context,
       options.activeTools ?? this.metadataState.activeTools,
+      forceCostRefresh || persistedChanged,
     );
     const patch: StatePatch = {};
-    if (!equal(persisted, this.persistedState)) {
+    if (persistedChanged) {
       this.persistedState = persisted;
       patch.persisted = persisted;
     }
@@ -219,6 +238,34 @@ export class SessionStateStore {
       }
     }
     return Object.keys(patch).length === 0 ? undefined : this.commit(patch);
+  }
+
+  private projectReconciledMetadata(
+    context: ExtensionContext,
+    activeTools: readonly string[],
+    refreshCost: boolean,
+  ): SessionMetadata {
+    if (refreshCost) return projectMetadata(context, activeTools);
+
+    // Metadata changes are hot while a session is running. Avoid walking the
+    // complete branch solely to rediscover an unchanged cost; persisted
+    // changes (including strict appends and rotations) refresh it exactly.
+    const emptyBranchManager = new Proxy(context.sessionManager, {
+      get(target, property, receiver) {
+        if (property === "getBranch") return () => [];
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const metadataContext = new Proxy(context, {
+      get(target, property, receiver) {
+        if (property === "sessionManager") return emptyBranchManager;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const metadata = projectMetadata(metadataContext, activeTools);
+    if (this.metadataState.sessionCost === undefined) delete metadata.sessionCost;
+    else metadata.sessionCost = this.metadataState.sessionCost;
+    return metadata;
   }
 
   private boundedSnapshotState(commandId?: string): SessionState {
@@ -247,11 +294,6 @@ export class SessionStateStore {
         }),
       );
     while (size() > LIMITS.snapshotBytes) {
-      if (state.persisted.entries.length > 0) {
-        state.persisted.entries.shift();
-        state.persisted.entriesTruncated = true;
-        continue;
-      }
       if (state.live.finalizedMessages.length > 0) {
         state.live.finalizedMessages.shift();
         continue;
