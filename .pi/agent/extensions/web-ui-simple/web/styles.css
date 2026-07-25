@@ -77,14 +77,21 @@ body {
 
 /* Status bar */
 .status-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: calc(-1 * var(--line-height));
   margin-bottom: var(--line-height);
+  padding-top: var(--line-height);
   padding-bottom: calc(var(--line-height) / 2);
   border-bottom: 1px solid var(--border);
+  background: var(--body-bg);
+  box-shadow: 0 var(--line-height) 0 var(--body-bg);
   color: var(--dim);
   font-size: 11px;
 }
@@ -98,6 +105,47 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.status-prefs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pref-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.pref-toggle.on {
+  color: var(--accent);
+}
+
+.pref-toggle:hover {
+  color: var(--text);
+}
+
+.pref-toggle kbd {
+  font: inherit;
+  font-size: 10px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: inherit;
+}
+
+.pref-toggle.on kbd {
+  border-color: var(--accent);
 }
 
 .status-dot {
@@ -132,6 +180,36 @@ body {
   padding: var(--line-height) 0;
 }
 
+/* System prompt panel */
+.system-prompt {
+  margin-bottom: var(--line-height);
+  padding: var(--line-height);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--container-bg);
+}
+
+.system-prompt-label {
+  color: var(--customMessageLabel);
+  font-weight: bold;
+  margin-bottom: calc(var(--line-height) / 2);
+}
+
+.system-prompt-text {
+  margin: 0;
+  color: var(--muted);
+  font: inherit;
+  line-height: var(--line-height);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.system-prompt-empty {
+  color: var(--dim);
+  font-style: italic;
+}
+
 #app > .scroll-to-bottom {
   position: fixed;
   z-index: 1;
@@ -146,7 +224,7 @@ body {
   background: var(--container-bg);
   box-shadow: 0 2px 12px var(--body-bg);
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -197,6 +275,30 @@ body {
   color: var(--thinkingText);
   font-style: italic;
   white-space: pre-wrap;
+}
+
+.thinking-collapsed {
+  margin-left: var(--line-height);
+  padding: var(--line-height) 0;
+  border: 0;
+  color: var(--thinkingText);
+  background: transparent;
+  font: inherit;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.thinking-collapsed kbd {
+  font: inherit;
+}
+
+.thinking-collapsed:hover {
+  color: var(--text);
+}
+
+.thinking-collapsed:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .thinking-block + .assistant-text {
@@ -262,12 +364,20 @@ body {
   white-space: pre-wrap;
 }
 
-.tool-output.expandable {
+.tool-output.expandable,
+.tool-diff.expandable {
   cursor: pointer;
 }
 
-.tool-output.expandable:hover {
+.tool-output.expandable:hover,
+.tool-diff.expandable:hover {
   opacity: 0.9;
+}
+
+.tool-output.expandable:focus-visible,
+.tool-diff.expandable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .expand-hint {

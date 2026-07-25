@@ -61,6 +61,7 @@ interface Snapshot {
   sessionName: string | undefined;
   isRunning: boolean;
   theme: SnapshotTheme | undefined;
+  systemPrompt: string;
   entries: unknown[];
 }
 
@@ -323,6 +324,7 @@ async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
       last?.timestamp,
       snapshot.isRunning,
       snapshot.sessionName,
+      snapshot.systemPrompt,
       JSON.stringify(snapshot.theme),
     ].join("|");
   }
@@ -509,6 +511,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
         sessionName: undefined,
         isRunning: false,
         theme: undefined,
+        systemPrompt: "",
         entries: [],
       };
     }
@@ -574,6 +577,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       sessionName: sm.getSessionName?.(),
       isRunning: !context.isIdle(),
       theme: snapshotTheme,
+      systemPrompt: context.getSystemPrompt(),
       entries,
     };
   }

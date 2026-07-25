@@ -5,8 +5,9 @@
 // single-column message list. Data arrives as full snapshots over SSE; there is
 // no client protocol, reducer, or virtualization.
 
-import { h, render } from "https://esm.sh/preact@10.24.3";
+import { h, render, createContext } from "https://esm.sh/preact@10.24.3";
 import {
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -17,6 +18,95 @@ import htm from "https://esm.sh/htm@3.1.1";
 import { marked } from "https://esm.sh/marked@14.1.3";
 
 const html = htm.bind(h);
+
+// ---------------------------------------------------------------------------
+// Display preferences (persisted to localStorage, toggled by document hotkeys)
+// ---------------------------------------------------------------------------
+
+// Each entry defines a boolean display toggle: its localStorage key, the plain
+// single-key hotkey that flips it, a short status-bar label, and the default
+// applied on first visit. All default to hidden/collapsed per the roadmap.
+const PREFS = [
+  { key: "thinking", hotkey: "t", label: "thinking", default: false },
+  { key: "tools", hotkey: "e", label: "tool output", default: false },
+  { key: "timestamps", hotkey: "s", label: "timestamps", default: false },
+  { key: "switches", hotkey: "m", label: "model / thinking", default: false },
+  { key: "systemPrompt", hotkey: "p", label: "system prompt", default: false },
+];
+
+const PrefsContext = createContext({ prefs: {}, toggle: () => {} });
+
+const storageKey = (key) => `web-ui-simple.pref.${key}`;
+const cookieKey = (key) => `pi_web_ui_simple_${key}`;
+
+function readPreference(key) {
+  const prefix = `${cookieKey(key)}=`;
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (cookie) return cookie.slice(prefix.length) === "1";
+  try {
+    const stored = localStorage.getItem(storageKey(key));
+    return stored === null ? undefined : stored === "1";
+  } catch {
+    return undefined;
+  }
+}
+
+function persistPreference(key, value) {
+  const stored = value ? "1" : "0";
+  try {
+    localStorage.setItem(storageKey(key), stored);
+  } catch {
+    // Persistence remains best-effort.
+  }
+  try {
+    // Cookies are host-scoped rather than port-scoped, so this fallback carries
+    // preferences across the server's ephemeral ports.
+    document.cookie = `${cookieKey(key)}=${stored}; Path=/; Max-Age=31536000; SameSite=Strict`;
+  } catch {
+    // The same-server localStorage value still applies when cookies are blocked.
+  }
+}
+
+function usePreferences() {
+  const [prefs, setPrefs] = useState(() => {
+    const initial = {};
+    for (const pref of PREFS) {
+      initial[pref.key] = readPreference(pref.key) ?? pref.default;
+    }
+    return initial;
+  });
+
+  const toggle = (key) =>
+    setPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      persistPreference(key, next[key]);
+      return next;
+    });
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.repeat) return;
+      const target = event.target;
+      if (
+        target &&
+        (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName || ""))
+      ) {
+        return;
+      }
+      const pref = PREFS.find((p) => p.hotkey === event.key.toLowerCase());
+      if (!pref) return;
+      event.preventDefault();
+      toggle(pref.key);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  return { prefs, toggle };
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -166,7 +256,11 @@ function Lines({ text }) {
 
 // Terminal-style output block with exporter-like expand-on-click for long output.
 function ExpandableOutput({ text, maxLines }) {
-  const [expanded, setExpanded] = useState(false);
+  const { prefs } = useContext(PrefsContext);
+  const [expanded, setExpanded] = useState(prefs.tools);
+  // The global "tool output" hotkey expands/collapses every block at once;
+  // per-block clicks still override until the next global toggle.
+  useEffect(() => setExpanded(prefs.tools), [prefs.tools]);
   const clean = replaceTabs(text);
   const lines = clean.split("\n");
   const remaining = lines.length - maxLines;
@@ -174,9 +268,19 @@ function ExpandableOutput({ text, maxLines }) {
   if (remaining <= 0) {
     return html`<div class="tool-output"><${Lines} text=${clean} /></div>`;
   }
+  const onKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setExpanded((value) => !value);
+  };
   if (expanded) {
     return html`<div
       class="tool-output expandable"
+      role="button"
+      tabindex="0"
+      aria-expanded="true"
+      aria-label="Collapse tool output"
+      onKeyDown=${onKeyDown}
       onClick=${() => {
         if (window.getSelection().toString()) return;
         setExpanded(false);
@@ -187,6 +291,11 @@ function ExpandableOutput({ text, maxLines }) {
   }
   return html`<div
     class="tool-output expandable"
+    role="button"
+    tabindex="0"
+    aria-expanded="false"
+    aria-label="Expand tool output"
+    onKeyDown=${onKeyDown}
     onClick=${() => {
       if (window.getSelection().toString()) return;
       setExpanded(true);
@@ -197,16 +306,43 @@ function ExpandableOutput({ text, maxLines }) {
   </div>`;
 }
 
-function Diff({ diff }) {
-  return html`<div class="tool-diff">
-    ${diff.split("\n").map((line, i) => {
-      const cls = line.startsWith("+")
-        ? "diff-added"
-        : line.startsWith("-")
-          ? "diff-removed"
-          : "diff-context";
-      return html`<div key=${i} class=${cls}>${replaceTabs(line)}</div>`;
-    })}
+function Diff({ diff, maxLines = 10 }) {
+  const { prefs } = useContext(PrefsContext);
+  const [expanded, setExpanded] = useState(prefs.tools);
+  useEffect(() => setExpanded(prefs.tools), [prefs.tools]);
+  const lines = diff.split("\n");
+  const remaining = lines.length - maxLines;
+  const visible = expanded || remaining <= 0 ? lines : lines.slice(0, maxLines);
+  const onKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setExpanded((value) => !value);
+  };
+  const content = html`${visible.map((line, i) => {
+    const cls = line.startsWith("+")
+      ? "diff-added"
+      : line.startsWith("-")
+        ? "diff-removed"
+        : "diff-context";
+    return html`<div key=${i} class=${cls}>${replaceTabs(line)}</div>`;
+  })}${!expanded && remaining > 0
+    ? html`<div class="expand-hint">... (${remaining} more lines)</div>`
+    : null}`;
+
+  if (remaining <= 0) return html`<div class="tool-diff">${content}</div>`;
+  return html`<div
+    class="tool-diff expandable"
+    role="button"
+    tabindex="0"
+    aria-expanded=${expanded ? "true" : "false"}
+    aria-label=${expanded ? "Collapse edit diff" : "Expand edit diff"}
+    onKeyDown=${onKeyDown}
+    onClick=${() => {
+      if (window.getSelection().toString()) return;
+      setExpanded((value) => !value);
+    }}
+  >
+    ${content}
   </div>`;
 }
 
@@ -264,7 +400,7 @@ function ToolCall({ call, result }) {
           ? html`<${ExpandableOutput} text=${content} maxLines=${10} />`
           : null}
       ${result && resultText(result).trim()
-        ? html`<div class="tool-output"><div>${resultText(result).trim()}</div></div>`
+        ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
         : null}`;
   } else if (name === "edit") {
     const filePath = str(args.file_path ?? args.path);
@@ -275,7 +411,7 @@ function ToolCall({ call, result }) {
       ${result && result.details && result.details.diff
         ? html`<${Diff} diff=${result.details.diff} />`
         : result && resultText(result).trim()
-          ? html`<div class="tool-output"><div>${resultText(result).trim()}</div></div>`
+          ? html`<${ExpandableOutput} text=${resultText(result).trim()} maxLines=${10} />`
           : null}`;
   } else if (name === "ls") {
     const dirPath = str(args.path);
@@ -307,6 +443,8 @@ function ToolCall({ call, result }) {
 // ---------------------------------------------------------------------------
 
 function Timestamp({ ts }) {
+  const { prefs } = useContext(PrefsContext);
+  if (!prefs.timestamps) return null;
   const value = formatTimestamp(ts);
   return value ? html`<div class="message-timestamp">${value}</div>` : null;
 }
@@ -324,6 +462,23 @@ function Expandable({ className, label, collapsed, children }) {
   </div>`;
 }
 
+function ThinkingBlock({ text }) {
+  const { prefs, toggle } = useContext(PrefsContext);
+  if (!prefs.thinking) {
+    return html`<button
+      type="button"
+      class="thinking-collapsed"
+      aria-expanded="false"
+      onClick=${() => toggle("thinking")}
+    >
+      thinking · <kbd>t</kbd> to expand
+    </button>`;
+  }
+  return html`<div class="thinking-block">
+    <div class="thinking-text">${text}</div>
+  </div>`;
+}
+
 function AssistantMessage({ entry, results }) {
   const msg = entry.message;
   const content = Array.isArray(msg.content) ? msg.content : [];
@@ -334,9 +489,7 @@ function AssistantMessage({ entry, results }) {
         return html`<div key=${i} class="assistant-text"><${Markdown} text=${block.text} /></div>`;
       }
       if (block.type === "thinking" && block.thinking && block.thinking.trim()) {
-        return html`<div key=${i} class="thinking-block">
-          <div class="thinking-text">${block.thinking}</div>
-        </div>`;
+        return html`<${ThinkingBlock} key=${i} text=${block.thinking} />`;
       }
       return null;
     })}
@@ -404,6 +557,8 @@ function BashExecution({ entry }) {
 }
 
 function Entry({ entry, results }) {
+  const { prefs } = useContext(PrefsContext);
+
   if (entry.type === "message") {
     const role = entry.message?.role;
     if (role === "user") return html`<${UserMessage} entry=${entry} />`;
@@ -414,10 +569,19 @@ function Entry({ entry, results }) {
   }
 
   if (entry.type === "model_change") {
+    if (!prefs.switches) return null;
     return html`<div class="model-change">
       <${Timestamp} ts=${entry.timestamp} />
       Switched to model:${" "}
       <span class="model-name">${entry.provider}/${entry.modelId}</span>
+    </div>`;
+  }
+
+  if (entry.type === "thinking_level_change") {
+    if (!prefs.switches) return null;
+    return html`<div class="model-change">
+      <${Timestamp} ts=${entry.timestamp} />
+      Thinking level: <span class="model-name">${entry.thinkingLevel}</span>
     </div>`;
   }
 
@@ -458,6 +622,7 @@ function Entry({ entry, results }) {
 // ---------------------------------------------------------------------------
 
 function Transcript({ snapshot }) {
+  const { prefs } = useContext(PrefsContext);
   const results = useMemo(() => {
     const map = new Map();
     for (const entry of snapshot.entries) {
@@ -472,14 +637,49 @@ function Transcript({ snapshot }) {
     return map;
   }, [snapshot]);
 
-  const rendered = snapshot.entries.map(
+  const visibleEntries = prefs.switches
+    ? snapshot.entries
+    : snapshot.entries.filter(
+        (entry) => entry.type !== "model_change" && entry.type !== "thinking_level_change",
+      );
+  const rendered = visibleEntries.map(
     (entry) => html`<${Entry} key=${entry.id} entry=${entry} results=${results} />`,
   );
 
-  if (snapshot.entries.length === 0) {
+  if (visibleEntries.length === 0) {
     return html`<div class="notice">Waiting for the first message in this session…</div>`;
   }
   return html`<div id="messages">${rendered}</div>`;
+}
+
+function PrefsLegend() {
+  const { prefs, toggle } = useContext(PrefsContext);
+  return html`<span class="status-prefs">
+    ${PREFS.map(
+      (pref) => html`<button
+        key=${pref.key}
+        type="button"
+        class="pref-toggle ${prefs[pref.key] ? "on" : "off"}"
+        title=${`Toggle ${pref.label} (press ${pref.hotkey})`}
+        aria-pressed=${prefs[pref.key] ? "true" : "false"}
+        onClick=${() => toggle(pref.key)}
+      >
+        <kbd>${pref.hotkey}</kbd>${" "}${pref.label}
+      </button>`,
+    )}
+  </span>`;
+}
+
+function SystemPromptPanel({ snapshot }) {
+  const { prefs } = useContext(PrefsContext);
+  if (!prefs.systemPrompt) return null;
+  const prompt = snapshot.systemPrompt || "";
+  return html`<section class="system-prompt" aria-label="Effective system prompt">
+    <div class="system-prompt-label">system prompt</div>
+    ${prompt.trim()
+      ? html`<pre class="system-prompt-text">${prompt}</pre>`
+      : html`<div class="system-prompt-empty">No system prompt available yet.</div>`}
+  </section>`;
 }
 
 function StatusBar({ snapshot, connection }) {
@@ -492,6 +692,7 @@ function StatusBar({ snapshot, connection }) {
         : html`<span class="status-state"><span class="status-dot"></span>idle</span>`;
   return html`<div class="status-bar">
     <span class="status-title">${title}</span>
+    <${PrefsLegend} />
     ${state}
   </div>`;
 }
@@ -502,6 +703,7 @@ const EMPTY_SNAPSHOT = {
   leafId: null,
   isRunning: false,
   sessionName: undefined,
+  systemPrompt: "",
 };
 
 function useStickToBottom(snapshot) {
@@ -543,6 +745,7 @@ function useStickToBottom(snapshot) {
 function App() {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [connection, setConnection] = useState("connecting");
+  const preferences = usePreferences();
   const { awayFromBottom, scrollToBottom } = useStickToBottom(snapshot);
 
   useEffect(() => {
@@ -606,7 +809,9 @@ function App() {
     };
   }, []);
 
-  return html`<${StatusBar} snapshot=${snapshot} connection=${connection} />
+  return html`<${PrefsContext.Provider} value=${preferences}>
+    <${StatusBar} snapshot=${snapshot} connection=${connection} />
+    <${SystemPromptPanel} snapshot=${snapshot} />
     ${awayFromBottom
       ? html`<button
           type="button"
@@ -617,7 +822,8 @@ function App() {
           ↓ bottom
         </button>`
       : null}
-    <${Transcript} snapshot=${snapshot} />`;
+    <${Transcript} snapshot=${snapshot} />
+  <//>`;
 }
 
 render(html`<${App} />`, document.getElementById("app"));

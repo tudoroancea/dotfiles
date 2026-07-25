@@ -28,6 +28,24 @@ This copies an authenticated link
 live and updates as the session progresses. It is **read-only** — there is no
 composer, command input, or any way to act on the session from the browser.
 
+### Display preferences
+
+Five transcript details are hidden/collapsed by default and can be toggled with
+plain single-key hotkeys (no modifier). The same toggles are shown as a clickable
+legend in the status bar. Each choice is persisted to `localStorage`, with a
+host-scoped cookie carrying it across the server's ephemeral ports:
+
+| Key | Toggles                                                |
+| --- | ------------------------------------------------------ |
+| `t` | thinking blocks (default collapsed)                    |
+| `e` | full tool-call output (default collapsed)              |
+| `s` | message timestamps (default hidden)                    |
+| `m` | model / thinking-level switch entries (default hidden) |
+| `p` | effective system prompt (default hidden)               |
+
+Hotkeys are ignored while a modifier is held (so browser shortcuts such as
+`Cmd/Ctrl+T` still work).
+
 ## How it works
 
 - **Static assets** (`web/index.html`, `web/app.js`, `web/styles.css`) are served
@@ -39,7 +57,7 @@ composer, command input, or any way to act on the session from the browser.
   fragment never reaches the server during navigation.
 - **Snapshots**: on connect, after message/tool/session events, and when a small
   freshness check notices an otherwise unannounced session append, the server
-  sends `{ header, entries, leafId, sessionName, isRunning, theme }` for the
+  sends `{ header, entries, leafId, sessionName, isRunning, theme, systemPrompt }` for the
   current branch. In-progress assistant messages and running tool executions are
   overlaid as synthetic entries until they are persisted. The browser follows
   Pi's configured theme; automatic light/dark pairs follow the browser color
@@ -70,8 +88,10 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 ## Roadmap
 
 - [x] improve scroll behavior: stick to the bottom or stay fixed
-- [ ] hotkey support for showing thinking and expanding tool calls
-      -> might be using tanstack hotkeys and some state management library such as tanstack store to persist this state to localstorage (demo of how in `~/Documents/Codex/2026-07-25/can/outputs/tiny-atoms-experiment`)
+- [x] hotkey support for collapse/expand thinking (default collapsed), expanding/collapsing tool calls (default collapse), showing/hiding timestamps (default hide), showing/hiding model/thinking level switches (default hide), showing/hiding the effective system prompt (default hide)
+      -> implemented natively with a tiny Preact context + `localStorage` + a single `document` keydown listener (no extra dependencies). See "Display preferences" above.
+- [ ] fix the markdown rendering of the thinking
+- [ ] dynamically change the window title to `π – <session title>`
 - [ ] tool call rendering parity for our custom setup: custom edit/write tool rendering, pi-fff, agentflow and background-processes tool)
 - [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
 - [ ] input box:
@@ -84,4 +104,6 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 
 when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.
 
-- [ ] tailscale server command spawned in paralle with the node http server and adjust the copy url command.
+- [ ] tailscale server command spawned in paralle with the node http server and split the copy url command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
+- [ ] questionnaire tool rendering
+- [ ] notification system (like in `.pi/agent/extensions/notify.ts`) . I am not yet clear on what it takes to be able to send notifications (need a pwa?) or if we have to deal with a permission prompt for every new session server
