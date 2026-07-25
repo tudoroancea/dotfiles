@@ -60,7 +60,9 @@ The exporter HTML/CSS/JS templates are copied as static build assets, so install
 
 ### History protocol
 
-Move to a new protocol version with explicit request-scoped history pages.
+Move from the current protocol v6 to protocol v7 with explicit request-scoped history pages.
+
+Freeze these server-selected bounds for the first implementation: 100 projected entries, a 512 KiB serialized page envelope, a 512-byte cursor, and one in-flight page request per client. Tune them only from measured browser/server results, never from client input.
 
 The initial session snapshot contains a bounded newest window and history identity:
 
@@ -75,7 +77,31 @@ interface PersistedWindow {
 }
 ```
 
-Add a `history_page` client command and correlated server response. The request contains the extension generation, history generation, and an opaque exclusive cursor. The server chooses fixed count and byte limits; the client cannot request an unbounded page.
+Add the following `history_page` client command and correlated server response. The request contains the extension generation, history generation, and an opaque exclusive cursor. The server chooses fixed count and byte limits; the client cannot request an unbounded page.
+
+```ts
+interface HistoryPageCommand {
+  type: "history_page";
+  commandId: string;
+  generation: string;
+  historyGeneration: string;
+  cursor: string;
+}
+
+interface HistoryPageMessage {
+  type: "history_page";
+  protocolVersion: 7;
+  commandId: string;
+  generation: string;
+  historyGeneration: string;
+  revision: number; // diagnostic sample, not a state revision
+  entries: PersistedEntry[]; // chronological
+  hasOlder: boolean;
+  olderCursor?: string;
+}
+```
+
+`PersistedState.entriesTruncated` is replaced by `historyGeneration`, `hasOlder`, and optional `olderCursor`. The server message union includes `history_page`; it is not a `StatePatch`.
 
 Page responses are query results, not global state mutations:
 
@@ -86,7 +112,7 @@ Page responses are query results, not global state mutations:
 - retries with the same valid cursor are idempotent;
 - malformed, stale, or lineage-mismatched cursors trigger a bounded error/resnapshot path.
 
-Use a per-generation cursor authority. A cursor identifies `historyGeneration`, an exclusive raw branch index, and the expected boundary entry ID. Encode it opaquely and validate its exact byte bound and lineage before projection. Cache an entry-ID/index map for page lookup rather than rescanning the branch for every request.
+Use a per-generation cursor authority. A cursor identifies `historyGeneration`, an exclusive raw branch index, and the expected boundary entry ID. Encode and authenticate it opaquely with a per-runtime random key, then validate its exact byte bound, signature, lineage, index range, and boundary ID before projection. Cache an entry-ID/index map for page lookup rather than rescanning the branch for every request. Cursor reuse is idempotent.
 
 `historyGeneration` remains stable across strict appends. Rotate it whenever the active lineage is not a strict append: session/tree navigation, compaction, changed ancestry, leaf replacement, or a failed append-boundary check. A rotation invalidates loaded pages atomically in the browser. Extension session replacement still rotates the existing top-level generation.
 
@@ -113,7 +139,7 @@ A same-lineage tail snapshot merges/deduplicates without discarding loaded older
 
 Use pinned `@tanstack/virtual-core` through a small extension-owned Preact hook. There is no first-party TanStack Virtual Preact adapter; do not route the React adapter through `preact/compat`.
 
-Virtualize stable logical transcript rows, not individual Markdown blocks or diff lines. Requirements:
+Virtualize stable logical transcript rows, not individual Markdown blocks or diff lines. Persisted rows use `entry:${entry.id}`. Live rows use deterministic identities derived from the existing message identity/tool call ID (`live-message:…`, `live-tool:${toolCallId}`, and one `partial-assistant` tail row); they must not depend on array indexes. Requirements:
 
 - variable-height measurement with `ResizeObserver`;
 - conservative estimates and measured correction;
@@ -175,11 +201,11 @@ This phase must be stable before parallel large-session work starts.
 
 ### Phase 1 — Playwright foundation and protocol contract (short sequential gate)
 
-- [ ] Add pinned `@playwright/test`, `playwright.config.ts`, and `e2e/` outside Vitest discovery.
-- [ ] Build a worker fixture around the real `startWebUiServer()` with dynamic ports, real `dist/web`, controllable fake `ExtensionContext`, and generated branches.
-- [ ] Add the first Chromium smoke test: bootstrap fragment exchange, fragment removal, authenticated cookie, WebSocket readiness, and clean shutdown.
-- [ ] Define the new wire schemas, cursor invalidation rules, page count/byte limits, stable row IDs, and generated large-session fixtures.
-- [ ] Add a required `check` command that runs format check, lint, typecheck, Vitest, build, and Chromium Playwright. Browser installation must be explicit in CI.
+- [x] Add pinned `@playwright/test`, `playwright.config.ts`, and `e2e/` outside Vitest discovery.
+- [x] Build a worker fixture around the real `startWebUiServer()` with dynamic ports, real `dist/web`, controllable fake `ExtensionContext`, and generated branches.
+- [x] Add the first Chromium smoke test: bootstrap fragment exchange, fragment removal, authenticated cookie, WebSocket readiness, and clean shutdown.
+- [x] Define the new wire schemas, cursor invalidation rules, page count/byte limits, stable row IDs, and generated large-session fixtures.
+- [x] Add a required `check` command that runs format check, lint, typecheck, Vitest, build, and Chromium Playwright. Browser installation must be explicit in CI.
 
 The browser gate is established first so later phases cannot defer real-browser validation.
 
