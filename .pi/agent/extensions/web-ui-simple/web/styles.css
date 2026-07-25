@@ -1,0 +1,471 @@
+/*
+ * Single-column transcript styling. This is a trimmed port of Pi's HTML
+ * exporter (template.css) — sidebar, tree, header and metadata blocks removed —
+ * plus a self-contained dark palette so the view needs no theme injection.
+ */
+
+:root {
+  --line-height: 18px;
+
+  --body-bg: #191724;
+  --container-bg: #1f1d2e;
+  --text: #e0def4;
+  --muted: #908caa;
+  --dim: #6e6a86;
+  --accent: #9ccfd8;
+  --success: #9ccfd8;
+  --error: #eb6f92;
+  --warning: #f6c177;
+  --borderAccent: #c4a7e7;
+  --border: #26233a;
+  --hover: #26233a;
+  --selectedBg: #403d52;
+
+  --userMessageBg: #21202e;
+  --userMessageText: #e0def4;
+  --thinkingText: #908caa;
+
+  --toolPendingBg: #201f2d;
+  --toolSuccessBg: #1c1b28;
+  --toolErrorBg: #2b2130;
+  --toolOutput: #908caa;
+  --toolDiffAdded: #9ccfd8;
+  --toolDiffRemoved: #eb6f92;
+  --toolDiffContext: #908caa;
+
+  --customMessageBg: #2a2837;
+  --customMessageLabel: #ebbcba;
+  --customMessageText: #e0def4;
+
+  --mdHeading: #c4a7e7;
+  --mdLink: #9ccfd8;
+  --mdCode: #f6c177;
+  --mdQuote: #908caa;
+  --mdQuoteBorder: #403d52;
+  --mdListBullet: #9ccfd8;
+  --mdHr: #403d52;
+  --mdCodeBlockBorder: #403d52;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 12px;
+  line-height: var(--line-height);
+  color: var(--text);
+  background: var(--body-bg);
+}
+
+#app {
+  min-height: 100vh;
+  padding: var(--line-height) calc(var(--line-height) * 2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#app > * {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: var(--line-height);
+  padding-bottom: calc(var(--line-height) / 2);
+  border-bottom: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.status-title {
+  color: var(--text);
+  font-weight: bold;
+}
+
+.status-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex-shrink: 0;
+}
+
+.status-dot.running {
+  background: var(--success);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.status-dot.offline {
+  background: var(--error);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.notice {
+  color: var(--muted);
+  padding: var(--line-height) 0;
+}
+
+/* Messages */
+#messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--line-height);
+}
+
+.message-timestamp {
+  font-size: 10px;
+  color: var(--dim);
+  opacity: 0.8;
+}
+
+.user-message {
+  background: var(--userMessageBg);
+  color: var(--userMessageText);
+  padding: var(--line-height);
+  border-radius: 4px;
+}
+
+.assistant-message {
+  padding: 0;
+}
+
+.assistant-message > .message-timestamp {
+  padding-left: var(--line-height);
+}
+
+.assistant-text {
+  padding: var(--line-height);
+  padding-bottom: 0;
+}
+
+.thinking-text {
+  padding: var(--line-height);
+  color: var(--thinkingText);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.thinking-block + .assistant-text {
+  padding-top: 0;
+}
+
+/* Tool execution */
+.tool-execution {
+  padding: var(--line-height);
+  border-radius: 4px;
+}
+
+.tool-execution + .tool-execution,
+.assistant-text + .tool-execution {
+  margin-top: var(--line-height);
+}
+
+.tool-execution.pending {
+  background: var(--toolPendingBg);
+}
+.tool-execution.success {
+  background: var(--toolSuccessBg);
+}
+.tool-execution.error {
+  background: var(--toolErrorBg);
+}
+
+.tool-header,
+.tool-name {
+  font-weight: bold;
+}
+
+.tool-path {
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.line-numbers {
+  color: var(--warning);
+}
+
+.line-count {
+  color: var(--dim);
+}
+
+.tool-command {
+  font-weight: bold;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.tool-output {
+  margin-top: var(--line-height);
+  color: var(--toolOutput);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.tool-output > div {
+  line-height: var(--line-height);
+  white-space: pre-wrap;
+}
+
+.tool-output.expandable {
+  cursor: pointer;
+}
+
+.tool-output.expandable:hover {
+  opacity: 0.9;
+}
+
+.expand-hint {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.tool-error {
+  color: var(--error);
+}
+
+.tool-images,
+.message-images {
+  margin: var(--line-height) 0 0 0;
+}
+
+.tool-image,
+.message-image {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: 4px;
+  margin: var(--line-height) 0 0 0;
+}
+
+/* Diff */
+.tool-diff {
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre;
+  margin-top: var(--line-height);
+}
+
+.diff-added {
+  color: var(--toolDiffAdded);
+}
+.diff-removed {
+  color: var(--toolDiffRemoved);
+}
+.diff-context {
+  color: var(--toolDiffContext);
+}
+
+/* Model change */
+.model-change {
+  padding: 0 var(--line-height);
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.model-name {
+  color: var(--borderAccent);
+  font-weight: bold;
+}
+
+/* Compaction / branch summary / custom */
+.compaction {
+  background: var(--customMessageBg);
+  border-radius: 4px;
+  padding: var(--line-height);
+  cursor: pointer;
+}
+
+.compaction-label {
+  color: var(--customMessageLabel);
+  font-weight: bold;
+}
+
+.compaction-collapsed {
+  color: var(--customMessageText);
+}
+
+.compaction-content {
+  color: var(--customMessageText);
+  white-space: pre-wrap;
+  margin-top: var(--line-height);
+}
+
+.branch-summary {
+  background: var(--customMessageBg);
+  padding: var(--line-height);
+  border-radius: 4px;
+}
+
+.branch-summary-header {
+  font-weight: bold;
+  color: var(--borderAccent);
+}
+
+.hook-message {
+  background: var(--customMessageBg);
+  color: var(--customMessageText);
+  padding: var(--line-height);
+  border-radius: 4px;
+}
+
+.hook-type {
+  color: var(--customMessageLabel);
+  font-weight: bold;
+}
+
+.skill-invocation {
+  background: var(--customMessageBg);
+  border-radius: 4px;
+  padding: var(--line-height);
+  cursor: pointer;
+}
+
+.skill-invocation-label {
+  color: var(--customMessageLabel);
+  font-weight: bold;
+}
+
+.skill-invocation-collapsed,
+.skill-invocation-content {
+  color: var(--customMessageText);
+}
+
+.skill-invocation-content,
+.skill-invocation + .user-message {
+  margin-top: var(--line-height);
+}
+
+.error-text {
+  color: var(--error);
+  padding: 0 var(--line-height);
+}
+
+/* Markdown */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: var(--mdHeading);
+  margin: var(--line-height) 0 0 0;
+  font-weight: bold;
+  font-size: 1em;
+}
+
+.markdown-content p {
+  margin: 0;
+}
+.markdown-content p + p {
+  margin-top: var(--line-height);
+}
+
+.markdown-content a {
+  color: var(--mdLink);
+  text-decoration: underline;
+}
+
+.markdown-content code {
+  background: rgba(128, 128, 128, 0.2);
+  color: var(--mdCode);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: inherit;
+}
+
+.markdown-content pre {
+  background: transparent;
+  margin: var(--line-height) 0;
+  overflow-x: auto;
+}
+
+.markdown-content pre code {
+  display: block;
+  background: none;
+  color: var(--text);
+  padding: 0;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid var(--mdQuoteBorder);
+  padding-left: var(--line-height);
+  margin: var(--line-height) 0;
+  color: var(--mdQuote);
+  font-style: italic;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: var(--line-height) 0;
+  padding-left: calc(var(--line-height) * 2);
+}
+
+.markdown-content li::marker {
+  color: var(--mdListBullet);
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--mdHr);
+  margin: var(--line-height) 0;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: 100%;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--mdCodeBlockBorder);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: rgba(128, 128, 128, 0.1);
+  font-weight: bold;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  #app {
+    padding: var(--line-height) 12px;
+  }
+  #app > * {
+    max-width: 100%;
+  }
+}
