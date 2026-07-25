@@ -133,6 +133,7 @@ The Playwright suite launches the real authenticated HTTP/SSE server and product
   - [ ] global hotkey to focus the input box
   - [ ] file autocompletions via @ (both in TUI and RPC modes by inspecting how the pi-fff extension implements it)
   - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
+- [ ] add Highlight.js syntax highlighting to fenced code blocks in user and assistant messages, matching Pi's reference HTML exporter and existing theme variables
 - [ ] questionnaire tool rendering
 - [ ] notification system (like in `.pi/agent/extensions/notify.ts`) . I am not yet clear on what it takes to be able to send notifications (need a pwa?) or if we have to deal with a permission prompt for every new session server
 - [ ] image support compatible with remote machines:
