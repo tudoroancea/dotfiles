@@ -1,7 +1,7 @@
 import type { Skill } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -39,14 +39,16 @@ export class ClaudeResourceSnapshot {
 }
 
 export interface StagedClaudeSkills {
-  root: string;
+  pluginRoot: string;
   names: string[];
   index: string;
   cleanup(): Promise<void>;
 }
 
+const CLAUDE_SKILLS_PLUGIN_NAME = "pi-agentflow-skills";
 const SAFE_SKILL_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const oneLine = (value: string): string => value.replace(/\s+/g, " ").trim();
+const qualifiedSkillName = (name: string): string => `${CLAUDE_SKILLS_PLUGIN_NAME}:${name}`;
 
 export async function stageClaudeSkills(
   skills: readonly ClaudeSkill[],
@@ -61,8 +63,16 @@ export async function stageClaudeSkills(
 
   const root = await mkdtemp(join(tmpdir(), "pi-agentflow-claude-"));
   try {
-    const targetRoot = join(root, ".claude", "skills");
-    await mkdir(targetRoot, { recursive: true });
+    const pluginRoot = join(root, CLAUDE_SKILLS_PLUGIN_NAME);
+    const targetRoot = join(pluginRoot, "skills");
+    await Promise.all([
+      mkdir(targetRoot, { recursive: true }),
+      mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true }),
+    ]);
+    await writeFile(
+      join(pluginRoot, ".claude-plugin", "plugin.json"),
+      `${JSON.stringify({ name: CLAUDE_SKILLS_PLUGIN_NAME })}\n`,
+    );
     for (const skill of skills) {
       try {
         const [base, file] = await Promise.all([stat(skill.baseDir), stat(skill.filePath)]);
@@ -80,11 +90,14 @@ export async function stageClaudeSkills(
         );
       }
     }
+    const names = skills.map((skill) => qualifiedSkillName(skill.name));
     return {
-      root,
-      names: skills.map((skill) => skill.name),
+      pluginRoot,
+      names,
       index: skills.length
-        ? skills.map((skill) => `- ${skill.name}: ${oneLine(skill.description)}`).join("\n")
+        ? skills
+            .map((skill, index) => `- ${names[index]}: ${oneLine(skill.description)}`)
+            .join("\n")
         : "- None",
       cleanup: () => rm(root, { recursive: true, force: true }),
     };

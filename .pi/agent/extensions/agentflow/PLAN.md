@@ -256,15 +256,16 @@ The Claude SDK cannot register skills from objects or arbitrary `SKILL.md` paths
 
 For each Claude run:
 
-1. Create a private temporary staging root.
-2. Under it create `.claude/skills/<name>/` symlinks to each captured Pi skill directory. Use the whole skill directory so relative assets such as `LICENSE.txt`, examples, and scripts continue to work.
-3. Pass the staging root through SDK `additionalDirectories`.
-4. Pass the exact captured names through `skills: [...]`.
+1. Create a private temporary local plugin with a deterministic `pi-agentflow-skills` manifest.
+2. Under it create `skills/<name>/` symlinks to each captured Pi skill directory. Use the whole skill directory so relative assets such as `LICENSE.txt`, examples, and scripts continue to work.
+3. Pass the staging root through SDK `plugins: [{ type: "local", path: ... }]`.
+4. Pass the plugin-qualified names through `skills: [...]`.
 5. Include `Skill` in `tools` and `allowedTools`.
-6. Set `disableBundledSkills: true`; add the equivalent environment fallback only if the pinned runtime proves the setting is applied too late.
-7. Remove the staging root in `finally`, including abort, error, and reload paths.
+6. Verify the SDK initialization message registered every staged skill.
+7. Set `disableBundledSkills: true`; add the equivalent environment fallback only if the pinned runtime proves the setting is applied too late.
+8. Remove the staging root in `finally`, including abort, error, and reload paths.
 
-Claude officially discovers `.claude/skills/` from additional directories even when normal user/project setting sources are disabled. This gives the child the Pi skill set without loading `~/.claude/skills` or project `.claude/skills`.
+The SDK's `skills` option filters skills that Claude has already discovered; it does not register arbitrary paths. `additionalDirectories` provides workspace access but is not a supported skill-discovery bridge when `settingSources` is empty. An explicit local plugin exposes only the captured Pi skills without loading `~/.claude/skills` or project `.claude/skills`.
 
 Validate skill names for path safety and reject duplicate names deterministically. Treat skill instructions as trusted to the same degree as the Pi parent did. Skill filtering is not a filesystem sandbox; the child can still read repository files with `Read`.
 
@@ -313,11 +314,10 @@ Use a fixed options object, verified against the pinned package types:
     enabledPlugins: {},
   },
   hooks: {},
-  plugins: [],
+  plugins: [{ type: "local", path: privateSkillPluginRoot }],
   mcpServers: {},
   strictMcpConfig: true,
-  additionalDirectories: [privateSkillStagingRoot],
-  skills: exactPiSkillNames,
+  skills: pluginQualifiedPiSkillNames,
   persistSession: false,
   includePartialMessages: true,
   abortController,

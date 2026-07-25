@@ -240,10 +240,9 @@ export class ClaudeSubagentRunner {
           enabledPlugins: {},
         },
         hooks: {},
-        plugins: [],
+        plugins: skills.names.length ? [{ type: "local", path: skills.pluginRoot }] : [],
         mcpServers: {},
         strictMcpConfig: true,
-        additionalDirectories: [skills.root],
         skills: skills.names,
         persistSession: false,
         includePartialMessages: true,
@@ -264,10 +263,18 @@ export class ClaudeSubagentRunner {
       const startedTools = new Set<string>();
       const assistantTexts: string[] = [];
       let terminal: SDKResultMessage | undefined;
+      let skillsValidated = skills.names.length === 0;
 
       const consume = async (): Promise<void> => {
         for await (const message of query!) {
           if (parentSignal.aborted) throw abortError();
+          if (message.type === "system" && message.subtype === "init") {
+            const missingSkills = skills.names.filter((name) => !message.skills.includes(name));
+            if (missingSkills.length)
+              throw new Error(`Claude failed to load staged skills: ${missingSkills.join(", ")}`);
+            skillsValidated = true;
+            continue;
+          }
           if (message.type === "stream_event") {
             const event = message.event as unknown as {
               type?: string;
@@ -351,6 +358,8 @@ export class ClaudeSubagentRunner {
         if (timer) clearTimeout(timer);
       }
       if (parentSignal.aborted) throw abortError();
+      if (!skillsValidated)
+        throw new Error("Claude query ended before staged skills were validated");
       if (!terminal) throw new Error("Claude query ended without a result message");
       if (terminal.subtype !== "success") throw resultError(terminal);
       return {

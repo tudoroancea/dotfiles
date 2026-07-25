@@ -123,6 +123,17 @@ Each report should include the date, tool, run ID when available, expected and a
 - Fallback: run the focused dashboard suite separately; all 13 dashboard tests pass.
 - Status: open; likely a workflow subprocess/artifact-write cleanup race unrelated to the dashboard changes.
 
+## 2026-07-25 — Claude child advertises Pi skills that its Skill tool cannot load
+
+- Tool: `agentflow_claude`
+- Run: `af_ms0lkkgi_1`
+- Expected: the controlled Claude child can invoke the staged `frontend-design` Pi skill listed in its system prompt.
+- Actual: `Skill({ skill: "frontend-design" })` failed with `<tool_use_error>Unknown skill: frontend-design</tool_use_error>` even though the prompt's active-skills index included it.
+- Reproduction: ask a Claude child to invoke `frontend-design` and report a heading from the loaded content.
+- Evidence: `~/.pi/agent/agentflow/af_ms0lkkgi_1/` and parent session `/Users/tudoroancea/.pi/agent/sessions/--Users-tudoroancea-dotfiles--/2026-07-25T16-42-00-292Z_019f9a27-b0e4-76b3-9e80-0580064c1fe2.jsonl`.
+- Fallback: inspect the skill and SDK configuration directly; official SDK guidance is to register controlled skill paths as local plugins rather than relying on `additionalDirectories` for discovery.
+- Status: fixed on 2026-07-25 by staging captured Pi skills as an explicit local SDK plugin, filtering on plugin-qualified names, and validating registration from the SDK initialization message. A fresh Pi process successfully loaded `pi-agentflow-skills:frontend-design` and returned content unique to that skill.
+
 ## 2026-07-25 — Delegate failed with unexplained invalid model content
 
 - Tool: `agentflow_delegate`

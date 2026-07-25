@@ -4,7 +4,7 @@ import type {
   SDKMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { execFile } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -119,6 +119,14 @@ function assistantMessage(): SDKMessage {
   } as unknown as SDKMessage;
 }
 
+function initMessage(skills: string[]): SDKMessage {
+  return {
+    type: "system",
+    subtype: "init",
+    skills,
+  } as unknown as SDKMessage;
+}
+
 function resultMessage(subtype: "success" | "error_during_execution" = "success"): SDKMessage {
   const common = {
     type: "result",
@@ -166,18 +174,26 @@ describe("ClaudeSubagentRunner", () => {
     const node = nodeSpec();
     const { store, snapshot } = setupStore(node);
     let captured:
-      | { prompt: string; options: ClaudeQueryOptions; stagedSkillTarget: string }
+      | {
+          prompt: string;
+          options: ClaudeQueryOptions;
+          stagedSkillTarget: string;
+          pluginManifest: string;
+        }
       | undefined;
     const close = vi.fn();
     const factory: ClaudeQueryFactory = ({ prompt, options }) => {
-      const skillPath = join(options.additionalDirectories![0]!, ".claude", "skills", skill.name);
+      const pluginRoot = options.plugins![0]!.path;
+      const skillPath = join(pluginRoot, "skills", skill.name);
       captured = {
         prompt,
         options,
         stagedSkillTarget: realpathSync(skillPath),
+        pluginManifest: readFileSync(join(pluginRoot, ".claude-plugin", "plugin.json"), "utf8"),
       };
       return queryFrom(
         [
+          initMessage([`pi-agentflow-skills:${skill.name}`]),
           {
             type: "stream_event",
             uuid: "partial-uuid",
@@ -234,16 +250,19 @@ describe("ClaudeSubagentRunner", () => {
       settingSources: [],
       strictMcpConfig: true,
       mcpServers: {},
-      plugins: [],
+      plugins: [{ type: "local", path: expect.any(String) }],
       hooks: {},
       persistSession: false,
       includePartialMessages: true,
-      skills: [skill.name],
+      skills: [`pi-agentflow-skills:${skill.name}`],
     });
     expect(captured!.options).not.toHaveProperty("maxTurns");
     expect(captured!.options.systemPrompt).toContain("## Agency");
-    expect(captured!.options.systemPrompt).toContain(`- ${skill.name}: ${skill.description}`);
+    expect(captured!.options.systemPrompt).toContain(
+      `- pi-agentflow-skills:${skill.name}: ${skill.description}`,
+    );
     expect(captured!.options.systemPrompt).not.toContain("${activeSkillsIndex}");
+    expect(JSON.parse(captured!.pluginManifest)).toEqual({ name: "pi-agentflow-skills" });
     expect(captured!.options.settings).toMatchObject({
       disableAllHooks: true,
       autoMemoryEnabled: false,
@@ -259,7 +278,7 @@ describe("ClaudeSubagentRunner", () => {
       CLAUDE_CODE_AUTO_CONNECT_IDE: "false",
     });
     expect(captured!.options.env).not.toHaveProperty("SECRET_SHOULD_NOT_LEAK");
-    await expect(readFile(captured!.options.additionalDirectories![0]!)).rejects.toMatchObject({
+    await expect(readFile(captured!.options.plugins![0]!.path)).rejects.toMatchObject({
       code: "ENOENT",
     });
     expect(close).toHaveBeenCalledOnce();
@@ -271,6 +290,38 @@ describe("ClaudeSubagentRunner", () => {
         { id: "tool-1", name: "Read", status: "completed", resultPreview: "file contents" },
       ],
     });
+  });
+
+  it("fails when Claude does not register every staged plugin skill", async () => {
+    const cwd = await temporaryDirectory("agentflow-claude-undiscovered-skill-");
+    const skill = await createSkill(cwd);
+    const node = nodeSpec();
+    const { store } = setupStore(node);
+    const runner = new ClaudeSubagentRunner(
+      store,
+      () => [skill],
+      () => queryFrom([initMessage([])]),
+    );
+
+    await expect(
+      runner.run("run_1", node, { cwd } as never, new AbortController().signal),
+    ).rejects.toThrow("Claude failed to load staged skills: pi-agentflow-skills:frontend-design");
+  });
+
+  it("fails when a staged-skill run ends without SDK initialization metadata", async () => {
+    const cwd = await temporaryDirectory("agentflow-claude-missing-init-");
+    const skill = await createSkill(cwd);
+    const node = nodeSpec();
+    const { store } = setupStore(node);
+    const runner = new ClaudeSubagentRunner(
+      store,
+      () => [skill],
+      () => queryFrom([resultMessage()]),
+    );
+
+    await expect(
+      runner.run("run_1", node, { cwd } as never, new AbortController().signal),
+    ).rejects.toThrow("Claude query ended before staged skills were validated");
   });
 
   it("reports SDK error results after preserving authoritative usage", async () => {
@@ -291,6 +342,7 @@ describe("ClaudeSubagentRunner", () => {
       runner.run("run_1", node, { cwd } as never, new AbortController().signal),
     ).rejects.toThrow("Claude query failed: error_during_execution: provider stopped");
     expect(options!.skills).toEqual([]);
+    expect(options!.plugins).toEqual([]);
     expect(options!.systemPrompt).toContain("- None");
     expect(snapshot().nodes[0]!.usage).toEqual({
       input: 20,
@@ -364,7 +416,7 @@ describe("ClaudeSubagentRunner", () => {
     let stagedRoot = "";
     const controller = new AbortController();
     const factory: ClaudeQueryFactory = ({ options }) => {
-      stagedRoot = options.additionalDirectories![0]!;
+      stagedRoot = options.plugins![0]!.path;
       const iterator = {
         next: () =>
           new Promise<IteratorResult<SDKMessage>>((_, reject) =>
@@ -423,6 +475,35 @@ describe("ClaudeSubagentRunner", () => {
 
     await expect(running).rejects.toThrow(/aborted/i);
   });
+
+  it.skipIf(process.env.PI_AGENTFLOW_CLAUDE_LIVE !== "1")(
+    "loads and invokes a staged Pi skill through the pinned Claude SDK",
+    async () => {
+      const cwd = await temporaryDirectory("agentflow-claude-live-skill-");
+      const skill = await createSkill(cwd, "live-skill");
+      await writeFile(
+        skill.filePath,
+        "---\nname: live-skill\ndescription: Live Agentflow skill discovery regression probe.\n---\n\n# Live skill\n\nWhen invoked, reply exactly AGENTFLOW_SKILL_PLUGIN_LIVE_OK.\n",
+      );
+      const node = nodeSpec({
+        prompt:
+          "Invoke the Skill tool with pi-agentflow-skills:live-skill and follow its instruction exactly.",
+        config: { model: "fable", timeoutMs: 120_000 },
+      });
+      const { store } = setupStore(node);
+      const runner = new ClaudeSubagentRunner(store, () => [skill]);
+
+      const result = await runner.run(
+        "run_1",
+        node,
+        { cwd } as never,
+        new AbortController().signal,
+      );
+
+      expect(result.text).toContain("AGENTFLOW_SKILL_PLUGIN_LIVE_OK");
+    },
+    180_000,
+  );
 
   it("enforces the child deadline and bounds close", async () => {
     vi.useFakeTimers();
