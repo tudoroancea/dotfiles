@@ -40,6 +40,7 @@ Use `-s workspace-write` by default. Use `-s danger-full-access` only when the i
 ## Prompt Requirements
 
 Tell Codex:
+
 - The exact implementation goal and acceptance criteria.
 - The repo path and current branch context if relevant.
 - Which existing patterns, files or tests to inspect first.
