@@ -24,8 +24,9 @@ const html = htm.bind(h);
 // ---------------------------------------------------------------------------
 
 // Each entry defines a boolean display toggle: its localStorage key, the plain
-// single-key hotkey that flips it, a short status-bar label, and the default
-// applied on first visit. All default to hidden/collapsed per the roadmap.
+// single-key hotkey that flips it, a short label shown in the command palette,
+// and the default applied on first visit. All default to hidden/collapsed per
+// the roadmap.
 const PREFS = [
   { key: "thinking", hotkey: "t", label: "thinking", default: false },
   { key: "tools", hotkey: "e", label: "tool output", default: false },
@@ -70,7 +71,7 @@ function persistPreference(key, value) {
   }
 }
 
-function usePreferences() {
+function usePreferences(blockedRef) {
   const [prefs, setPrefs] = useState(() => {
     const initial = {};
     for (const pref of PREFS) {
@@ -88,6 +89,8 @@ function usePreferences() {
 
   useEffect(() => {
     const onKeyDown = (event) => {
+      // The command palette owns keyboard focus while open; plain-key toggles stay quiet.
+      if (blockedRef?.current) return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.repeat) return;
       const target = event.target;
       if (
@@ -1235,24 +1238,6 @@ function Transcript({ snapshot }) {
   return html`<div id="messages">${rendered}</div>`;
 }
 
-function PrefsLegend() {
-  const { prefs, toggle } = useContext(PrefsContext);
-  return html`<span class="status-prefs">
-    ${PREFS.map(
-      (pref) => html`<button
-        key=${pref.key}
-        type="button"
-        class="pref-toggle ${prefs[pref.key] ? "on" : "off"}"
-        title=${`Toggle ${pref.label} (press ${pref.hotkey})`}
-        aria-pressed=${prefs[pref.key] ? "true" : "false"}
-        onClick=${() => toggle(pref.key)}
-      >
-        <kbd>${pref.hotkey}</kbd>${" "}${pref.label}
-      </button>`,
-    )}
-  </span>`;
-}
-
 function SystemPromptPanel({ snapshot }) {
   const { prefs } = useContext(PrefsContext);
   if (!prefs.systemPrompt) return null;
@@ -1276,7 +1261,6 @@ function StatusBar({ title, snapshot, connection }) {
         : html`<span class="status-state"><span class="status-dot"></span>idle</span>`;
   return html`<div class="status-bar">
     <span class="status-title">${title}</span>
-    <${PrefsLegend} />
     ${state}
   </div>`;
 }
@@ -1327,16 +1311,110 @@ function useStickToBottom(snapshot) {
   return { awayFromBottom, scrollToBottom };
 }
 
+// Command palette: a small centered dialog (Cmd/Ctrl+K) that lists every display
+// preference from PREFS and flips it. It reuses PrefsContext for both the current
+// state and the toggle, so no additional persistence lives here.
+function CommandPalette({ onClose }) {
+  const { prefs, toggle } = useContext(PrefsContext);
+  const [active, setActive] = useState(0);
+  const itemRefs = useRef([]);
+
+  const focusItem = (index) => itemRefs.current[index]?.focus();
+
+  useLayoutEffect(() => {
+    focusItem(0);
+  }, []);
+
+  const move = (delta) => {
+    const next = (active + delta + PREFS.length) % PREFS.length;
+    setActive(next);
+    focusItem(next);
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      move(1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      move(-1);
+    } else if (event.key === "Tab") {
+      event.preventDefault();
+      move(event.shiftKey ? -1 : 1);
+    }
+  };
+
+  return html`<div
+    class="palette-backdrop"
+    onMouseDown=${(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}
+  >
+    <div
+      class="palette"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="palette-title"
+      onKeyDown=${onKeyDown}
+    >
+      <div class="palette-title" id="palette-title">Display settings</div>
+      <ul class="palette-list">
+        ${PREFS.map(
+          (pref, index) => html`<li key=${pref.key}>
+            <button
+              ref=${(element) => {
+                itemRefs.current[index] = element;
+              }}
+              type="button"
+              tabindex=${index === active ? "0" : "-1"}
+              aria-pressed=${prefs[pref.key] ? "true" : "false"}
+              class="palette-item ${prefs[pref.key] ? "on" : "off"}"
+              onFocus=${() => setActive(index)}
+              onClick=${() => toggle(pref.key)}
+            >
+              <span class="palette-item-label">${pref.label}</span>
+              <span class="palette-item-key"><kbd>${pref.hotkey}</kbd></span>
+              <span class="palette-item-state">${prefs[pref.key] ? "shown" : "hidden"}</span>
+            </button>
+          </li>`,
+        )}
+      </ul>
+      <div class="palette-hint">↑↓ move · enter toggle · esc close</div>
+    </div>
+  </div>`;
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [connection, setConnection] = useState("connecting");
-  const preferences = usePreferences();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const paletteOpenRef = useRef(false);
+  const preferences = usePreferences(paletteOpenRef);
   const { awayFromBottom, scrollToBottom } = useStickToBottom(snapshot);
   const sessionTitle = resolveSessionTitle(snapshot);
 
   useEffect(() => {
     document.title = `π – ${sessionTitle}`;
   }, [sessionTitle]);
+
+  useLayoutEffect(() => {
+    paletteOpenRef.current = paletteOpen;
+  }, [paletteOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.repeat || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey))
+        return;
+      if (event.key.toLowerCase() !== "k") return;
+      event.preventDefault();
+      setPaletteOpen((open) => !open);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!snapshot.theme) return;
@@ -1413,6 +1491,7 @@ function App() {
         </button>`
       : null}
     <${Transcript} snapshot=${snapshot} />
+    ${paletteOpen ? html`<${CommandPalette} onClose=${() => setPaletteOpen(false)} />` : null}
   <//>`;
 }
 

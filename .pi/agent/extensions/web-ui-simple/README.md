@@ -44,9 +44,9 @@ browser.
 ### Display preferences
 
 Five transcript details are hidden/collapsed by default and can be toggled with
-plain single-key hotkeys (no modifier). The same toggles are shown as a clickable
-legend in the status bar. Each choice is persisted to `localStorage`, with a
-host-scoped cookie carrying it across the server's ephemeral ports:
+plain single-key hotkeys (no modifier) or from the `Cmd/Ctrl+K` command palette.
+Each choice is persisted to `localStorage`, with a host-scoped cookie carrying it
+across the server's ephemeral ports:
 
 | Key | Toggles                                                |
 | --- | ------------------------------------------------------ |
@@ -58,6 +58,13 @@ host-scoped cookie carrying it across the server's ephemeral ports:
 
 Hotkeys are ignored while a modifier is held (so browser shortcuts such as
 `Cmd/Ctrl+T` still work).
+
+`Cmd/Ctrl+K` opens a small command palette centered in the viewport that lists all
+five preferences above (each with its single-key hotkey) and toggles them. It is
+an accessible modal dialog: arrow keys / `Tab` move between commands, `Enter`/`Space`
+toggles the focused command, `Escape` or a backdrop click closes it, focus is
+trapped while open, and the plain-key hotkeys are suppressed until it closes. The palette items derive directly from the same persisted
+preferences, so it adds no storage of its own.
 
 ## How it works
 
@@ -116,7 +123,8 @@ nubx -y oxlint --deny-warnings index.ts web/app.js
 - [x] add working word that changes exactly as in `.pi/agent/extensions/working-word.ts`
 - [x] tailscale server command spawned in parallel with the node HTTP server and split the copy URL command into two: `/copy-url` for local usage and `/copy-remote-url` for other machines on the tailnet
 - [x] fix thinking expansion behavior: when clicking on a collapsed thinking block only this one should be expanded, not all (same behavior that currently exists on the tool calls)
-- [ ] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
+- [x] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
+      -> implemented as an accessible `Cmd/Ctrl+K` command palette whose items derive directly from the shared `PREFS` list, toggling all five persisted display preferences via `PrefsContext` (no new persistence). See "Display preferences" above.
 - [ ] input box:
   - [ ] initial support for sending messages via a sticky text input are at the bottom (with ability to both steer and queue via opt+enter and ctrl+enter, enter just creating a new line)
   - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
