@@ -405,4 +405,4 @@ The agent should **not** implement any of these as part of the simple extension:
 - cross-machine iframe orchestration;
 - remote handling of arbitrary RPC dialogs.
 
-The most important immediate additions beyond the existing `PLAN.md` are therefore: **base-path safety, centralized bind/public URL configuration, an authentication module boundary, exact configurable Origin policy, proxy-compatible browser URLs, restrictive default framing, and tests for all of those.**
+The most important immediate additions beyond the existing [`PLAN.md`](../PLAN.md) are therefore: **base-path safety, centralized bind/public URL configuration, an authentication module boundary, exact configurable Origin policy, proxy-compatible browser URLs, restrictive default framing, and tests for all of those.**

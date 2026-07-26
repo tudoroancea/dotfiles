@@ -130,6 +130,14 @@ and trusts the pinned Preact,
 htm, and marked modules served by esm.sh; this is the explicit tradeoff of the
 requested no-build-tools route for this minimal milestone.
 
+## Planning and architecture
+
+- [`PLAN.md`](./PLAN.md) tracks the prioritized extension and daemon work.
+- [`docs/REMOTE_SESSION_INFRA_PLAN.md`](./docs/REMOTE_SESSION_INFRA_PLAN.md) defines the separate remote daemon and managed-session boundary.
+- [`docs/ADDITIONAL_DETAILS.md`](./docs/ADDITIONAL_DETAILS.md) records supporting base-path, security, and lifecycle requirements.
+- [`docs/SSE_TRAFFIC_ANALYSIS.md`](./docs/SSE_TRAFFIC_ANALYSIS.md) measures the current full-snapshot transport cost.
+- [`docs/SLASH_COMMAND_DISPATCH.md`](./docs/SLASH_COMMAND_DISPATCH.md) documents the upstream command-dispatch boundary.
+
 ## Development checks
 
 Install the local development dependencies and run the complete check:
