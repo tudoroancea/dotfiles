@@ -235,14 +235,16 @@ describe("extension tool registration", () => {
       fg: (_role: string, text: string) => text,
       bg,
     };
-    const collapsedLines = renderer(message, { expanded: false }, theme).render(200);
+    const collapsedLines = renderer(message, { expanded: false, outputPad: 1 }, theme).render(200);
     const collapsed = collapsedLines.join("\n");
     expect(collapsedLines[0]).toBe(" ".repeat(200));
     expect(collapsedLines.at(-1)).toBe(" ".repeat(200));
     expect(bg).toHaveBeenCalledWith("customMessageBg", expect.any(String));
     expect(collapsed).toContain("1 findings · 1 tools");
     expect(collapsed).toContain("expand");
-    const expanded = renderer(message, { expanded: true }, theme).render(200).join("\n");
+    const expanded = renderer(message, { expanded: true, outputPad: 1 }, theme)
+      .render(200)
+      .join("\n");
     const markers = [
       "Prompt",
       "Inspect the recovered authentication boundary",

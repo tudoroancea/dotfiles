@@ -441,7 +441,7 @@ describe("background processes extension", () => {
     ) => { render(width: number): string[] };
     const expanded = renderMessage(
       { details: payload, content: unsafe },
-      { expanded: true },
+      { expanded: true, outputPad: 1 },
       theme,
     );
     expect(expanded.render(200).every(isSafe)).toBe(true);
@@ -618,7 +618,7 @@ describe("background processes extension", () => {
     };
     const completionLines = completion(
       { details: payload, content: "" },
-      { expanded: false },
+      { expanded: false, outputPad: 1 },
       theme,
     ).render(200);
     expect(completionLines.join("\n")).toContain("expand");
@@ -645,10 +645,12 @@ describe("background processes extension", () => {
       },
       content: "line one\nline two",
     };
-    const collapsed = event(message, { expanded: false }, theme).render(200).join("\n");
+    const collapsed = event(message, { expanded: false, outputPad: 1 }, theme)
+      .render(200)
+      .join("\n");
     expect(collapsed).toContain("■ bg_1");
     expect(collapsed).toContain("expand");
-    const expanded = event(message, { expanded: true }, theme).render(200).join("\n");
+    const expanded = event(message, { expanded: true, outputPad: 1 }, theme).render(200).join("\n");
     const markers = [
       "/work/events",
       "$ nub run watch",

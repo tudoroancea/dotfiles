@@ -182,12 +182,12 @@ describe("registered extension SDK smoke", () => {
       };
       const monitorRendered = renderers.get("background-monitor-event")!(
         monitorMessage.message as never,
-        { expanded: false } as never,
+        { expanded: false, outputPad: 1 } as never,
         theme as never,
       ) as { render: (width: number) => string[] };
       const completionRendered = renderers.get("background-process-completion")!(
         completionMessage.message as never,
-        { expanded: false } as never,
+        { expanded: false, outputPad: 1 } as never,
         theme as never,
       ) as { render: (width: number) => string[] };
       const monitorLines = monitorRendered.render(200);

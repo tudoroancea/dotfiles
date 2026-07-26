@@ -29,8 +29,8 @@ function expandHint(): string | undefined {
   }
 }
 
-function boxedMessage(component: Component, theme: Theme): Component {
-  const box = new Box(1, 1, (text) => theme.bg("customMessageBg", text));
+function boxedMessage(component: Component, theme: Theme, outputPad: number): Component {
+  const box = new Box(outputPad, 1, (text) => theme.bg("customMessageBg", text));
   box.addChild(component);
   return box;
 }
@@ -143,6 +143,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
           theme,
         ),
         theme,
+        options.outputPad,
       );
     const configuredHint = expandHint();
     const hint = !options.expanded && configuredHint ? ` · ${configuredHint}` : "";
@@ -153,6 +154,7 @@ export default function agentflowExtension(pi: ExtensionAPI): void {
         0,
       ),
       theme,
+      options.outputPad,
     );
   });
   pi.on("before_agent_start", (event) => {

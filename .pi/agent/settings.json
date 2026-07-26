@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.82.0",
+  "lastChangelogVersion": "0.82.1",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
   "defaultProvider": "pave",
@@ -21,9 +21,6 @@
       "source": "npm:pi-web-access",
       "extensions": [
         "+index.ts"
-      ],
-      "skills": [
-        "-skills/librarian/SKILL.md"
       ]
     },
     {

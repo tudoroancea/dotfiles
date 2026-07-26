@@ -131,8 +131,8 @@ function resultNotices(details: SerializedJobs | undefined): string[] {
   return notices.map(sanitizeRenderedValue);
 }
 
-function boxedMessage(component: Component, theme: Theme): Component {
-  const box = new Box(1, 1, (text) => theme.bg("customMessageBg", text));
+function boxedMessage(component: Component, theme: Theme, outputPad: number): Component {
+  const box = new Box(outputPad, 1, (text) => theme.bg("customMessageBg", text));
   box.addChild(component);
   return box;
 }
@@ -476,7 +476,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     renderResult: renderToolResult,
   });
 
-  pi.registerMessageRenderer(MONITOR_EVENT_TYPE, (message, { expanded }, theme) => {
+  pi.registerMessageRenderer(MONITOR_EVENT_TYPE, (message, { expanded, outputPad }, theme) => {
     const details = message.details as MonitorEvent | undefined;
     const content =
       typeof message.content === "string"
@@ -501,9 +501,10 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
             0,
           ),
           theme,
+          outputPad,
         );
       }
-      return boxedMessage(new Text(sanitizeRenderedValue(content), 0, 0), theme);
+      return boxedMessage(new Text(sanitizeRenderedValue(content), 0, 0), theme, outputPad);
     }
     const range = details?.firstSequence
       ? `${details.firstSequence}-${details.lastSequence}`
@@ -521,16 +522,25 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
         0,
       ),
       theme,
+      outputPad,
     );
   });
 
-  pi.registerMessageRenderer(COMPLETION_TYPE, (message, { expanded }, theme) => {
+  pi.registerMessageRenderer(COMPLETION_TYPE, (message, { expanded, outputPad }, theme) => {
     const details = message.details as SerializedJobs | undefined;
     const jobs = details?.jobs ?? [];
     if (expanded)
-      return boxedMessage(new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0), theme);
+      return boxedMessage(
+        new Text(theme.fg("dim", formatJobDetailsList(jobs)), 0, 0),
+        theme,
+        outputPad,
+      );
     if (!jobs.length)
-      return boxedMessage(new Text(theme.fg("muted", "Background completion"), 0, 0), theme);
+      return boxedMessage(
+        new Text(theme.fg("muted", "Background completion"), 0, 0),
+        theme,
+        outputPad,
+      );
     const statuses = jobs.map((job) => formatStatus(job.status));
     const aggregate = statuses.some((status) => status.tone === "error")
       ? formatStatus("failed")
@@ -555,6 +565,7 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
         0,
       ),
       theme,
+      outputPad,
     );
   });
 
