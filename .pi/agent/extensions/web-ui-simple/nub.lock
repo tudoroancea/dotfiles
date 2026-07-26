@@ -11,6 +11,9 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 0.82.0
         version: 0.82.0
+      '@earendil-works/pi-tui':
+        specifier: 0.82.0
+        version: 0.82.0
       '@playwright/test':
         specifier: 1.62.0
         version: 1.62.0

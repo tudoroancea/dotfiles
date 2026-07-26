@@ -1,7 +1,7 @@
 # Web UI (simple)
 
-A deliberately tiny, read-only browser companion for the current Pi session. It
-serves a single-column transcript that mirrors Pi's HTML exporter — user and
+A deliberately tiny browser companion for the current Pi session. It serves a
+single-column transcript that mirrors Pi's HTML exporter — user and
 assistant messages, thinking, Markdown, images, bash execution, tool calls with
 results, compactions, branch summaries, model changes, and custom messages.
 
@@ -36,10 +36,34 @@ Both links contain a fresh one-time authentication code in the URL fragment,
 for example `http://127.0.0.1:<port>/<random-path>/#code=<one-time>`. Up to eight
 unredeemed codes remain valid for two minutes; each is invalidated on first use.
 Paste the chosen link into a browser. The page renders live and updates as the session
-progresses. While Pi is running, the status bar
-mirrors the rotating message selected by `working-word.ts`. It is **read-only** —
-there is no composer, command input, or any way to act on the session from the
-browser.
+progresses. While Pi is running, the status bar mirrors the rotating message
+selected by `working-word.ts`.
+
+### Message input
+
+A sticky composer at the bottom sends ordinary user messages through Pi's public
+`sendUserMessage()` API. Enter inserts a newline. `Option+Enter` sends while idle
+or steers a running turn; `Ctrl+Enter`/`Cmd+Enter` sends while idle or queues a
+follow-up while Pi is running. The visible button sends (or steers) on a normal
+tap/click. Right-click it on desktop or long-press it on mobile to open explicit
+Send / Steer / Queue choices. The editor starts at one line and grows with its
+content on desktop; on mobile it stays one line while idle and expands into the
+visual space above the keyboard while focused. Accepted steering and follow-up
+messages remain listed above the editor until Pi begins delivering them; a
+rejected request keeps the exact draft and shows the reason.
+
+Press plain `i` outside an editable control to focus the composer. Typing `@`
+opens file completion backed by Pi's current autocomplete provider in TUI mode.
+RPC mode uses Pi's managed `fd`, a system `fd`, or a bounded filesystem fallback.
+Arrow keys
+move through results, Tab inserts the active result, Escape dismisses them, and
+results can also be clicked.
+
+The composer mirrors the TUI footer: context usage and accumulated cost interrupt
+the upper-left border, model and thinking level sit on the upper-right border,
+and the compact cwd interrupts the lower-right border. Slash commands are
+intentionally not supported; see
+[`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
 
 ### Display preferences
 
@@ -83,21 +107,26 @@ preferences, so it adds no storage of its own.
   reaches the server during navigation.
 - **Snapshots**: on connect, after message/tool/session events, and when a small
   freshness check notices an otherwise unannounced session append, the server
-  sends `{ header, entries, leafId, sessionName, isRunning, workingWord, theme, systemPrompt }`
+  sends `{ header, entries, leafId, sessionName, isRunning, workingWord, theme, systemPrompt, metadata }`
   for the current branch. In-progress assistant messages and running tool executions are
   overlaid as synthetic entries until they are persisted. The browser follows
   Pi's configured theme; automatic light/dark pairs follow the browser color
   scheme.
+- **Input**: authenticated same-origin POST endpoints accept bounded message and
+  file-completion requests. Idle messages, steering messages, and queued
+  follow-ups use explicit delivery modes. No browser interaction is a Herdr
+  blocked scope; Pi's normal agent lifecycle remains authoritative.
 - The server closes cleanly on `session_shutdown`.
 
 ## Scope / intentionally omitted
 
-This extension is the minimal read-only milestone. It does **not** include the
-exporter's sidebar/session tree or metadata/tool-map header, and it deliberately
-omits browser input, pagination, virtualization, WebSockets, public internet
-access, dashboards, provider controls, a broad security/CSP layer, and any
-configuration system. Syntax highlighting is not included; code blocks render as
-plain monospaced text. The browser must be online and trusts the pinned Preact,
+This extension remains a deliberately minimal milestone. It does **not** include
+the exporter's sidebar/session tree or metadata/tool-map header, and it
+intentionally omits slash-command dispatch, pagination, virtualization,
+WebSockets, public internet access, dashboards, provider controls, a broad
+security/CSP layer, and any configuration system. Syntax highlighting is not
+included; code blocks render as plain monospaced text. The browser must be online
+and trusts the pinned Preact,
 htm, and marked modules served by esm.sh; this is the explicit tradeoff of the
 requested no-build-tools route for this minimal milestone.
 
@@ -127,11 +156,11 @@ The Playwright suite launches the real authenticated HTTP/SSE server and product
 - [x] fix thinking expansion behavior: when clicking on a collapsed thinking block only this one should be expanded, not all (same behavior that currently exists on the tool calls)
 - [x] add a small command line centered on the screen invoked via cmd-k to modify certain display settings backed up to local storage (toggle tool expansion, thinking showing)
       -> implemented as an accessible `Cmd/Ctrl+K` command palette whose items derive directly from the shared `PREFS` list, toggling all five persisted display preferences via `PrefsContext` (no new persistence). See "Display preferences" above.
-- [ ] input box:
-  - [ ] initial support for sending messages via a sticky text input are at the bottom (with ability to both steer and queue via opt+enter and ctrl+enter, enter just creating a new line)
-  - [ ] rendering of additional information: cwd, context usage, session cost, model and thinking level.
-  - [ ] global hotkey to focus the input box
-  - [ ] file autocompletions via @ (both in TUI and RPC modes by inspecting how the pi-fff extension implements it)
+- [x] input box:
+  - [x] initial support for sending messages via a sticky text input at the bottom (with ability to steer and queue via opt+enter and ctrl/cmd+enter, enter just creating a new line)
+  - [x] rendering of additional information: cwd, context usage, session cost, model and thinking level.
+  - [x] global `i` hotkey to focus the input box
+  - [x] file autocompletions via @ in both TUI and RPC modes using Pi's canonical autocomplete provider behavior
   - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
 - [ ] add Highlight.js syntax highlighting to fenced code blocks in user and assistant messages, matching Pi's reference HTML exporter and existing theme variables
 - [ ] questionnaire tool rendering

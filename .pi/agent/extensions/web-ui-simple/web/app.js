@@ -1273,6 +1273,8 @@ const EMPTY_SNAPSHOT = {
   workingWord: undefined,
   sessionName: undefined,
   systemPrompt: "",
+  metadata: undefined,
+  pendingInputs: [],
 };
 
 function useStickToBottom(snapshot) {
@@ -1387,11 +1389,481 @@ function CommandPalette({ onClose }) {
   </div>`;
 }
 
+function contextLabel(usage) {
+  if (!usage) return "context —";
+  const percent =
+    usage.percent ??
+    (usage.tokens !== null && usage.contextWindow > 0
+      ? (usage.tokens / usage.contextWindow) * 100
+      : null);
+  if (percent === null) return "context —";
+  return `${Math.round(percent)}% of ${(usage.contextWindow / 1000).toFixed(1)}k`;
+}
+
+function cwdLabel(metadata) {
+  const cwd = metadata?.cwd || "";
+  const home = metadata?.home;
+  return home && (cwd === home || cwd.startsWith(`${home}/`)) ? `~${cwd.slice(home.length)}` : cwd;
+}
+
+function costLabel(cost) {
+  if (!Number.isFinite(cost)) return "$—";
+  const cents = cost * 100;
+  const nearest = Math.round(cents);
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(cents)) * 4;
+  const rounded = Math.abs(cents - nearest) <= tolerance ? nearest : Math.ceil(cents);
+  return `$${(rounded / 100).toFixed(2)}`;
+}
+
+function completionTarget(value, cursor) {
+  const before = value.slice(0, cursor);
+  const match = before.match(/(?:^|\s)(@(?:"[^"]*|[^\s@]*))$/);
+  if (!match) return undefined;
+  return { token: match[1], start: cursor - match[1].length, end: cursor };
+}
+
+const completionTargetKey = (target) =>
+  target ? `${target.start}:${target.end}:${target.token}` : "";
+
+function resizeComposerInput(element) {
+  if (!element || (matchMedia("(max-width: 640px)").matches && element.matches(":focus"))) return;
+  element.style.height = "auto";
+  const maxHeight = Number.parseFloat(getComputedStyle(element).maxHeight);
+  const height = Number.isFinite(maxHeight)
+    ? Math.min(element.scrollHeight, maxHeight)
+    : element.scrollHeight;
+  element.style.height = `${height}px`;
+  element.style.overflowY =
+    Number.isFinite(maxHeight) && element.scrollHeight > maxHeight ? "auto" : "hidden";
+}
+
+function Composer({ snapshot, connection, onAccepted }) {
+  const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [target, setTarget] = useState();
+  const [items, setItems] = useState([]);
+  const [itemsTarget, setItemsTarget] = useState("");
+  const [active, setActive] = useState(0);
+  const [sendMenuOpen, setSendMenuOpen] = useState(false);
+  const textarea = useRef();
+  const composer = useRef();
+  const sendButton = useRef();
+  const sendMenu = useRef();
+  const optionRefs = useRef([]);
+  const draftRef = useRef("");
+  const requestSequence = useRef(0);
+  const longPressTimer = useRef();
+  const suppressPrimaryClick = useRef(false);
+  const online = connection === "online";
+  const metadata = snapshot.metadata;
+
+  useEffect(() => {
+    const sequence = ++requestSequence.current;
+    const key = completionTargetKey(target);
+    setItems([]);
+    setItemsTarget("");
+    if (!target || !online) return;
+    const timer = setTimeout(() => {
+      fetch("complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: target.token }),
+      })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Completion unavailable");
+          return response.json();
+        })
+        .then((result) => {
+          if (requestSequence.current !== sequence) return;
+          setItems(Array.isArray(result.items) ? result.items.slice(0, 20) : []);
+          setItemsTarget(key);
+          setActive(0);
+        })
+        .catch(() => undefined);
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [target?.token, target?.start, online]);
+
+  useLayoutEffect(() => {
+    optionRefs.current[active]?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+
+  useLayoutEffect(() => {
+    resizeComposerInput(textarea.current);
+  }, [draft]);
+
+  useLayoutEffect(() => {
+    if (sendMenuOpen) sendMenu.current?.querySelector("button:not(:disabled)")?.focus();
+  }, [sendMenuOpen]);
+
+  useEffect(() => {
+    if (!sendMenuOpen) return;
+    const close = (event) => {
+      if (event.key === "Escape") {
+        setSendMenuOpen(false);
+        sendButton.current?.focus();
+      } else if (!composer.current?.contains(event.target)) {
+        setSendMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [sendMenuOpen]);
+
+  useEffect(() => {
+    if (!textarea.current) return;
+    let inputWidth = textarea.current.getBoundingClientRect().width;
+    const inputObserver = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width;
+      if (width === inputWidth) return;
+      inputWidth = width;
+      resizeComposerInput(textarea.current);
+    });
+    inputObserver.observe(textarea.current);
+    return () => inputObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const input = textarea.current;
+    const shell = composer.current;
+    const dock = shell?.closest(".composer-dock");
+    if (!input || !dock) return;
+    const clear = () => {
+      dock.classList.remove("mobile-expanded");
+      document.documentElement.style.removeProperty("--mobile-viewport-top");
+      document.documentElement.style.removeProperty("--mobile-viewport-height");
+    };
+    const update = () => {
+      if (!dock.classList.contains("mobile-expanded")) return;
+      const top = (viewport?.offsetTop ?? 0) + 9;
+      const height = Math.max(0, (viewport?.height ?? window.innerHeight) - 18);
+      document.documentElement.style.setProperty("--mobile-viewport-top", `${top}px`);
+      document.documentElement.style.setProperty("--mobile-viewport-height", `${height}px`);
+    };
+    const expand = () => {
+      dock.classList.add("mobile-expanded");
+      update();
+    };
+    const collapseAfterFocus = () => {
+      requestAnimationFrame(() => {
+        if (!dock.contains(document.activeElement)) clear();
+      });
+    };
+    input.addEventListener("focus", expand);
+    dock.addEventListener("focusout", collapseAfterFocus);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      input.removeEventListener("focus", expand);
+      dock.removeEventListener("focusout", collapseAfterFocus);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      clear();
+    };
+  }, []);
+
+  const refreshTarget = (value, cursor) => {
+    const next = completionTarget(value, cursor);
+    if (completionTargetKey(next) !== completionTargetKey(target)) {
+      setItems([]);
+      setItemsTarget("");
+    }
+    setTarget(next);
+  };
+  const selectCompletion = (item) => {
+    if (!target || itemsTarget !== completionTargetKey(target)) return;
+    const directory = item.label.endsWith("/");
+    const suffix = directory ? "" : " ";
+    const consumeQuote = item.value.endsWith('"') && draft[target.end] === '"';
+    const after = target.end + (consumeQuote ? 1 : 0);
+    const next = `${draft.slice(0, target.start)}${item.value}${suffix}${draft.slice(after)}`;
+    const quotedDirectory = directory && item.value.endsWith('"');
+    const cursor = target.start + item.value.length + suffix.length - (quotedDirectory ? 1 : 0);
+    draftRef.current = next;
+    setDraft(next);
+    setTarget(quotedDirectory ? completionTarget(next, cursor) : undefined);
+    setItems([]);
+    setItemsTarget("");
+    requestAnimationFrame(() => {
+      textarea.current?.focus();
+      textarea.current?.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const send = async (delivery) => {
+    suppressPrimaryClick.current = false;
+    if (pending || !online || !draft.trim()) return;
+    const content = draft;
+    setPending(true);
+    setNotice("");
+    try {
+      const response = await fetch("input", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, delivery }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.accepted) throw new Error(result.error || "Message rejected");
+      if (draftRef.current === content) {
+        draftRef.current = "";
+        setDraft("");
+        setTarget(undefined);
+        setItems([]);
+        setItemsTarget("");
+      }
+      setNotice(delivery === "followUp" ? "Queued" : delivery === "steer" ? "Steered" : "Sent");
+      setSendMenuOpen(false);
+      onAccepted();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Message failed");
+    } finally {
+      setPending(false);
+      textarea.current?.focus();
+    }
+  };
+
+  const running = snapshot.isRunning;
+  const canSend = !pending && online && Boolean(draft.trim());
+  const primaryDelivery = running ? "steer" : "immediate";
+  const primaryLabel = pending ? "Sending message" : running ? "Steer message" : "Send message";
+  const clearLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = undefined;
+  };
+  const openSendMenu = () => setSendMenuOpen(true);
+  return html`<footer ref=${composer} class="composer">
+    <div class="composer-border-label composer-border-label-left">
+      <span>${contextLabel(metadata?.contextUsage)}</span>
+      ${metadata
+        ? html`<span class="composer-separator">·</span
+            ><span>${costLabel(metadata.sessionCost)}</span>`
+        : null}
+    </div>
+    ${metadata?.model
+      ? html`<div
+          class="composer-border-label composer-border-label-right"
+          title=${`${metadata.model.provider}/${metadata.model.id}`}
+        >
+          <span>(${metadata.model.provider}) ${metadata.model.id}</span>
+          ${metadata?.thinkingLevel
+            ? html`<span class="composer-separator">·</span
+                ><span class="composer-thinking">${metadata.thinkingLevel}</span>`
+            : null}
+        </div>`
+      : null}
+    ${snapshot.pendingInputs?.length
+      ? html`<div class="composer-pending" aria-label="Pending messages">
+          ${snapshot.pendingInputs.map(
+            (item) => html`<div class="composer-pending-row" key=${item.id}>
+              <span class=${`composer-pending-kind ${item.delivery}`}
+                >${item.delivery === "followUp" ? "queue" : "steer"}</span
+              >
+              <span class="composer-pending-text">${item.content}</span>
+            </div>`,
+          )}
+        </div>`
+      : null}
+    <div class="composer-editor">
+      <textarea
+        ref=${textarea}
+        class="composer-input"
+        aria-label="Message"
+        aria-autocomplete="list"
+        aria-controls=${items.length ? "composer-completions" : undefined}
+        aria-activedescendant=${items.length ? `composer-completion-${active}` : undefined}
+        rows="1"
+        value=${draft}
+        placeholder=${running ? "Steer the running turn…" : "Send a prompt…"}
+        disabled=${!online}
+        onClick=${(event) =>
+          refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart)}
+        onSelect=${(event) =>
+          refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart)}
+        onInput=${(event) => {
+          resizeComposerInput(event.currentTarget);
+          draftRef.current = event.currentTarget.value;
+          setDraft(event.currentTarget.value);
+          setNotice("");
+          refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart);
+        }}
+        onKeyUp=${(event) => {
+          if (event.key !== "Escape") {
+            refreshTarget(event.currentTarget.value, event.currentTarget.selectionStart);
+          }
+        }}
+        onKeyDown=${(event) => {
+          if (event.key === "Enter" && event.altKey) {
+            event.preventDefault();
+            void send(running ? "steer" : "immediate");
+            return;
+          }
+          if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            void send(running ? "followUp" : "immediate");
+            return;
+          }
+          if (!items.length) return;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const delta = event.key === "ArrowDown" ? 1 : -1;
+            setActive((active + delta + items.length) % items.length);
+          } else if (event.key === "Tab") {
+            event.preventDefault();
+            selectCompletion(items[active]);
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            setTarget(undefined);
+            setItems([]);
+          }
+        }}
+      ></textarea>
+      ${items.length
+        ? html`<ul id="composer-completions" class="composer-completions" role="listbox">
+            ${items.map(
+              (item, index) => html`<li
+                ref=${(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                id=${`composer-completion-${index}`}
+                key=${item.value}
+                role="option"
+                aria-selected=${index === active ? "true" : "false"}
+                class=${index === active ? "active" : ""}
+                onMouseDown=${(event) => event.preventDefault()}
+                onMouseEnter=${() => setActive(index)}
+                onClick=${() => selectCompletion(item)}
+              >
+                <span>${item.label}</span>${item.description
+                  ? html`<small>${item.description}</small>`
+                  : null}
+              </li>`,
+            )}
+          </ul>`
+        : null}
+    </div>
+    <span
+      class=${`composer-notice ${notice && !/^(Sent|Steered|Queued)$/.test(notice) ? "error" : ""}`}
+      aria-live="polite"
+      >${notice}</span
+    >
+    <div class="composer-send-control">
+      <button
+        ref=${sendButton}
+        type="button"
+        class="composer-button"
+        aria-label=${primaryLabel}
+        title=${primaryLabel}
+        aria-haspopup="menu"
+        aria-expanded=${sendMenuOpen ? "true" : "false"}
+        aria-disabled=${canSend ? "false" : "true"}
+        onClick=${() => {
+          if (suppressPrimaryClick.current) {
+            suppressPrimaryClick.current = false;
+            return;
+          }
+          if (canSend) void send(primaryDelivery);
+        }}
+        onContextMenu=${(event) => {
+          event.preventDefault();
+          openSendMenu();
+        }}
+        onKeyDown=${(event) => {
+          if (
+            event.key === "ArrowDown" ||
+            event.key === "ContextMenu" ||
+            (event.shiftKey && event.key === "F10")
+          ) {
+            event.preventDefault();
+            openSendMenu();
+          }
+        }}
+        onPointerDown=${(event) => {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          clearLongPress();
+          longPressTimer.current = setTimeout(() => {
+            suppressPrimaryClick.current = true;
+            openSendMenu();
+          }, 550);
+        }}
+        onPointerUp=${() => {
+          clearLongPress();
+          setTimeout(() => {
+            suppressPrimaryClick.current = false;
+          }, 0);
+        }}
+        onPointerCancel=${clearLongPress}
+        onPointerLeave=${clearLongPress}
+      >
+        <span aria-hidden="true">↑</span>
+      </button>
+      ${sendMenuOpen
+        ? html`<div
+            ref=${sendMenu}
+            class="composer-send-menu"
+            role="menu"
+            aria-label="Send options"
+            onKeyDown=${(event) => {
+              const buttons = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
+              const index = buttons.indexOf(document.activeElement);
+              let next;
+              if (event.key === "ArrowDown") next = buttons[(index + 1) % buttons.length];
+              else if (event.key === "ArrowUp")
+                next = buttons[(index - 1 + buttons.length) % buttons.length];
+              else if (event.key === "Home") next = buttons[0];
+              else if (event.key === "End") next = buttons.at(-1);
+              else if (event.key === "Escape") {
+                event.preventDefault();
+                setSendMenuOpen(false);
+                sendButton.current?.focus();
+                return;
+              }
+              if (next) {
+                event.preventDefault();
+                next.focus();
+              }
+            }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              disabled=${!canSend}
+              onClick=${() => void send(running ? "steer" : "immediate")}
+            >
+              ${running ? "Steer now" : "Send now"}
+            </button>
+            ${running
+              ? html`<button
+                  type="button"
+                  role="menuitem"
+                  disabled=${!canSend}
+                  onClick=${() => void send("followUp")}
+                >
+                  Queue follow-up
+                </button>`
+              : null}
+          </div>`
+        : null}
+    </div>
+    <div class="composer-border-label composer-cwd" title=${metadata?.cwd || ""}>
+      ${cwdLabel(metadata)}
+    </div>
+  </footer>`;
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [connection, setConnection] = useState("connecting");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const paletteOpenRef = useRef(false);
+  const dock = useRef();
   const preferences = usePreferences(paletteOpenRef);
   const { awayFromBottom, scrollToBottom } = useStickToBottom(snapshot);
   const sessionTitle = resolveSessionTitle(snapshot);
@@ -1400,12 +1872,46 @@ function App() {
     document.title = `π – ${sessionTitle}`;
   }, [sessionTitle]);
 
+  useEffect(() => {
+    if (!dock.current) return;
+    const update = () =>
+      document.documentElement.style.setProperty(
+        "--composer-height",
+        `${dock.current?.getBoundingClientRect().height ?? 0}px`,
+      );
+    const observer = new ResizeObserver(update);
+    observer.observe(dock.current);
+    update();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--composer-height");
+    };
+  }, []);
+
   useLayoutEffect(() => {
     paletteOpenRef.current = paletteOpen;
   }, [paletteOpen]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
+      const target = event.target;
+      const editable =
+        target &&
+        (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName || ""));
+      if (
+        !paletteOpenRef.current &&
+        !editable &&
+        !event.repeat &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "i"
+      ) {
+        event.preventDefault();
+        document.querySelector(".composer-input")?.focus();
+        return;
+      }
       if (event.repeat || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey))
         return;
       if (event.key.toLowerCase() !== "k") return;
@@ -1480,17 +1986,24 @@ function App() {
   return html`<${PrefsContext.Provider} value=${preferences}>
     <${StatusBar} title=${sessionTitle} snapshot=${snapshot} connection=${connection} />
     <${SystemPromptPanel} snapshot=${snapshot} />
-    ${awayFromBottom
-      ? html`<button
-          type="button"
-          class="scroll-to-bottom"
-          onClick=${scrollToBottom}
-          aria-label="Scroll to bottom"
-        >
-          ↓ bottom
-        </button>`
-      : null}
     <${Transcript} snapshot=${snapshot} />
+    <div ref=${dock} class="composer-dock">
+      ${awayFromBottom
+        ? html`<button
+            type="button"
+            class="scroll-to-bottom"
+            onClick=${scrollToBottom}
+            aria-label="Scroll to bottom"
+          >
+            ↓ bottom
+          </button>`
+        : null}
+      <${Composer}
+        snapshot=${snapshot}
+        connection=${connection}
+        onAccepted=${() => setPaletteOpen(false)}
+      />
+    </div>
     ${paletteOpen ? html`<${CommandPalette} onClose=${() => setPaletteOpen(false)} />` : null}
   <//>`;
 }

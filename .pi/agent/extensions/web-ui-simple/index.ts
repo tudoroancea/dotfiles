@@ -1,10 +1,12 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { homedir } from "node:os";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CombinedAutocompleteProvider, type AutocompleteProvider } from "@earendil-works/pi-tui";
 import {
   copyToClipboard,
   type ExtensionAPI,
@@ -28,10 +30,13 @@ import {
 
 const WEB_ROOT = fileURLToPath(new URL("./web/", import.meta.url));
 const COOKIE_NAME = `pi_wus_${randomBytes(6).toString("base64url")}`;
-const MAX_AUTH_BODY_BYTES = 4096;
+const MAX_REQUEST_BODY_BYTES = 64 * 1024;
+const MAX_INPUT_BYTES = 32 * 1024;
+const MAX_COMPLETION_QUERY_BYTES = 4 * 1024;
 const MAX_BOOTSTRAP_CODES = 8;
 const BOOTSTRAP_CODE_TTL_MS = 2 * 60 * 1000;
 const BROADCAST_DEBOUNCE_MS = 60;
+const PROMPT_ADMISSION_TTL_MS = 30_000;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -60,6 +65,23 @@ interface SnapshotTheme {
   dark: ThemePalette;
 }
 
+export interface SessionMetadata {
+  cwd: string;
+  home: string;
+  contextUsage:
+    | { tokens: number | null; contextWindow: number; percent: number | null }
+    | undefined;
+  sessionCost: number;
+  model: { provider: string; id: string; name: string } | undefined;
+  thinkingLevel: string | undefined;
+}
+
+export interface PendingInput {
+  id: string;
+  content: string;
+  delivery: "steer" | "followUp";
+}
+
 export interface Snapshot {
   header: unknown;
   leafId: string | null;
@@ -68,7 +90,25 @@ export interface Snapshot {
   workingWord: string | undefined;
   theme: SnapshotTheme | undefined;
   systemPrompt: string;
+  metadata: SessionMetadata | undefined;
+  pendingInputs: PendingInput[];
   entries: unknown[];
+}
+
+export type InputDelivery = "immediate" | "steer" | "followUp";
+
+export interface CompletionItem {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+interface StartServerOptions {
+  submitInput?: (
+    content: string,
+    delivery: InputDelivery,
+  ) => Promise<{ accepted: boolean; error?: string }>;
+  completeMention?: (query: string, signal: AbortSignal) => Promise<CompletionItem[]>;
 }
 
 export interface WebUiServer {
@@ -347,13 +387,26 @@ async function readBody(request: IncomingMessage): Promise<string> {
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > MAX_AUTH_BODY_BYTES) throw new Error("Request body too large");
+    if (size > MAX_REQUEST_BODY_BYTES) throw new Error("Request body too large");
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export async function startServer(getSnapshot: () => Snapshot): Promise<WebUiServer> {
+function sameOrigin(request: IncomingMessage): boolean {
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === request.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+export async function startServer(
+  getSnapshot: () => Snapshot,
+  options: StartServerOptions = {},
+): Promise<WebUiServer> {
   const sessionToken = randomBytes(32).toString("base64url");
   const basePath = `/${randomBytes(18).toString("base64url")}/`;
   const bootstrapCodes = new Map<string, BootstrapCode>();
@@ -372,6 +425,8 @@ export async function startServer(getSnapshot: () => Snapshot): Promise<WebUiSer
       snapshot.sessionName,
       snapshot.systemPrompt,
       JSON.stringify(snapshot.theme),
+      JSON.stringify(snapshot.metadata),
+      JSON.stringify(snapshot.pendingInputs),
     ].join("|");
   }
 
@@ -453,6 +508,88 @@ export async function startServer(getSnapshot: () => Snapshot): Promise<WebUiSer
         `${COOKIE_NAME}=${sessionToken}; HttpOnly; SameSite=Strict; Path=${basePath}`,
       );
       sendJson(response, 204, undefined);
+      return;
+    }
+
+    if (request.method === "POST" && route === "input") {
+      if (!authenticated(request)) {
+        sendJson(response, 401, { error: "Authentication required" });
+        return;
+      }
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin requests are not allowed" });
+        return;
+      }
+      if (!options.submitInput) {
+        sendJson(response, 503, { accepted: false, error: "Input is unavailable" });
+        return;
+      }
+      let value: { content?: unknown; delivery?: unknown };
+      try {
+        value = JSON.parse(await readBody(request)) as typeof value;
+      } catch {
+        sendJson(response, 400, { accepted: false, error: "Invalid request" });
+        return;
+      }
+      const content = typeof value.content === "string" ? value.content : "";
+      const delivery = value.delivery;
+      if (!content.trim() || Buffer.byteLength(content) > MAX_INPUT_BYTES) {
+        sendJson(response, 400, { accepted: false, error: "Message is empty or too large" });
+        return;
+      }
+      if (delivery !== "immediate" && delivery !== "steer" && delivery !== "followUp") {
+        sendJson(response, 400, { accepted: false, error: "Invalid delivery mode" });
+        return;
+      }
+      try {
+        const result = await options.submitInput(content, delivery);
+        sendJson(response, result.accepted ? 202 : 409, result);
+      } catch (error) {
+        sendJson(response, 500, {
+          accepted: false,
+          error: error instanceof Error ? error.message.slice(0, 512) : "Message failed",
+        });
+      }
+      return;
+    }
+
+    if (request.method === "POST" && route === "complete") {
+      if (!authenticated(request)) {
+        sendJson(response, 401, { error: "Authentication required" });
+        return;
+      }
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin requests are not allowed" });
+        return;
+      }
+      if (!options.completeMention) {
+        sendJson(response, 200, { items: [] });
+        return;
+      }
+      let query: unknown;
+      try {
+        query = (JSON.parse(await readBody(request)) as { query?: unknown }).query;
+      } catch {
+        sendJson(response, 400, { error: "Invalid request" });
+        return;
+      }
+      if (typeof query !== "string" || Buffer.byteLength(query) > MAX_COMPLETION_QUERY_BYTES) {
+        sendJson(response, 400, { error: "Invalid completion query" });
+        return;
+      }
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      const close = () => {
+        if (!response.writableEnded) abort();
+      };
+      request.once("aborted", abort);
+      response.once("close", close);
+      const items = await options.completeMention(query, controller.signal);
+      request.off("aborted", abort);
+      response.off("close", close);
+      if (!controller.signal.aborted && !response.destroyed) {
+        sendJson(response, 200, { items: items.slice(0, 20) });
+      }
       return;
     }
 
@@ -560,6 +697,157 @@ export async function startServer(getSnapshot: () => Snapshot): Promise<WebUiSer
   };
 }
 
+function sessionCost(context: ExtensionContext): number {
+  let unkeyed = 0;
+  const keyed = new Map<string, number>();
+  const addDetails = (value: unknown): void => {
+    if (!value || typeof value !== "object") return;
+    const details = value as { cost?: unknown; costId?: unknown; costs?: unknown };
+    if (typeof details.cost === "number" && Number.isFinite(details.cost) && details.cost >= 0) {
+      if (typeof details.costId === "string") {
+        keyed.set(details.costId, Math.max(keyed.get(details.costId) ?? 0, details.cost));
+      } else unkeyed += details.cost;
+    }
+    if (!Array.isArray(details.costs)) return;
+    for (const item of details.costs) {
+      if (!item || typeof item !== "object") continue;
+      const record = item as { costId?: unknown; cost?: unknown };
+      if (
+        typeof record.costId === "string" &&
+        typeof record.cost === "number" &&
+        Number.isFinite(record.cost) &&
+        record.cost >= 0
+      ) {
+        keyed.set(record.costId, Math.max(keyed.get(record.costId) ?? 0, record.cost));
+      }
+    }
+  };
+
+  const addUsage = (value: unknown): void => {
+    if (!value || typeof value !== "object") return;
+    const total = (value as { cost?: { total?: unknown } }).cost?.total;
+    if (typeof total === "number" && Number.isFinite(total) && total >= 0) unkeyed += total;
+  };
+
+  for (const candidate of context.sessionManager.getEntries()) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const entry = candidate as unknown as Record<string, unknown>;
+    if (entry.type === "custom" && entry.customType === "agentflow-cost") {
+      addDetails(entry.data);
+      continue;
+    }
+    if (entry.type === "custom_message" && entry.customType === "agentflow-result") {
+      addDetails(entry.details);
+      continue;
+    }
+    if (entry.type === "compaction" || entry.type === "branch_summary") {
+      addUsage(entry.usage);
+      continue;
+    }
+    if (entry.type !== "message" || !entry.message || typeof entry.message !== "object") continue;
+    const message = entry.message as Record<string, unknown>;
+    if (message.role === "assistant" || message.role === "toolResult") addUsage(message.usage);
+    if (message.role === "toolResult" || message.role === "custom") addDetails(message.details);
+  }
+  return unkeyed + [...keyed.values()].reduce((sum, cost) => sum + cost, 0);
+}
+
+function projectMetadata(context: ExtensionContext): SessionMetadata {
+  const usage = context.getContextUsage();
+  return {
+    cwd: String(context.cwd).slice(0, 4096),
+    home: homedir().slice(0, 4096),
+    contextUsage: usage
+      ? {
+          tokens: usage.tokens,
+          contextWindow: usage.contextWindow,
+          percent: usage.percent,
+        }
+      : undefined,
+    sessionCost: sessionCost(context),
+    model: context.model
+      ? {
+          provider: String(context.model.provider).slice(0, 128),
+          id: String(context.model.id).slice(0, 256),
+          name: String(context.model.name).slice(0, 256),
+        }
+      : undefined,
+    thinkingLevel: context.thinkingLevel,
+  };
+}
+
+export async function fallbackFileCompletions(
+  cwd: string,
+  query: string,
+  signal: AbortSignal,
+): Promise<CompletionItem[]> {
+  const quoted = query.startsWith('@"');
+  const rawQuery = query.replace(/^@"?/, "").replace(/"$/, "").toLowerCase();
+  const queue = [""];
+  const entries: Array<{ path: string; directory: boolean; score: number }> = [];
+  const ignored = new Set([".git", "node_modules"]);
+  while (queue.length && entries.length < 5000 && !signal.aborted) {
+    const relativeDir = queue.shift()!;
+    let children;
+    try {
+      children = await readdir(join(cwd, relativeDir), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const child of children) {
+      if (ignored.has(child.name)) continue;
+      const path = relativeDir ? `${relativeDir}/${child.name}` : child.name;
+      const directory = child.isDirectory();
+      if (directory) queue.push(path);
+      const lower = path.toLowerCase();
+      let queryIndex = 0;
+      for (const character of lower) {
+        if (character === rawQuery[queryIndex]) queryIndex += 1;
+      }
+      if (!rawQuery || queryIndex === rawQuery.length) {
+        entries.push({
+          path,
+          directory,
+          score: rawQuery ? (lower.includes(rawQuery) ? 2 : 1) : 1,
+        });
+      }
+      if (entries.length >= 5000) break;
+    }
+  }
+  return entries
+    .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path))
+    .slice(0, 20)
+    .map((entry) => {
+      const path = `${entry.path}${entry.directory ? "/" : ""}`;
+      const needsQuotes = quoted || path.includes(" ");
+      return {
+        value: needsQuotes ? `@"${path}"` : `@${path}`,
+        label: `${entry.path.split("/").at(-1)}${entry.directory ? "/" : ""}`,
+        description: entry.path,
+      };
+    });
+}
+
+export async function mentionCompletions(
+  provider: AutocompleteProvider,
+  query: string,
+  signal: AbortSignal,
+): Promise<CompletionItem[]> {
+  if (signal.aborted) return [];
+  try {
+    const token = query.startsWith("@") ? query : `@${query}`;
+    const result = await provider.getSuggestions([token], 0, token.length, { signal });
+    if (!result || signal.aborted) return [];
+    return result.items.slice(0, 20).map((item) => ({
+      value: String(item.value).slice(0, 1024),
+      label: String(item.label).slice(0, 512),
+      ...(item.description ? { description: String(item.description).slice(0, 1024) } : {}),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function startTailscaleServe(
   localOrigin: string,
   port: number,
@@ -662,11 +950,16 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   let automaticPalette: SnapshotTheme | undefined;
   let cachedTheme: { key: string; value: SnapshotTheme } | undefined;
   let workingWord: string | undefined;
+  let autocompleteProvider: AutocompleteProvider | undefined;
+  let promptAdmission = false;
+  let promptAdmissionTimer: NodeJS.Timeout | undefined;
+  let pendingAdmission: { content: string; resolve: (accepted: boolean) => void } | undefined;
 
   // Live overlay: streaming assistant message plus in-progress tool executions
   // that are not yet persisted into the branch.
   let liveAssistant: unknown | undefined;
   const liveTools = new Map<string, LiveTool>();
+  let pendingInputs: PendingInput[] = [];
 
   function buildSnapshot(): Snapshot {
     if (!context) {
@@ -678,6 +971,8 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
         workingWord: undefined,
         theme: undefined,
         systemPrompt: "",
+        metadata: undefined,
+        pendingInputs: [],
         entries: [],
       };
     }
@@ -746,6 +1041,8 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       workingWord,
       theme: snapshotTheme,
       systemPrompt: context.getSystemPrompt(),
+      metadata: projectMetadata(context),
+      pendingInputs,
       entries,
     };
   }
@@ -762,6 +1059,15 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   function clearLive(): void {
     liveAssistant = undefined;
     liveTools.clear();
+  }
+
+  function settlePromptAdmission(accepted: boolean): void {
+    promptAdmission = false;
+    if (promptAdmissionTimer) clearTimeout(promptAdmissionTimer);
+    promptAdmissionTimer = undefined;
+    const pending = pendingAdmission;
+    pendingAdmission = undefined;
+    pending?.resolve(accepted);
   }
 
   async function copyUrl(commandContext: ExtensionCommandContext, origin?: string): Promise<void> {
@@ -816,6 +1122,7 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     tailscaleServe = undefined;
     remoteOrigin = undefined;
     clearLive();
+    pendingInputs = [];
     context = ctx;
     const settings = SettingsManager.create(ctx.cwd, getAgentDir(), {
       projectTrusted: ctx.isProjectTrusted(),
@@ -833,7 +1140,73 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
       if (light && dark) automaticPalette = { auto: true, light, dark };
       else automaticTheme = undefined;
     }
-    server = await startServer(buildSnapshot);
+    autocompleteProvider = undefined;
+    ctx.ui.addAutocompleteProvider((current) => {
+      autocompleteProvider = current;
+      return current;
+    });
+    if (!autocompleteProvider) {
+      const managedFd = join(getAgentDir(), "bin", process.platform === "win32" ? "fd.exe" : "fd");
+      let fdPath: string | undefined;
+      try {
+        await access(managedFd);
+        fdPath = managedFd;
+      } catch {
+        const lookup = await pi.exec(process.platform === "win32" ? "where" : "which", ["fd"]);
+        if (lookup.code === 0) fdPath = lookup.stdout.trim().split(/\r?\n/)[0];
+      }
+      if (fdPath) autocompleteProvider = new CombinedAutocompleteProvider([], ctx.cwd, fdPath);
+    }
+    server = await startServer(buildSnapshot, {
+      submitInput: async (content, delivery) => {
+        if (!context || context !== ctx) return { accepted: false, error: "Session changed" };
+        const idle = context.isIdle();
+        if (delivery === "immediate") {
+          if (!idle || promptAdmission) {
+            return { accepted: false, error: "Pi is busy; choose Steer or Queue" };
+          }
+          if (!context.model) return { accepted: false, error: "No model is selected" };
+          if (!(await context.modelRegistry.getProviderAuth(context.model.provider))) {
+            return { accepted: false, error: "The selected model is not authenticated" };
+          }
+          if (context !== ctx) return { accepted: false, error: "Session changed" };
+          if (!context.isIdle() || promptAdmission) {
+            return { accepted: false, error: "Pi is busy; choose Steer or Queue" };
+          }
+          promptAdmission = true;
+          const admitted = new Promise<boolean>((resolve) => {
+            pendingAdmission = { content, resolve };
+          });
+          promptAdmissionTimer = setTimeout(
+            () => settlePromptAdmission(false),
+            PROMPT_ADMISSION_TTL_MS,
+          );
+          promptAdmissionTimer.unref?.();
+          try {
+            pi.sendUserMessage(content);
+          } catch (error) {
+            settlePromptAdmission(false);
+            throw error;
+          }
+          if (!(await admitted)) {
+            return { accepted: false, error: "Pi did not accept the message" };
+          }
+        } else {
+          if (idle) return { accepted: false, error: "Pi is idle; send a prompt instead" };
+          pi.sendUserMessage(content, { deliverAs: delivery });
+          pendingInputs = [
+            ...pendingInputs,
+            { id: randomBytes(8).toString("base64url"), content, delivery },
+          ];
+          scheduleBroadcast();
+        }
+        return { accepted: true };
+      },
+      completeMention: (query, signal) =>
+        autocompleteProvider
+          ? mentionCompletions(autocompleteProvider, query, signal)
+          : fallbackFileCompletions(ctx.cwd, query, signal),
+    });
     const activeServer = server;
     tailscaleServe = startTailscaleServe(
       activeServer.origin,
@@ -866,6 +1239,16 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     }
   });
 
+  pi.on("input", (event) => {
+    if (
+      event.source === "extension" &&
+      pendingAdmission &&
+      event.text === pendingAdmission.content
+    ) {
+      settlePromptAdmission(true);
+    }
+  });
+
   pi.events.on("working-word:change", (data) => {
     const message = (data as { message?: unknown } | undefined)?.message;
     workingWord = typeof message === "string" ? message : undefined;
@@ -875,7 +1258,29 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
   pi.on("agent_start", () => scheduleBroadcast());
   pi.on("message_start", (event) => {
     const message = (event as { message?: { role?: string } }).message;
-    if (message?.role === "assistant") liveAssistant = message;
+    if (message?.role === "user") {
+      const content = (message as { content?: unknown }).content;
+      const text =
+        typeof content === "string"
+          ? content
+          : Array.isArray(content)
+            ? content
+                .filter((item) => item?.type === "text" && typeof item.text === "string")
+                .map((item) => item.text)
+                .join("")
+            : "";
+      if (pendingAdmission && text === pendingAdmission.content) settlePromptAdmission(true);
+      let pendingIndex = pendingInputs.findIndex(
+        (item) => item.content === text && item.delivery === "steer",
+      );
+      if (pendingIndex < 0) pendingIndex = pendingInputs.findIndex((item) => item.content === text);
+      if (pendingIndex >= 0) {
+        pendingInputs = [
+          ...pendingInputs.slice(0, pendingIndex),
+          ...pendingInputs.slice(pendingIndex + 1),
+        ];
+      }
+    } else if (message?.role === "assistant") liveAssistant = message;
     scheduleBroadcast();
   });
   pi.on("message_update", (event) => {
@@ -938,12 +1343,14 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
 
   pi.on("agent_settled", () => {
     clearLive();
+    pendingInputs = [];
     scheduleBroadcast();
   });
   pi.on("model_select", () => scheduleBroadcast());
   pi.on("thinking_level_select", () => scheduleBroadcast());
   pi.on("session_tree", () => {
     clearLive();
+    pendingInputs = [];
     scheduleBroadcast();
   });
   pi.on("session_compact", () => {
@@ -963,9 +1370,14 @@ export default function webUiSimpleExtension(pi: ExtensionAPI): void {
     automaticPalette = undefined;
     cachedTheme = undefined;
     workingWord = undefined;
+    autocompleteProvider = undefined;
+    settlePromptAdmission(false);
+    pendingInputs = [];
     clearLive();
     if (broadcastTimer) clearTimeout(broadcastTimer);
+    if (promptAdmissionTimer) clearTimeout(promptAdmissionTimer);
     broadcastTimer = undefined;
+    promptAdmissionTimer = undefined;
     if (activeTailscaleServe) await activeTailscaleServe.close();
     if (active) await active.close();
   });

@@ -87,7 +87,8 @@ body {
 
 #app {
   min-height: 100vh;
-  padding: var(--line-height) calc(var(--line-height) * 2);
+  padding: var(--line-height) calc(var(--line-height) * 2)
+    calc(var(--composer-height, 0px) + var(--line-height) * 1.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,6 +159,7 @@ body {
 }
 
 .notice {
+  flex: 1 0 auto;
   color: var(--muted);
   padding: var(--line-height) 0;
 }
@@ -192,14 +194,9 @@ body {
   font-style: italic;
 }
 
-#app > .scroll-to-bottom {
-  position: fixed;
-  z-index: 1;
-  left: 50%;
-  bottom: var(--line-height);
+.composer-dock > .scroll-to-bottom {
   width: fit-content;
   padding: 2px 6px;
-  transform: translateX(-50%);
   border: 1px solid var(--accent);
   border-radius: 999px;
   color: var(--accent);
@@ -210,11 +207,11 @@ body {
   cursor: pointer;
 }
 
-#app > .scroll-to-bottom:hover {
+.composer-dock > .scroll-to-bottom:hover {
   background: var(--hover);
 }
 
-#app > .scroll-to-bottom:focus-visible {
+.composer-dock > .scroll-to-bottom:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -222,6 +219,7 @@ body {
 /* Messages */
 #messages {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: var(--line-height);
 }
@@ -943,6 +941,282 @@ body {
   border-radius: 4px;
 }
 
+/* Composer */
+#app > .composer-dock {
+  position: fixed;
+  bottom: calc(var(--line-height) / 2);
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(800px, calc(100vw - var(--line-height) * 4));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.composer-dock > * {
+  pointer-events: auto;
+}
+
+.composer {
+  position: relative;
+  width: 100%;
+  padding: 14px 8px 12px;
+  border: 1px solid var(--borderAccent);
+  border-radius: 9px;
+  background: var(--body-bg);
+}
+
+.composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.composer-border-label {
+  position: absolute;
+  z-index: 1;
+  min-width: 0;
+  padding: 0 5px;
+  overflow: hidden;
+  color: var(--muted);
+  background: var(--body-bg);
+  font-size: 11px;
+  line-height: var(--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-border-label-left {
+  top: 0;
+  left: 18px;
+  max-width: 42%;
+  transform: translateY(-50%);
+}
+
+.composer-border-label-right {
+  top: 0;
+  right: 18px;
+  display: flex;
+  max-width: 52%;
+  transform: translateY(-50%);
+}
+
+.composer-separator {
+  flex-shrink: 0;
+  padding: 0 0.65ch;
+  color: var(--dim);
+}
+
+.composer-thinking {
+  color: var(--accent);
+}
+
+.composer-pending {
+  display: grid;
+  gap: 3px;
+  max-height: 24vh;
+  margin: 2px 72px 6px 5px;
+  overflow-y: auto;
+}
+
+.composer-pending-row {
+  display: grid;
+  grid-template-columns: 5.5ch minmax(0, 1fr);
+  gap: 7px;
+  min-width: 0;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.composer-pending-kind {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.composer-pending-kind.followUp {
+  color: var(--warning);
+}
+
+.composer-pending-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-editor {
+  position: relative;
+}
+
+.composer-input {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--line-height) + 10px);
+  max-height: 32vh;
+  resize: none;
+  padding: 5px 72px 5px 5px;
+  border: 0;
+  border-radius: 3px;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  line-height: var(--line-height);
+}
+
+.composer-input:focus {
+  background: transparent;
+  box-shadow: none;
+}
+
+.composer-input:disabled {
+  opacity: 0.65;
+}
+
+.composer-completions {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 5px);
+  left: 0;
+  z-index: 4;
+  max-height: 220px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--borderAccent);
+  border-radius: 5px;
+  background: var(--container-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  list-style: none;
+}
+
+.composer-completions li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.composer-completions li.active,
+.composer-completions li:hover {
+  background: var(--selectedBg);
+}
+
+.composer-completions small {
+  overflow: hidden;
+  color: var(--dim);
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-cwd {
+  right: 9px;
+  bottom: 0;
+  max-width: 65%;
+  transform: translateY(50%);
+  color: var(--dim);
+}
+
+.composer-notice {
+  position: absolute;
+  bottom: 0;
+  left: 9px;
+  z-index: 1;
+  max-width: 30%;
+  padding: 0 5px;
+  overflow: hidden;
+  color: var(--success);
+  background: var(--body-bg);
+  font-size: 10px;
+  line-height: var(--line-height);
+  text-overflow: ellipsis;
+  transform: translateY(50%);
+  white-space: nowrap;
+}
+
+.composer-notice.error {
+  color: var(--error);
+}
+
+.composer-send-control {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  z-index: 3;
+}
+
+.composer-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--body-bg);
+  background: var(--accent);
+  font: inherit;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.composer-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.composer-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.composer-button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.composer-send-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  display: grid;
+  width: max-content;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid var(--borderAccent);
+  border-radius: 5px;
+  background: var(--container-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.composer-send-menu button {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.composer-send-menu button:hover,
+.composer-send-menu button:focus-visible {
+  outline: 0;
+  background: var(--selectedBg);
+}
+
+.composer-send-menu button:disabled {
+  color: var(--dim);
+  cursor: default;
+}
+
 /* Command palette */
 .palette-backdrop {
   position: fixed;
@@ -1047,12 +1321,76 @@ body {
 
 @media (max-width: 640px) {
   #app {
-    padding: var(--line-height) 12px;
+    padding: var(--line-height) 12px calc(var(--composer-height, 0px) + var(--line-height) * 1.5);
   }
   #app > * {
     max-width: 100%;
   }
+  #app > .composer-dock {
+    width: calc(100vw - 40px);
+    max-width: 800px;
+  }
+  .composer {
+    padding-top: 18px;
+  }
   .palette {
     max-width: 100%;
+  }
+  .composer-border-label {
+    font-size: 10px;
+  }
+  .composer-border-label-left {
+    max-width: 38%;
+  }
+  .composer-border-label-right {
+    max-width: 58%;
+  }
+  .composer-cwd {
+    max-width: 74%;
+  }
+  .composer-notice {
+    max-width: 22%;
+  }
+}
+
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  .composer-input {
+    min-height: 28px;
+    font-size: 16px;
+    line-height: var(--line-height);
+  }
+  .composer:not(:focus-within) .composer-input {
+    height: 28px !important;
+    overflow-y: hidden !important;
+  }
+  .composer-dock.mobile-expanded {
+    top: var(--mobile-viewport-top, max(calc(var(--line-height) / 2), env(safe-area-inset-top)));
+    bottom: auto;
+    height: var(--mobile-viewport-height, calc(100dvh - var(--line-height)));
+  }
+  .composer:focus-within {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .composer:focus-within .composer-pending {
+    flex: 0 1 auto;
+    max-height: 20vh;
+  }
+  .composer:focus-within .composer-editor {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .composer:focus-within .composer-input {
+    height: 100% !important;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto !important;
+  }
+  .composer:focus-within .composer-completions {
+    top: auto;
+    bottom: 0;
+    max-height: min(220px, 35vh);
   }
 }
