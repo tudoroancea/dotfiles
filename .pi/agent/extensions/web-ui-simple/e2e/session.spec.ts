@@ -535,3 +535,78 @@ test("follows live growth only while the reader remains at the bottom", async ({
   await expect(page.getByText("Preserved below the viewport", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Scroll to bottom" })).toHaveCount(0);
 });
+
+test("wraps long paths without widening the page on mobile", async ({ page, session }) => {
+  await openSession(page, session.bootstrapUrl);
+  const longPath =
+    "/var/folders/3_/hp4nl8v920364pxvzx8rx2m40000gn/T/TemporaryItems/NSIRD_screencaptureui_" +
+    "JQfDho/Screenshot\\ 2026-07-26\\ at\\ 00.06.11.png";
+  const longSessionPath =
+    "/Users/tudoroancea/.pi/agent/sessions/--Users-tudoroancea-dotfiles--/" +
+    "2026-07-25T17-21-15-285Z_019f9a4b-a015-7980-b0b9-a7a4ff0e6d31.jsonl";
+  session.snapshot.entries.push(
+    {
+      id: "entry-long-path",
+      parentId: session.snapshot.leafId,
+      timestamp: new Date().toISOString(),
+      type: "message",
+      message: {
+        role: "assistant",
+        content: [
+          { type: "text", text: "Inspecting a deeply nested artifact" },
+          {
+            type: "toolCall",
+            id: "tc-long-read",
+            name: "read",
+            arguments: { file_path: longPath },
+          },
+          {
+            type: "toolCall",
+            id: "tc-long-review",
+            name: "agentflow_review",
+            arguments: { task: "Review screenshots" },
+          },
+        ],
+      },
+    } as never,
+    {
+      id: "entry-long-result",
+      parentId: "entry-long-path",
+      timestamp: new Date().toISOString(),
+      type: "message",
+      message: {
+        role: "toolResult",
+        toolCallId: "tc-long-review",
+        toolName: "agentflow_review",
+        content: [{ type: "text", text: `- Fully captured screenshot at:\n  ${longPath}` }],
+        isError: false,
+      },
+    } as never,
+  );
+  session.snapshot.leafId = "entry-long-result";
+  session.appendUserMessage(`Session file: ${longSessionPath}`);
+
+  await page.setViewportSize({ width: 390, height: 760 });
+  await page.keyboard.press("e");
+  await expect(
+    page.getByText("Inspecting a deeply nested artifact", { exact: true }),
+  ).toBeVisible();
+
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
+
+  const wrappingContent = [
+    page.locator(".tool-path").first(),
+    page.locator(".agentflow-result .markdown-content li").first(),
+    page.locator(".user-message").last(),
+  ];
+  await expect(wrappingContent[0]).toContainText("NSIRD_screencaptureui");
+  await expect(wrappingContent[1]).toContainText("NSIRD_screencaptureui");
+  await expect(wrappingContent[2]).toContainText("019f9a4b-a015-7980-b0b9-a7a4ff0e6d31");
+  for (const element of wrappingContent) {
+    expect(await element.evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThan(
+      36,
+    );
+  }
+});

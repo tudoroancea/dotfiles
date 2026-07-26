@@ -303,8 +303,10 @@ body {
 
 /* Tool execution */
 .tool-execution {
+  min-width: 0;
   padding: calc(var(--line-height) / 2);
   border-radius: 4px;
+  overflow-wrap: anywhere;
 }
 
 .tool-execution.pending {
@@ -843,6 +845,11 @@ body {
 }
 
 /* Markdown */
+.markdown-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .markdown-content h1,
 .markdown-content h2,
 .markdown-content h3,
