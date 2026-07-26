@@ -7,7 +7,7 @@ import {
   startServer,
   type Snapshot,
   type WebUiServer,
-} from "../index.js";
+} from "../src/index.js";
 
 const BASE_TIME = Date.UTC(2026, 0, 2, 3, 4, 5);
 

@@ -366,7 +366,7 @@ test("offers RPC-compatible file completion through the canonical provider", asy
   const option = page.getByRole("option", { name: /app\.js/ });
   await expect(option).toBeVisible();
   await input.press("Tab");
-  await expect(input).toHaveValue("Review @web/app.js ");
+  await expect(input).toHaveValue("Review @src/client/app.js ");
 
   await input.fill("Review @app");
   await expect(page.getByRole("option", { name: /app\.js/ })).toBeVisible();

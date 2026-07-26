@@ -92,7 +92,7 @@ preferences, so it adds no storage of its own.
 
 ## How it works
 
-- **Static assets** (`web/index.html`, `web/app.js`, `web/styles.css`) are served
+- **Static assets** (`src/client/index.html`, `src/client/app.js`, `src/client/styles.css`) are served
   directly from disk. The browser loads Preact + hooks + htm + marked from a CDN
   as native ES modules — nothing is bundled or installed.
 - **Tailnet proxy**: `tailscale serve` terminates HTTPS on the machine's tailnet
@@ -162,6 +162,7 @@ The Playwright suite launches the real authenticated HTTP/SSE server and product
   - [x] global `i` hotkey to focus the input box
   - [x] file autocompletions via @ in both TUI and RPC modes using Pi's canonical autocomplete provider behavior
   - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
+- [x] restructure the code a bit into a `src` folder with the `index.ts` entrypoint, `server` ts code and `client` js/css/html assets
 - [ ] add Highlight.js syntax highlighting to fenced code blocks in user and assistant messages, matching Pi's reference HTML exporter and existing theme variables
 - [ ] questionnaire tool rendering
 - [ ] notification system (like in `.pi/agent/extensions/notify.ts`) . I am not yet clear on what it takes to be able to send notifications (need a pwa?) or if we have to deal with a permission prompt for every new session server

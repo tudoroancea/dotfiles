@@ -30,5 +30,10 @@
       "version": "^0.5.0",
       "onFail": "warn"
     }
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
   }
 }
