@@ -161,7 +161,8 @@ The Playwright suite launches the real authenticated HTTP/SSE server and product
   - [x] rendering of additional information: cwd, context usage, session cost, model and thinking level.
   - [x] global `i` hotkey to focus the input box
   - [x] file autocompletions via @ in both TUI and RPC modes using Pi's canonical autocomplete provider behavior
-  - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](SLASH_COMMAND_DISPATCH.md).
+  - [ ] slash-command autocomplete and dispatch via `/` — **deferred** while the initial input box ships without slash-command support. Revisit only when Pi exposes a supported canonical raw-input/command-dispatch API (or we agree on an equally safe boundary); discovery through `pi.getCommands()` alone is insufficient. See [`SLASH_COMMAND_DISPATCH.md`](./docs/SLASH_COMMAND_DISPATCH.md).
+- [x] fix paths bleeding out of the tool calls
 - [x] restructure the code a bit into a `src` folder with the `index.ts` entrypoint, `server` ts code and `client` js/css/html assets
 - [ ] add Highlight.js syntax highlighting to fenced code blocks in user and assistant messages, matching Pi's reference HTML exporter and existing theme variables
 - [ ] questionnaire tool rendering
@@ -174,3 +175,4 @@ The Playwright suite launches the real authenticated HTTP/SSE server and product
 - [ ] add a git diff visualizer using @pierre/diffs
 
 > NOTE: when complexity becomes big enough to justify more type safety (e.g. via the usage of ts bindings of preact and other libs, or using typebox to verify the server updates) we should also think about a very minimal bundling step.
+> NOTE: multiple optimizations will also eventually have to be done, be it at the transport level (by not sending the full transcript every time but only updates, see [SSE_TRAFFIC_ANALYSIS.md](docs/SSE_TRAFFIC_ANALYSIS.md)) or at the UI level (by virtualizing the message list)
