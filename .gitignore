@@ -2,8 +2,5 @@
 .cache/clangd
 .zed
 .claude/settings.local.json
-.pi/pi-acp
-.pi/agent/background-processes/
 .wrangler/cache
-.pi/agent/models-store.json
 .worktrees

@@ -17,6 +17,16 @@ brew install --cask 1password-cli 1password xquartz alacritty ghostty zed@previe
 
 git clone --recurse-submodules https://github.com/tudoroancea/dotfiles ~/dotfiles
 
+# Pi is installed from its independent repository, never symlinked from this checkout.
+if [[ -z "${PI_SETUP_REPOSITORY_URL:-}" ]]; then
+  echo "Set PI_SETUP_REPOSITORY_URL to clone the private Pi setup into ~/.pi."
+elif [[ -e "$HOME/.pi" ]]; then
+  echo "Skipping Pi setup because ~/.pi already exists."
+else
+  git clone "$PI_SETUP_REPOSITORY_URL" "$HOME/.pi"
+  (cd "$HOME/.pi" && nub install)
+fi
+
 
 # change default shell
 chsh -s /opt/homebrew/bin/zsh

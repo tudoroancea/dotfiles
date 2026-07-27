@@ -6,7 +6,23 @@ You can clone this repo with
 git clone --recurse-submodules https://github.com/tudoroancea/dotfiles ~/dotfiles
 ```
 
-and then follow the following steps to install the different components:
+and then follow the following steps to install the different components.
+
+## Pi
+
+Pi configuration is owned by a separate repository cloned directly as a real `~/.pi` directory. Do not create a `~/.pi` symlink into this dotfiles checkout. Until that repository has a remote, its URL remains intentionally unspecified.
+
+Once the remote exists:
+
+```bash
+export PI_SETUP_REPOSITORY_URL=<repository-url>
+git clone "$PI_SETUP_REPOSITORY_URL" ~/.pi
+cd ~/.pi
+nub install
+nub run check
+```
+
+`setup.sh` performs the clone and install when `PI_SETUP_REPOSITORY_URL` is set, and otherwise leaves the existing `~/.pi` untouched.
 
 ## zsh
 
