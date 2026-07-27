@@ -92,6 +92,9 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/Documents/Codex/2026-07-25/can"]
 trust_level = "trusted"
 
+[projects."/Users/tudoroancea/Documents/Codex/2026-07-26/fj"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true
@@ -117,7 +120,7 @@ status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-use
 "gpt-5.6-sol" = 1
 
 [marketplaces.openai-bundled]
-last_updated = "2026-07-25T12:32:15Z"
+last_updated = "2026-07-27T07:12:01Z"
 source_type = "local"
 source = "/Users/tudoroancea/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
@@ -181,7 +184,7 @@ preventSleepWhileRunning = true
 keepRemoteControlAwakeWhilePluggedIn = true
 git-branch-prefix = ""
 notifications-turn-mode = "always"
-conversationDetailMode = "STEPS_COMMANDS"
+conversationDetailMode = "STEPS_PROSE"
 worktree-auto-cleanup-enabled = false
 show-context-window-usage = true
 dock-icon-preference = "app-default"
