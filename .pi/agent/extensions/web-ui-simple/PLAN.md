@@ -374,19 +374,37 @@ Integration depends on the extension's managed mode and readiness FD, but most s
 - [ ] Add one renewable controller lease per session while permitting multiple viewers.
 - [ ] Treat launch/control as remote code execution under the daemon's Unix account.
 
-### Daemon Phase D — dashboard
+### Daemon Phase D — discovery and dashboard
 
-The dashboard UI can be developed against mocked daemon APIs while auth and supervision are built.
+The dashboard UI can be developed against mocked daemon APIs while auth and supervision are built. The detailed strategy and alternatives are recorded in [`docs/REMOTE_SESSION_INFRA_PLAN.md`](docs/REMOTE_SESSION_INFRA_PLAN.md#client-dashboard-and-tailscale-discovery).
 
-- [ ] Start with a static configured host list.
-- [ ] Show machine health and reachability without claiming to distinguish every failure cause.
+Selected discovery design:
+
+- [ ] Serve a bounded, public-safe `/_pi/daemon/v1/presence` response from every daemon with an exact kind marker and protocol version.
+- [ ] Let any known daemon act as the discovery seed: run bounded `tailscale status --json`, extract visible peer MagicDNS names defensively, and probe the fixed presence endpoint over HTTPS.
+- [ ] Use bounded polling and caching: initially 15–30 second refreshes, 10–15 second cache lifetime, eight concurrent probes, 2–3 second timeouts, 256 candidates, and 4 KiB responses.
+- [ ] Disable probe redirects, accept targets only from local Tailscale status, and return only schema-valid positive detections through an authenticated dashboard endpoint.
+- [ ] Keep discovery metadata free of sessions, cwd values, models, users, credentials, capabilities, and proxy secrets.
+- [ ] Treat discovery as reachability evidence only; each selected daemon still authorizes the browser principal and role normally.
+- [ ] Show generic unreachable states without claiming to distinguish policy, DNS, tailnet, host, and daemon failures.
+- [ ] Keep manual host entry as a fallback and use any known daemon URL for initial bootstrap.
+
+Dashboard work:
+
 - [ ] Populate approved roots/projects from the selected daemon.
 - [ ] Add launch/resume and session cards with machine, cwd, model, state, owner, and controls.
 - [ ] Embed the selected session UI as a direct cross-origin iframe.
 - [ ] Add an open-in-new-tab fallback.
 - [ ] Configure exact CORS and frame ancestor origins.
 - [ ] Do not put Tailscale API credentials in the SPA.
-- [ ] Add a registry or server-side inventory only if static registration becomes limiting.
+
+Deferred alternatives, not first-version dependencies:
+
+- [ ] Consider one shared Tailscale Service only if a stable bootstrap URL without seed bookmarks justifies tag-based hosts, approval, and service lifecycle complexity; it would not replace peer probes for listing physical machines.
+- [ ] Consider a least-privilege server-side Tailscale inventory only if peer enumeration is insufficient; inventory still requires presence probes and credential management.
+- [ ] Consider an expiring heartbeat registry only if bounded peer probing becomes limiting.
+- [ ] Use static host lists only as fallback/test fixtures and machine tags only as an optional candidate filter; neither proves a live daemon.
+- [ ] Do not depend on alpha endpoint collection for application discovery.
 
 ### Daemon Phase E — recovery and operations
 

@@ -152,7 +152,7 @@ Tailscale does more than simplify registration:
 - enforces grants/ACLs before traffic reaches the daemon;
 - supplies authenticated caller identity metadata to the loopback backend.
 
-It does **not** automatically discover which machines are running this particular daemon. The dashboard still needs a configured list, a small registry, or a server-side query of the Tailscale control-plane API.
+Tailscale does **not** directly tell the browser which machines are running this particular daemon. Discovery is performed server-side by any known daemon: it enumerates its visible tailnet peers and probes a well-known Pi daemon presence endpoint, as specified below.
 
 Operational rules:
 
@@ -194,25 +194,48 @@ Avoid making a central dashboard a same-origin content proxy unless centralized 
 
 ## Client dashboard and Tailscale discovery
 
-The dashboard can be a static frontend-only SPA hosted on Vercel, GitHub Pages, or one of the tailnet machines. Tailscale runs below the browser at the operating-system network layer: when the user's device is connected to the tailnet, ordinary browser requests to authorized `https://*.ts.net` names are routed through Tailscale. The SPA does not need to embed a Tailscale networking SDK.
+Tailscale runs below the browser at the operating-system network layer: when the user's device is connected to the tailnet, ordinary browser requests to authorized `https://*.ts.net` names are routed through Tailscale. The SPA does not need to embed a Tailscale networking SDK. There is currently no documented browser JavaScript SDK that lets a page inspect the local Tailscale client or enumerate peers. MagicDNS resolves names the application already knows; it does not enumerate names. LocalAPI, WhoIs, and `tailscale status` are native-side interfaces, while the REST API requires credentials that must never be shipped in the SPA.
 
-There is currently no documented browser JavaScript SDK that lets a page inspect the local Tailscale client, enumerate peers, or discover every service in the user's tailnet. The related interfaces are not browser discovery APIs:
+### Selected discovery strategy: peer enumeration plus presence probes
 
-- `tsnet` embeds a Tailscale node in a Go server application.
-- LocalAPI and WhoIs are available to trusted native or destination-side code.
-- MagicDNS resolves a name the application already knows; it does not enumerate names.
-- The Tailscale REST API can list control-plane resources, but it requires bearer credentials or an OAuth client secret that must never be shipped in a public SPA.
+Every daemon serves the dashboard and acts as a discovery broker. After the user opens any known daemon, that daemon:
 
-Therefore a frontend-only dashboard needs one of these directory strategies:
+1. runs the fixed command `tailscale status --json` with a timeout and output limit;
+2. defensively extracts only visible peers' canonical MagicDNS names, tolerating unknown JSON fields because the documented JSON format is subject to change;
+3. probes a fixed HTTPS endpoint such as `https://<peer>.<tailnet>.ts.net/_pi/daemon/v1/presence` with redirects disabled, bounded concurrency, and a short timeout;
+4. accepts only a small schema-valid response with the exact `kind` marker and a supported protocol version; and
+5. returns only positively identified daemons to the authenticated dashboard caller.
 
-1. **Static host list — recommended first version.** Configure known daemon URLs at build time or save them in browser local storage. Probe each daemon's bounded health endpoint and show reachable/unreachable. A failed probe cannot reliably distinguish Tailscale being disconnected from policy denial, DNS failure, or the daemon being offline.
-2. **Tailnet-hosted registry.** Each local daemon registers non-secret presence metadata with one small private registry. The SPA knows one stable registry URL and receives only the host/session summaries the caller may see.
-3. **Server-side Tailscale inventory.** A Vercel Function or other backend holds a least-privilege OAuth client secret, queries the Tailscale REST API, filters the result, and returns candidate hosts. Inventory still does not prove that the daemon is installed or reachable, so the browser must probe its application endpoint. The Vercel backend itself is not automatically on the tailnet and should not proxy private session traffic unless separately connected.
-4. **Tailscale Service.** If the UI needs one logical agent/registry endpoint rather than explicit machine selection, publish a stable Tailscale Service backed by an approved registry or gateway. This is less suitable when the user must deliberately choose a physical machine.
+The presence response contains public-safe discovery data only: `kind`, protocol version, an opaque daemon-instance ID, machine display name, API base path, and start time. It must not expose sessions, cwd values, models, users, capabilities, credentials, or proxy secrets. Candidate URLs come only from local Tailscale status and never from browser input.
+
+Use simple bounded polling rather than a new streaming protocol initially:
+
+- refresh discovery every 15–30 seconds and cache results for 10–15 seconds;
+- probe at most eight peers concurrently with a 2–3 second per-peer timeout;
+- cap the candidate peer count and presence body size, initially 256 peers and 4 KiB;
+- disable redirects and validate content type, schema, marker, and protocol version;
+- use Tailscale's online state only to prioritize probes, never as proof that the daemon is running;
+- treat a successful presence probe as reachability evidence, not control authorization—the selected daemon still applies its normal identity, role, and generation checks;
+- report failure generically because a timeout cannot reliably distinguish policy denial, DNS failure, Tailscale disconnection, host outage, and daemon outage.
+
+The browser calls the seed daemon's authenticated discovery endpoint and does not scan peers itself. This avoids cross-origin probing, CORS-based discovery leaks, and dependence on a browser Tailscale API. The browser may still connect directly to a selected daemon or iframe its session UI under the existing exact-origin policy.
+
+This design has one unavoidable bootstrap requirement: the user must initially open one known daemon URL. Every daemon can serve that dashboard, so there is no designated registry host; keeping a second bookmark is sufficient for the first version if the usual seed is offline.
+
+### Deferred alternatives
+
+Keep these alternatives available next to the selected design, but do not implement them initially:
+
+1. **Shared Tailscale Service for bootstrap.** All eligible daemon hosts advertise one `svc:pi-dashboard` service so the user has one stable URL routed to an available daemon. The selected daemon still performs peer enumeration and presence probes because the Service hides the physical backend list. This removes seed bookmarks but requires tag-based host identities, service definition, advertisement approval or auto-approval, compatible clients, and lifecycle management.
+2. **Server-side Tailscale inventory.** A trusted backend uses least-privilege OAuth credentials to list devices or Tailscale Service hosts and returns filtered candidates. It still needs presence probes to prove the daemon is running, and adds credential storage and rotation.
+3. **Tailnet-hosted heartbeat registry.** Daemons register expiring, non-secret presence records with one private registry. This avoids peer scans but adds another service, authentication, heartbeat and expiry rules, persistence, and a new failure domain.
+4. **Static host list.** Keep configured URLs only as a manual fallback or test fixture. It is operationally simple but not automatic and becomes stale.
+5. **Machine tags.** A `tag:pi-daemon` can narrow candidates in a large tailnet, but tags express machine identity rather than live process presence and can change device ownership semantics. A presence probe remains required.
+6. **Tailscale endpoint collection.** Do not depend on it while it remains an alpha, opt-in monitoring feature without a documented application-facing discovery contract. A detected HTTP port would not by itself identify the Pi daemon protocol.
 
 A practical first dashboard would have:
 
-- a machine sidebar showing configured daemon URLs and last health result;
+- a machine sidebar showing discovered daemon URLs, last successful probe, and a manual fallback entry;
 - a root/project picker populated by the selected daemon, not by Tailscale;
 - a launch/resume form;
 - session cards with cwd, model, state, owner, and stop/open actions;
@@ -307,15 +330,18 @@ Lifecycle rules:
 - [ ] Implement stable-path HTTP/WebSocket proxying and readiness-FD updates.
 - [ ] Add a `systemd --user` unit and macOS LaunchAgent.
 
-### Phase C — authentication and multi-machine dashboard
+### Phase C — authentication, discovery, and multi-machine dashboard
 
 - [ ] Apply Tailscale grants/ACLs and validate Serve identity propagation.
 - [ ] Add application roles and one-controller leases.
-- [ ] Start with a static configured host list; do not put Tailscale API credentials in the SPA.
-- [ ] Add a dashboard that probes configured hosts and embeds direct per-host iframes.
-- [ ] Add a private registry or server-side filtered inventory only if manual/static registration becomes limiting.
+- [ ] Add the bounded, public-safe `/_pi/daemon/v1/presence` endpoint to every daemon.
+- [ ] Implement server-side peer discovery with bounded `tailscale status --json` parsing, concurrent HTTPS presence probes, caching, and generic failure states.
+- [ ] Expose discovered hosts only through an authenticated daemon endpoint; never put Tailscale API credentials in the SPA or accept browser-supplied probe targets.
+- [ ] Add a dashboard that uses any known daemon as its discovery seed and embeds direct per-host iframes.
+- [ ] Keep a manual host entry as fallback; evaluate a shared Tailscale Service only if stable bootstrap without seed bookmarks is needed.
+- [ ] Add a registry or server-side filtered inventory only if bounded peer probing becomes limiting.
 - [ ] Add open-in-new-tab fallback and visible machine/cwd/controller identity.
-- [ ] Audit cross-origin, CSP, header stripping, logs, and proxy limits.
+- [ ] Audit cross-origin, CSP, header stripping, logs, discovery limits, and proxy limits.
 
 ### Phase D — recovery and hardening
 
