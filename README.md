@@ -10,19 +10,16 @@ and then follow the following steps to install the different components.
 
 ## Pi
 
-Pi configuration is owned by a separate repository cloned directly as a real `~/.pi` directory. Do not create a `~/.pi` symlink into this dotfiles checkout. Until that repository has a remote, its URL remains intentionally unspecified.
-
-Once the remote exists:
+Pi configuration is owned by the private [`tudoroancea/pi-setup`](https://github.com/tudoroancea/pi-setup) repository, cloned directly as a real `~/.pi` directory. Do not create a `~/.pi` symlink into this dotfiles checkout.
 
 ```bash
-export PI_SETUP_REPOSITORY_URL=<repository-url>
-git clone "$PI_SETUP_REPOSITORY_URL" ~/.pi
+git clone git@github.com:tudoroancea/pi-setup.git ~/.pi
 cd ~/.pi
 nub install
 nub run check
 ```
 
-`setup.sh` performs the clone and install when `PI_SETUP_REPOSITORY_URL` is set, and otherwise leaves the existing `~/.pi` untouched.
+`setup.sh` performs the clone and install when `~/.pi` is absent. Set `PI_SETUP_REPOSITORY_URL` only to override the default SSH URL.
 
 ## zsh
 
