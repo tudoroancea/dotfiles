@@ -4,7 +4,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  outputDir: join(tmpdir(), `pi-web-ui-simple-playwright-${process.pid}`),
+  outputDir: join(tmpdir(), `pi-web-ui-playwright-${process.pid}`),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,

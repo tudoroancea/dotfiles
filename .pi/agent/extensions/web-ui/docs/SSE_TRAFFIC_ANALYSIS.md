@@ -20,16 +20,16 @@ Selection scope: recent sessions for this repository under `~/.pi/agent/sessions
 
 It ran from 2026-07-24 16:53 UTC to 2026-07-25 07:46 UTC and has the session name `phasewise web ui implementation`. No message contents were copied into this document.
 
-| Measurement | Value |
-| --- | ---: |
-| Session file | 5,952,376 bytes (5.95 MB / 5.68 MiB) |
-| File records | 1 header + 1,403 entries |
-| Message entries | 1,368 |
-| User / assistant / tool-result messages | 6 / 632 / 730 |
-| Entries on final active branch | 1,098 |
-| Final active branch JSON | 5,007,930 bytes (5.01 MB / 4.78 MiB) |
-| Final SSE frame, entries portion only | 5,007,938 bytes |
-| Median / p90 / p99 modelled snapshot | 3.10 / 4.70 / 4.95 MB |
+| Measurement                             |                                Value |
+| --------------------------------------- | -----------------------------------: |
+| Session file                            | 5,952,376 bytes (5.95 MB / 5.68 MiB) |
+| File records                            |             1 header + 1,403 entries |
+| Message entries                         |                                1,368 |
+| User / assistant / tool-result messages |                        6 / 632 / 730 |
+| Entries on final active branch          |                                1,098 |
+| Final active branch JSON                | 5,007,930 bytes (5.01 MB / 4.78 MiB) |
+| Final SSE frame, entries portion only   |                      5,007,938 bytes |
+| Median / p90 / p99 modelled snapshot    |                3.10 / 4.70 / 4.95 MB |
 
 The real frame is slightly larger because it also contains `header`, `leafId`, session state, theme, system prompt, metadata, and pending inputs. The entries-only measurements therefore slightly underestimate traffic. SSE framing adds only `data: ` and two newlines, and this server does not apply response compression.
 
@@ -62,11 +62,11 @@ Near the end of the session, one initial snapshot costs approximately **5.01 MB*
 
 Replaying the append order and measuring the active parent chain after each entry gives:
 
-| Strategy | Modelled transfer |
-| --- | ---: |
-| Full active branch once per appended entry | 4.169 GB |
-| Send each appended entry once | 5.951 MB |
-| Amplification | 700.6x |
+| Strategy                                   | Modelled transfer |
+| ------------------------------------------ | ----------------: |
+| Full active branch once per appended entry |          4.169 GB |
+| Send each appended entry once              |          5.951 MB |
+| Amplification                              |            700.6x |
 
 This is a comparison model, not an exact trace. The 60 ms debounce can combine closely spaced entries, while message/tool lifecycle events and streaming updates can produce multiple frames between persisted entries.
 
@@ -74,28 +74,28 @@ This is a comparison model, not an exact trace. The 60 ms debounce can combine c
 
 Assistant message timestamps provide a useful estimate of streaming duration: the inner message timestamp records the start and the outer entry timestamp records persistence at completion.
 
-| Measurement | Value |
-| --- | ---: |
-| Assistant responses | 632 |
-| Combined streaming time | 7,482 s (124.7 min) |
+| Measurement                 |                  Value |
+| --------------------------- | ---------------------: |
+| Assistant responses         |                    632 |
+| Combined streaming time     |    7,482 s (124.7 min) |
 | Median / p90 / p99 duration | 8.23 / 19.63 / 66.01 s |
-| Maximum duration | 117.30 s |
+| Maximum duration            |               117.30 s |
 
 Applying the active parent-branch size at each response gives:
 
 | Broadcast model during assistant streaming | Estimated transfer |
-| --- | ---: |
-| 500 ms freshness only (2 Hz) | 46.4 GB |
-| Continuously busy 60 ms debounce (16.7 Hz) | 386.5 GB |
-| Both paths firing independently (18.7 Hz) | 432.9 GB |
+| ------------------------------------------ | -----------------: |
+| 500 ms freshness only (2 Hz)               |            46.4 GB |
+| Continuously busy 60 ms debounce (16.7 Hz) |           386.5 GB |
+| Both paths firing independently (18.7 Hz)  |           432.9 GB |
 
 The 2 Hz estimate is the best baseline for the current code when a client remains connected throughout assistant streaming, because transient timestamps continuously change the snapshot version. The higher figures are capacity/worst-case models: the session file does not record message-update callback frequency, timer overlap, browser connection periods, or actual socket writes, so exact historical traffic cannot be recovered from it.
 
 At the final 5.01 MB frame size:
 
-| Rate | Payload rate per client |
-| --- | ---: |
-| 2 Hz | 10.0 MB/s, about 80 Mbps |
+| Rate    |   Payload rate per client |
+| ------- | ------------------------: |
+| 2 Hz    |  10.0 MB/s, about 80 Mbps |
 | 16.7 Hz | 83.5 MB/s, about 668 Mbps |
 | 18.7 Hz | 93.5 MB/s, about 748 Mbps |
 
@@ -103,7 +103,7 @@ The average branch size weighted by assistant streaming time was about 3.10 MB, 
 
 ### Incremental alternatives
 
-The final serialized assistant entries total only **2.27 MB** across all 632 responses. As a deliberately conservative proxy, repeatedly sending each assistant's complete *final* entry for its entire streaming duration would cost about **640 MB at 16.7 Hz**. Real growing-tail replacement should be lower because partial messages are smaller than their final form. It would still repeat data within the active assistant message, but would avoid repeating the multi-megabyte transcript.
+The final serialized assistant entries total only **2.27 MB** across all 632 responses. As a deliberately conservative proxy, repeatedly sending each assistant's complete _final_ entry for its entire streaming duration would cost about **640 MB at 16.7 Hz**. Real growing-tail replacement should be lower because partial messages are smaller than their final form. It would still repeat data within the active assistant message, but would avoid repeating the multi-megabyte transcript.
 
 An operation stream that transmits newly generated content only once should be much closer to the approximately **5.95 MB persisted session payload**, plus protocol fields, status changes, transient tool updates, and occasional reset snapshots. Exact token-delta traffic cannot be reconstructed from the persisted final messages.
 

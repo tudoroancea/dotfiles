@@ -1,3 +1,5 @@
+> **Architecture note:** [`RPC_FIRST_REMOTE_DASHBOARD.md`](./RPC_FIRST_REMOTE_DASHBOARD.md) now defines the managed dashboard. Its daemon serves the SPA directly, so the managed child-proxy, iframe, readiness-FD, and trusted-proxy seams anticipated below are no longer target requirements. The standalone lifecycle, hostile-content, transport-limit, exact-Origin, and base-path guidance remains applicable to `web-ui`.
+
 ## Requirements to account for now
 
 ### 1. Preserve the extension/daemon boundary

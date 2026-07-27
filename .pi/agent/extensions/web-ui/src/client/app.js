@@ -37,18 +37,23 @@ const PREFS = [
 
 const PrefsContext = createContext({ prefs: {}, toggle: () => {} });
 
-const storageKey = (key) => `web-ui-simple.pref.${key}`;
-const cookieKey = (key) => `pi_web_ui_simple_${key}`;
+const storageKey = (key) => `web-ui.pref.${key}`;
+const cookieKey = (key) => `pi_web_ui_${key}`;
+const legacyStorageKey = (key) => `web-ui-simple.pref.${key}`;
+const legacyCookieKey = (key) => `pi_web_ui_simple_${key}`;
 
 function readPreference(key) {
-  const prefix = `${cookieKey(key)}=`;
-  const cookie = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(prefix));
-  if (cookie) return cookie.slice(prefix.length) === "1";
+  for (const keyForCookie of [cookieKey, legacyCookieKey]) {
+    const prefix = `${keyForCookie(key)}=`;
+    const cookie = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(prefix));
+    if (cookie) return cookie.slice(prefix.length) === "1";
+  }
   try {
-    const stored = localStorage.getItem(storageKey(key));
+    const stored =
+      localStorage.getItem(storageKey(key)) ?? localStorage.getItem(legacyStorageKey(key));
     return stored === null ? undefined : stored === "1";
   } catch {
     return undefined;

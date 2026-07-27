@@ -1,349 +1,634 @@
-# Pi Web UI — large-session and browser-quality plan
+# Web UI and Shared Session UI Plan
 
-## Objective
+## Scope and status
 
-Turn the existing session-scoped Preact companion into a browser UI that:
+This plan owns two closely related deliverables:
 
-- matches Pi's HTML exporter closely in density, hierarchy, tool behavior, and transcript readability;
-- exposes the complete active-branch history through bounded transport pages;
-- remains responsive for very large sessions by virtualizing variable-height timeline rows;
-- treats real Chromium behavior, layout, scrolling, authentication, and keyboard interactions as required release criteria through Playwright.
+1. **`web-ui` standalone companion** — the Pi extension that attaches a browser to a user-started TUI or RPC process.
+2. **Reusable session UI package** — the host-neutral browser client, wire schemas, renderer fixtures, and styles that the standalone extension and the future daemon-hosted dashboard will both consume.
 
-Pagination and virtualization are one atomic product milestone. Neither is considered complete or releasable without the other.
+The separate managed-daemon implementation plan is [`../../../apps/remote-session-daemon/PLAN.md`](../../../apps/remote-session-daemon/PLAN.md). The cross-machine architecture and rationale remain in [`docs/RPC_FIRST_REMOTE_DASHBOARD.md`](docs/RPC_FIRST_REMOTE_DASHBOARD.md). Migration from the current dotfiles checkout into a dedicated `~/.pi` repository is specified in [`../../../../PI_SETUP_REPO_MIGRATION_PLAN.md`](../../../../PI_SETUP_REPO_MIGRATION_PLAN.md) and must happen before shared-package extraction.
+
+The extension roadmap continues now, in parallel with eventual daemon work. The immediate priority is to establish a reusable client boundary before adding several more features to the current monolithic browser entry.
+
+## Product direction
+
+`agent/extensions/web-ui/` remains the canonical product definition for the Pi session UI in the dedicated `~/.pi` repository:
+
+- its HTML-exporter-derived transcript is the desired visual design;
+- its compact single-session layout, composer, disclosure behavior, and keyboard interactions are product requirements;
+- it remains independently useful without the daemon;
+- new session UI features should be proven here first when public extension APIs can support them;
+- the daemon will reuse the same browser client rather than recreate the transcript UI.
+
+The archived `agent/extensions/web-ui-old/` remains a donor of bounded algorithms, fixtures, and implementation lessons. Do not adopt its application shell, navigation model, WebSocket architecture, or visual hierarchy wholesale.
+
+## Repository and package layout
+
+### Decision
+
+After migration, `~/.pi` is the dedicated Git repository root and Pi continues to use the ordinary `~/.pi/agent` path without symlinks or environment overrides:
+
+```text
+~/.pi/
+  .git/
+  .gitignore
+  AGENTS.md                         repository development guidelines
+  package.json                      root Nub workspace and aggregate scripts
+  nub.lock
+  tsconfig.json
+
+  agent/
+    AGENTS.md                       global instructions for every Pi session
+    settings.json
+    instructions/
+    skills/
+    themes/
+    prompts/
+    extensions/
+      web-ui/
+        package.json
+        src/
+          index.ts                  Pi registration and lifecycle
+          standalone/              auth, HTTP/SSE, projection, completion, providers
+          web/main.ts               shared client + standalone transport
+        test/
+        e2e/
+      web-ui-old/                   archived donor
+      agentflow/
+      background-processes/
+
+  packages/
+    pi-web-ui-client/               host-neutral shared browser package
+      package.json
+      src/
+        wire/                       schemas, DTOs, protocol limits
+        client/                     reducers, components, renderers, preferences
+        testing/                    golden fixtures and expected reducer states
+        styles.css
+      test/
+
+  apps/
+    remote-session-daemon/
+      package.json
+      src/                          RPC host and managed browser adapter
+      test/
+      service/
+      PLAN.md
+```
+
+Provisional package name:
+
+```text
+@dotfiles/pi-web-ui-client
+```
+
+The root workspace should include at least:
+
+```json
+{
+  "private": true,
+  "workspaces": [
+    "agent/extensions/web-ui",
+    "agent/extensions/agentflow",
+    "agent/extensions/background-processes",
+    "packages/*",
+    "apps/*"
+  ]
+}
+```
+
+Both consumers use the workspace package:
+
+```json
+"@dotfiles/pi-web-ui-client": "workspace:*"
+```
+
+Verify Nub's workspace install/filter/build behavior during migration before freezing scripts. Keep package-level checks even though installation and aggregate orchestration move to the repository root.
+
+### Why not put shared code inside the extension?
+
+Having the daemon import the `web-ui` extension directly would invert ownership: a system service would depend on a Pi extension package, its Pi peer dependencies, and its deployment lifecycle. Explicit exports would reduce accidental deep imports but would not fix that coupling.
+
+The shared package is therefore outside both hosts. The extension and daemon depend on it; it depends on neither.
+
+### Why not put the daemon under `.pi/agent/extensions/`?
+
+The daemon is a machine-level service, not a Pi extension. It owns process supervision, local policy, Tailscale ingress, persistence, and multiple Pi children. Keeping it at `apps/remote-session-daemon/` makes its deployment and security boundary explicit and prevents Pi from treating it as session-scoped code.
+
+### Why the root workspace now makes sense
+
+The dedicated repository exists specifically to develop and deploy this Pi setup. Unlike the broader dotfiles repository, coordinated installation and checks are the desired behavior here. A root workspace removes cross-repository `file:` dependencies while package manifests preserve ownership and independently runnable checks.
+
+## Dependency direction
+
+```mermaid
+flowchart LR
+  AF[Agentflow extension]
+  BP[Background-processes extension]
+  Bus[Pi event bus provider contract]
+  Ext[web-ui standalone host]
+  Shared[pi-web-ui-client]
+  Daemon[remote-session-daemon]
+
+  AF --> Bus
+  BP --> Bus
+  Ext --> Bus
+  Ext --> Shared
+  Daemon --> Shared
+```
+
+Hard dependency rules:
+
+- the shared package imports no Pi APIs, Pi extension modules, Node HTTP/process APIs, Tailscale code, daemon code, or provider runtime instances;
+- the extension imports the shared package but never daemon code;
+- the daemon imports the shared package but never the `web-ui` extension, Agentflow runtime classes, or background-process runtime classes;
+- Agentflow/background-processes retain their cooperative Pi event-bus provider registration;
+- only bounded serialized provider DTOs and action names cross into the browser protocol;
+- a future daemon-side bridge is added only for a proven RPC-invisible capability.
+
+## Ownership boundaries
+
+### Shared package owns
+
+- protocol version and runtime-validated browser wire schemas;
+- shared browser-facing limits where both producers must agree;
+- persisted-entry and live-tail DTOs;
+- generation, revision, reset, history-page, and command-response envelopes;
+- image and omission-placeholder DTOs;
+- provider snapshot/action DTOs, but not provider callbacks or runtimes;
+- browser reducer and session view model;
+- transcript, composer, status, palette, modal, and renderer components;
+- Markdown sanitization and URL policy;
+- preferences and keyboard behavior that are session-UI concerns;
+- canonical stylesheet and theme-variable consumption;
+- deterministic hostile-content, renderer, reducer, and protocol fixtures;
+- host-neutral `SessionTransport` interface.
+
+Conceptually:
+
+```ts
+interface SessionTransport {
+  connect(options: { generation?: string; revision?: number }): AsyncIterable<SessionOperation>;
+  getHistory(cursor?: string): Promise<HistoryPage>;
+  submit(command: SessionCommand): Promise<CommandAcceptance>;
+  complete(query: CompletionQuery): Promise<CompletionResult>;
+  close(): void;
+}
+```
+
+The exact API may differ after implementation experience, but the browser must not know whether data came from Extension APIs, RPC events, or session JSONL.
+
+### Standalone extension owns
+
+- Pi extension registration and session-scoped lifecycle;
+- Pi/session projection into shared DTOs;
+- loopback HTTP serving and static asset delivery;
+- standalone fragment bootstrap and cookie authentication;
+- exact Origin checks and standalone authorization;
+- standalone Tailscale Serve convenience;
+- Pi public APIs for prompt, steer, follow-up, abort, model, thinking, and images;
+- `@` completion adapters;
+- Pi event-bus provider discovery/subscription/actions;
+- extension-runtime generation and cleanup;
+- the managed-child no-op marker.
+
+### Daemon owns
+
+See [`apps/remote-session-daemon/PLAN.md`](../../../apps/remote-session-daemon/PLAN.md). In particular it owns RPC, process lifecycle, managed identity/roles/leases, discovery, persistence, history indexing, and RPC/session projection into the same shared DTOs.
+
+### Each consumer owns its browser bundle
+
+The shared package is build input, not a separately served asset origin.
+
+- The extension produces and serves its own production browser bundle.
+- The daemon produces and serves its own production browser bundle.
+- Both bundles mount the same shared client and stylesheet with different transport adapters.
+- No runtime browser import may escape to a repository-relative path.
+- Clean-checkout and deployment-like tests must prove that final assets are self-contained and CSP-compatible.
+
+Choose one explicit artifact policy after the build spike:
+
+1. reliable package-level build/prepare during dotfiles installation; or
+2. committed production artifacts with a freshness check.
+
+Do not leave deployment dependent on an undocumented manual build.
 
 ## Current baseline
 
-The original implementation phases are substantially complete: session-scoped HTTP/WebSocket lifecycle, standalone authentication, reconnectable state, custom renderers, composer, Agentflow/background dashboards, completion, and security tests exist under this extension.
+`web-ui` already provides:
 
-The remaining problems are architectural and experiential:
+- loopback-only ephemeral HTTP serving under a random path;
+- one-use fragment bootstrap credentials and path-scoped `HttpOnly; SameSite=Strict` cookies;
+- authenticated full active-branch snapshots over SSE;
+- bounded prompt, steer, follow-up, and completion POSTs;
+- canonical `@` file completion where available;
+- responsive desktop/mobile composer behavior;
+- HTML-exporter-derived messages, thinking, Markdown, tools, compactions, model switches, and custom messages;
+- tailored Agentflow/background/custom-tool transcript rendering;
+- session-scoped Tailscale Serve in standalone mode;
+- clean session shutdown and Playwright coverage.
 
-- persisted history is projected newest-first into a fixed budget and old entries are omitted;
-- snapshots have an 8 MiB hard ceiling and cannot represent arbitrary sessions;
-- the browser renders every received entry with a plain `.map()`, with no virtualizer;
-- scroll-following is based on whole-container `scrollHeight` changes;
-- native `<details>` expansion state is not durable across virtual unmounts;
-- jsdom tests cannot catch overlap, measured layout, scroll anchoring, browser keyboard behavior, or responsive regressions;
-- the first visual implementation diverged significantly from the exporter.
+Known gaps:
 
-A temporary “full history” implementation that merely raises the snapshot projection budget is explicitly rejected. Complete history means every active-branch entry is retrievable in bounded pages while existing per-entry sanitization and payload limits remain in force.
+- the browser entry and server remain too monolithic for safe shared extraction;
+- CDN browser dependencies prevent strict production CSP and offline use;
+- full-snapshot SSE is not viable for sustained large sessions;
+- history is not paged and transcript rows are not virtualized;
+- browser client/state/renderers are not reusable by the daemon;
+- user-message images, attachments, questionnaire results, syntax highlighting, notifications, model selection, status dashboards, and rich diffs remain incomplete;
+- custom read/write/edit tool expansion needs restoration;
+- standalone executable slash dispatch remains unavailable through stock `ExtensionAPI`.
 
-## Authoritative references
+## Design principles
 
-### Local implementation and specifications
-
-- `README.md`
-- `src/shared/wire.ts`, `src/shared/limits.ts`
-- `src/server/projection.ts`, `src/server/state.ts`, `src/server/server.ts`
-- `src/web/session-store.ts`, `src/web/app.tsx`
-- `src/web/components/Timeline.tsx`, `ToolCall.tsx`, `Composer.tsx`
-- `test/`
-- repository-root `WEB_UI_EXTENSION.md` and `ADDITIONAL_DETAILS.md`
-- generated lifecycle authority `../herdr-agent-state.ts` (audit only; never edit)
-
-### Pi exporter source of truth
-
-Use the local Pi clone, not only installed compiled output:
-
-- `~/dev/pi/packages/coding-agent/src/core/export-html/index.ts`
-- `~/dev/pi/packages/coding-agent/src/core/export-html/template.html`
-- `~/dev/pi/packages/coding-agent/src/core/export-html/template.css`
-- `~/dev/pi/packages/coding-agent/src/core/export-html/template.js`
-- `~/dev/pi/packages/coding-agent/src/core/export-html/tool-renderer.ts`
-- `~/dev/pi/packages/coding-agent/src/core/export-html/ansi-to-html.ts`
-- `~/dev/pi/packages/coding-agent/test/export-html-*.test.ts`
-- `~/dev/pi/packages/coding-agent/test/theme-export.test.ts`
-- `~/dev/pi/packages/coding-agent/src/modes/interactive/theme/theme.ts`
-
-The exporter HTML/CSS/JS templates are copied as static build assets, so installed templates remain useful runtime references. The source TypeScript, tests, and theme code are authoritative for intent and edge cases. Compare the local clone revision, installed Pi 0.82 artifacts, and the supplied exported session rather than assuming they are identical.
-
-## Architectural decisions
-
-### History protocol
-
-Move from the current protocol v6 to protocol v7 with explicit request-scoped history pages.
-
-Freeze these server-selected bounds for the first implementation: 100 projected entries, a 512 KiB serialized page envelope, a 512-byte cursor, and one in-flight page request per client. Tune them only from measured browser/server results, never from client input.
-
-The initial session snapshot contains a bounded newest window and history identity:
-
-```ts
-interface PersistedWindow {
-  sessionId: string;
-  leafId: string | null;
-  historyGeneration: string;
-  entries: PersistedEntry[]; // chronological
-  hasOlder: boolean;
-  olderCursor?: string;
-}
-```
-
-Add the following `history_page` client command and correlated server response. The request contains the extension generation, history generation, and an opaque exclusive cursor. The server chooses fixed count and byte limits; the client cannot request an unbounded page.
-
-```ts
-interface HistoryPageCommand {
-  type: "history_page";
-  commandId: string;
-  generation: string;
-  historyGeneration: string;
-  cursor: string;
-}
-
-interface HistoryPageMessage {
-  type: "history_page";
-  protocolVersion: 7;
-  commandId: string;
-  generation: string;
-  historyGeneration: string;
-  revision: number; // diagnostic sample, not a state revision
-  entries: PersistedEntry[]; // chronological
-  hasOlder: boolean;
-  olderCursor?: string;
-}
-```
-
-`PersistedState.entriesTruncated` is replaced by `historyGeneration`, `hasOlder`, and optional `olderCursor`. The server message union includes `history_page`; it is not a `StatePatch`.
-
-Page responses are query results, not global state mutations:
-
-- they do not change `SessionStateStore` revisions;
-- they are sent only to the requesting authenticated client;
-- they are not broadcast or coalesced as live state;
-- only one older-page request is in flight per client;
-- retries with the same valid cursor are idempotent;
-- malformed, stale, or lineage-mismatched cursors trigger a bounded error/resnapshot path.
-
-Use a per-generation cursor authority. A cursor identifies `historyGeneration`, an exclusive raw branch index, and the expected boundary entry ID. Encode and authenticate it opaquely with a per-runtime random key, then validate its exact byte bound, signature, lineage, index range, and boundary ID before projection. Cache an entry-ID/index map for page lookup rather than rescanning the branch for every request. Cursor reuse is idempotent.
-
-`historyGeneration` remains stable across strict appends. Rotate it whenever the active lineage is not a strict append: session/tree navigation, compaction, changed ancestry, leaf replacement, or a failed append-boundary check. A rotation invalidates loaded pages atomically in the browser. Extension session replacement still rotates the existing top-level generation.
-
-Keep individual entry/message/tool projection limits, redaction, image limits, and outbound queue limits. Build pages backwards under both a fixed entry count and a serialized-envelope byte budget, then return entries chronologically. A single oversized projected entry must produce an explicit bounded omission representation rather than violate the page limit.
-
-### Browser history store
-
-Separate rapidly changing live/core state from paged history so every streamed token does not rebuild a large array.
-
-Maintain:
-
-- bounded page chunks in chronological order;
-- an entry-ID index for deduplication;
-- chunk prefix counts or another indexed accessor for virtual rows;
-- `hasOlder`, `olderCursor`, `loadingOlder`, and page error state;
-- pending page requests correlated by command ID, generation, history generation, and cursor;
-- a tool-call index built incrementally as older assistant entries arrive;
-- controlled expansion state keyed by stable tool/entry IDs;
-- a monotonic history version independent of live-state revisions.
-
-A same-lineage tail snapshot merges/deduplicates without discarding loaded older chunks. A generation or history-generation change clears pages, stale requests, search results, and obsolete expansion state before installing the new tail.
-
-### Virtualization
-
-Use pinned `@tanstack/virtual-core` through a small extension-owned Preact hook. There is no first-party TanStack Virtual Preact adapter; do not route the React adapter through `preact/compat`.
-
-Virtualize stable logical transcript rows, not individual Markdown blocks or diff lines. Persisted rows use `entry:${entry.id}`. Live rows use deterministic identities derived from the existing message identity/tool call ID (`live-message:…`, `live-tool:${toolCallId}`, and one `partial-assistant` tail row); they must not depend on array indexes. Requirements:
-
-- variable-height measurement with `ResizeObserver`;
-- conservative estimates and measured correction;
-- 6–10 rows of overscan, tuned from browser measurements;
-- persistent controlled tool expansion across unmount/remount;
-- focused-row retention so keyboard focus is not destroyed by scrolling;
-- no pinning of every expanded row, which would defeat virtualization;
-- explicit cleanup of observers and virtualizer subscriptions.
-
-Pagination and scrolling behavior:
-
-- the initial snapshot opens at the latest row after measurement;
-- a user within a measured bottom threshold follows live growth;
-- a user who scrolls away is not moved and gets an accessible “Jump to latest” control with an unseen-update count;
-- loading an older page captures the first visible stable row ID and pixel offset, prepends the page, and restores that row to the same offset;
-- measurement changes above the anchor are compensated while the anchor lock is active;
-- CSS browser anchoring is disabled on the virtual scroller so only one anchoring authority exists;
-- a top sentinel may load one page at a time, but a visible keyboard-accessible load/retry control remains available.
-
-### Search and accessibility
-
-Virtualization makes native browser Find incomplete because unmounted rows are absent from the DOM. Preserve exporter-like complete-session discovery with app-level search:
-
-- index bounded projected plain text as pages arrive;
-- allow a complete-session search to fetch remaining pages sequentially through the same bounded protocol;
-- make it cancellable, yield between pages, and report progress;
-- scroll/mount/focus stable result rows for next/previous navigation.
-
-Do not put `aria-live` on the entire virtual transcript. Use dedicated polite regions for connection changes, loaded-page counts, unseen live updates, and search progress. Keep load/search/tool/composer controls keyboard reachable with stable accessible names.
-
-### Keyboard handling
-
-Keep native Preact textarea handlers for the small composer shortcut set. Do not add alpha `@tanstack/preact-hotkeys` unless shortcut scope grows enough to justify centralized conflict handling.
-
-Required behavior:
-
-- Enter inserts a newline;
-- Option/Alt+Enter submits when idle and steers when running;
-- Ctrl+Enter queues/follow-up while running;
-- Option/Alt+`.` aborts while running, detected with `event.code === "Period"` for layout resilience;
-- autocomplete selection remains unambiguous;
-- shortcuts are discoverable in the UI and tested in a real browser.
-
-### Authentication and Tailscale
-
-Do not weaken the existing single-use fragment-to-HttpOnly-cookie authentication. Tailscale Serve remains an explicitly configured reverse proxy; the extension does not launch or trust Tailscale identity headers. Playwright must exercise the real bootstrap exchange and cookie path rather than bypassing authentication.
+1. **Preserve appearance while moving code.** Do not combine extraction with a visual redesign.
+2. **One session UI, two host adapters.** Share presentation and protocol; keep standalone and managed backend behavior separate.
+3. **Runtime validation at host boundaries.** TypeScript types alone do not make extension and daemon producers semantically equivalent.
+4. **Bound hostile data before rendering.** Model text, tool details, paths, images, custom entries, provider snapshots, and URLs are untrusted.
+5. **Prefer operations over snapshots.** Initial/reset snapshots are bounded; durable appends and replaceable live state are incremental.
+6. **Keep Pi semantics in Pi.** The extension uses public APIs; the daemon uses canonical RPC. The client never parses slash commands into behavior.
+7. **Provider DTOs, not provider runtimes.** Agentflow/background ownership remains in their extensions.
+8. **No premature generic framework.** Create modules and abstractions only for actual independent responsibilities or test seams.
+9. **Standalone remains first-class.** The shared extraction must not require the daemon to run.
+10. **Managed children serve no extension web UI.** `web-ui` must no-op when launched under the daemon marker.
 
 ## Implementation phases
 
-### Phase 0 — reconcile and stabilize the exporter-parity pass (sequential, in progress)
+### Phase 0 — restore and freeze the baseline
 
-- [x] Review the current partial diff against the local Pi exporter source, installed 0.82 assets, exported session HTML, and supplied screenshots.
-- [x] Finish compact transcript/tool styling, session intro, composer metadata/shortcuts, bash expansion, and status/chevron fixes.
-- [x] Remove the rejected raised-budget/full-history experiment.
-- [x] Make all existing format, lint, typecheck, Vitest, and production-build checks pass.
-- [x] Audit Herdr lifecycle behavior without editing the generated authority.
+- [x] Format `docs/SSE_TRAFFIC_ANALYSIS.md` and keep `nub run check` green.
+- [ ] Record representative transcript/composer screenshots and DOM semantics.
+- [ ] Add deterministic fixtures for:
+  - user and assistant Markdown;
+  - thinking blocks;
+  - built-in and custom tools;
+  - Agentflow/background tool output;
+  - custom messages;
+  - model/thinking changes;
+  - compaction and branch summaries;
+  - long paths and hostile HTML/URLs.
+- [ ] Add a multi-thousand-entry large-session fixture.
+- [ ] Add explicit lifecycle tests for reload/new/resume/fork cleanup and stale runtime generations.
+- [ ] Restore custom read/write/edit tool expansion before using current screenshots as the parity baseline.
 
-This phase must be stable before parallel large-session work starts.
+Exit criteria:
 
-### Phase 1 — Playwright foundation and protocol contract (short sequential gate)
+- aggregate checks pass;
+- visual and semantic references exist;
+- existing behavior can be moved without relying on memory or subjective comparison.
 
-- [x] Add pinned `@playwright/test`, `playwright.config.ts`, and `e2e/` outside Vitest discovery.
-- [x] Build a worker fixture around the real `startWebUiServer()` with dynamic ports, real `dist/web`, controllable fake `ExtensionContext`, and generated branches.
-- [x] Add the first Chromium smoke test: bootstrap fragment exchange, fragment removal, authenticated cookie, WebSocket readiness, and clean shutdown.
-- [x] Define the new wire schemas, cursor invalidation rules, page count/byte limits, stable row IDs, and generated large-session fixtures.
-- [x] Add a required `check` command that runs format check, lint, typecheck, Vitest, build, and Chromium Playwright. Browser installation must be explicit in CI.
+### Phase 1 — modularize inside the extension
 
-The browser gate is established first so later phases cannot defer real-browser validation.
+Reorganize behavior-preservingly before extracting a package:
 
-### Phase 2 — parallel foundations after the contract freezes
+```text
+src/
+  index.ts
+  standalone/
+    server/
+      index.ts
+      auth.ts
+      config.ts
+      routes.ts
+      sse.ts
+      history.ts
+    projection/
+      snapshot.ts
+      entries.ts
+      live.ts
+      images.ts
+    completion/
+    providers/
+    transport/
+  web/
+    main.ts
+    standalone-transport.ts
+  shared-candidate/
+    wire/
+    client/
+    testing/
+    styles.css
+```
 
-#### 2A. Server pagination workstream
+`shared-candidate/` is temporary and exists to prove the import boundary before moving files to `packages/pi-web-ui-client`.
 
-Owned files:
+- [ ] Split server auth, routing, SSE clients, projection, completion, and providers.
+- [ ] Split browser transport/state from components/renderers.
+- [ ] Move specialized tool renderers into named modules.
+- [ ] Centralize common tool shell, expansion, Markdown, truncation, and path wrapping.
+- [ ] Make reducer and renderer fixtures runnable without HTTP or Pi.
+- [ ] Preserve DOM structure, class names, accessible names, hotkeys, scroll behavior, and CSS output.
+- [ ] Keep all long-lived extension resources inside `session_start`/`session_shutdown` ownership.
 
-- `src/shared/wire.ts`, `src/shared/limits.ts`
-- `src/server/projection.ts`, `src/server/state.ts`, `src/server/server.ts`
-- focused protocol/state/server tests
+Exit criteria:
 
-Tasks:
+- behavior and visual references remain stable;
+- host-neutral candidates contain no Pi/Node/Tailscale imports;
+- standalone server and browser transport are explicit adapters.
 
-- [x] Implement bounded page projection and exact serialized-envelope accounting.
-- [x] Implement opaque validated cursors and strict-append history-generation tracking.
-- [x] Handle page requests without state revisions or broadcasts.
-- [x] Reject stale/malformed/out-of-range requests safely.
-- [x] Avoid repeated whole-branch work on hot reconciliation paths; cache append-derived session cost/index metadata and recompute on lineage rotation.
-- [x] Test first/last pages, count and byte boundaries, escaped content, idempotence, appends, branch resets, compaction, concurrent clients, and slow-client limits.
+### Phase 2 — local bundling and shared-package extraction
 
-#### 2B. Browser store and virtualizer workstream
+#### 2A. Bundling spike
 
-Owned files:
+- [ ] Add pinned local Preact, HTM or JSX equivalent, Marked, DOMPurify, and only justified dependencies.
+- [ ] Choose the smallest supported bundler based on the existing package ecosystem.
+- [ ] Produce one local production browser bundle and stylesheet.
+- [ ] Remove esm.sh runtime imports.
+- [ ] Add strict CSP, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
+- [ ] Preserve relative URLs and arbitrary standalone base paths.
+- [ ] Verify offline loading and no runtime repository-relative imports.
 
-- `src/web/session-store.ts` and new focused store modules
-- a new extension-owned Preact virtualizer hook/module
-- `ToolCall.tsx` controlled-expansion seam
-- focused store/hook/component tests using frozen protocol fixtures
+#### 2B. Local dependency spike
 
-Tasks:
+- [ ] Create `packages/pi-web-ui-client` with its own `package.json`, `nub.lock`, and checks.
+- [ ] Verify clean root workspace install plus filtered shared-package and extension checks using the proposed `workspace:*` dependency.
+- [ ] Decide whether package exports point to source build inputs or generated `dist`, based on Nub/bundler behavior.
+- [ ] Add a narrow exports map; prohibit deep imports.
 
-- [x] Implement chunked history storage, ID deduplication, indexed row access, and lineage reset.
-- [x] Keep history snapshots stable across live token updates.
-- [x] Implement the pinned `@tanstack/virtual-core` Preact adapter with variable-height measurement and cleanup.
-- [x] Externalize tool expansion state and preserve focused rows.
-- [x] Unit-test stale responses, duplicate pages, tail merges, reset races, measurement updates, and observer disposal.
+Proposed exports:
 
-#### 2C. Playwright scenario workstream
+```json
+{
+  "exports": {
+    "./wire": "...",
+    "./client": "...",
+    "./styles.css": "...",
+    "./testing": "..."
+  }
+}
+```
 
-Owned files:
+#### 2C. Extraction
 
-- `playwright.config.ts`
-- `e2e/**`
-- E2E fixture helpers only
+- [ ] Move only host-neutral wire schemas, limits, reducer, components, renderers, preferences, fixtures, and styles.
+- [ ] Keep Pi projection, HTTP, auth, completion, provider callbacks, and lifecycle in the extension.
+- [ ] Mount the shared client from `src/web/main.ts` using `StandaloneSessionTransport`.
+- [ ] Validate all incoming browser wire data at the boundary.
+- [ ] Add import-boundary checks preventing Pi, Node HTTP/process, Tailscale, and daemon imports in the shared package.
+- [ ] Add a deployment-like extension test from a clean checkout/install.
 
-Tasks:
+Exit criteria:
 
-- [x] Generate deterministic thousands-entry sessions with mixed Markdown, images, and tool heights.
-- [x] Prepare browser assertions for bounded DOM row count, page completeness, anchoring, live-follow behavior, expansion persistence, and reset races.
-- [x] Add desktop/mobile exporter-parity screenshots with reduced motion and deterministic data.
+- extension behavior and appearance remain unchanged;
+- shared package checks independently;
+- the extension consumes only public shared-package exports;
+- final browser assets are self-contained.
 
-This stream may author tests against the frozen contract while 2A/2B implement it. It must not weaken assertions merely to match an incomplete implementation.
+### Phase 3 — shared wire protocol and scalable transcript
 
-### Phase 3 — pagination/virtualization integration (sequential shared-file phase)
+#### 3A. Versioned operation protocol
 
-Owned integration files:
+- [ ] Define runtime schemas for snapshot, append, live-tail, metadata, queue, reset, command response, completion, and error envelopes.
+- [ ] Give each host runtime a generation and each semantic update a monotonic revision.
+- [ ] Require revision continuity; issue a bounded reset on gaps.
+- [ ] Give live assistant/tool overlays stable identities.
+- [ ] Remove generated timestamps from semantic freshness checks.
+- [ ] Distinguish accepted command responses from eventual operation completion.
 
-- `src/web/app.tsx`
-- `src/web/components/Timeline.tsx`
-- timeline/virtualization CSS
-- transport wiring
+#### 3B. Incremental SSE and backpressure
 
-- [x] Connect initial tail snapshots and correlated older-page requests to the chunked store.
-- [x] Render the virtual row model and live tail without flattening/rebuilding all history on every update.
-- [x] Implement top loading, retry, prepend anchoring, initial latest positioning, bottom-follow threshold, unseen count, and jump-to-latest.
-- [x] Preserve tool expansion and keyboard focus through virtual unmount/remount.
-- [x] Rotate cleanly on extension/history generations and ignore stale page responses.
-- [x] Remove the old “Earlier history is not shown” truncation state; represent only actionable loading/error/end-of-history states.
+- [ ] Send full snapshots only for initial attach, reset, unsupported transitions, or recovery.
+- [ ] Append immutable persisted entries once.
+- [ ] Replace only live assistant/tool state while streaming.
+- [ ] Send metadata, queue, theme, and running state independently.
+- [ ] Bound each client by queued frame count and bytes.
+- [ ] Coalesce replaceable operations and reset/disconnect when durable continuity is lost.
+- [ ] Never await browser drains inside Pi event handlers.
+- [ ] Instrument frame bytes/count, reason, serialization time, coalescing, reset, disconnect, parse time, and render time.
 
-Pagination plus virtualization is complete only when integrated and passing large-session browser tests.
+#### 3C. History and virtualization
 
-### Phase 3.5 — exporter-faithful client rendering (after Phase 3, before Phase 4)
+- [ ] Put a bounded latest active-branch window in initial/reset snapshots.
+- [ ] Add an authenticated older-history endpoint with opaque cursors and generation checks.
+- [ ] Bound pages by entry count and projected bytes.
+- [ ] Prepend without gaps, duplicates, or scroll jumps.
+- [ ] Introduce stable row keys independent of array position.
+- [ ] Virtualize transcript rows only.
+- [ ] Preserve thinking/tool expansion through virtual unmount/remount.
+- [ ] Preserve bottom-follow and scroll-to-bottom behavior.
+- [ ] Test multi-thousand-entry sessions, branch resets, old cursors, and live growth.
 
-Authoritative handoff: `RENDERING_HANDOFF.md`. Use the local Pi source under `~/dev/pi/packages/coding-agent/src/core/export-html/` as the behavioral and visual specification.
+Exit criteria:
 
-- [x] Port exporter transcript typography, 12px/18px density, spacing, colors, message hierarchy, and disclosure behavior onto the virtualized Preact timeline without changing its paging/row architecture.
-- [x] Reproduce the exporter’s browser-rendered `bash`, `read`, `write`, `edit`, and `ls` presentations from `template.js` and `template.css` using safe semantic Preact nodes.
-- [x] Render terminal-like output as escaped `.ansi-line`/span components; add a bounded client-side ANSI parser only where actual ANSI parity requires it, never raw injected server HTML.
-- [x] Hand-port useful terminal presentations for other known tools while preserving focused Agentflow, background-job, and questionnaire renderers.
-- [x] Make the unknown-tool fallback compact, terminal-like, safe, and consistent.
-- [x] Preserve controlled expansion/focus across virtual unmounts and trigger correct row remeasurement on expansion and live output.
-- [x] Add exporter-source fixtures, component assertions, and deterministic Playwright parity screenshots while keeping large-session DOM, anchoring, paging, and live-follow checks green.
+- browser work is bounded independently of total session size;
+- shared reducer fixtures can replay extension and future daemon operation streams;
+- transport loss recovers by reset rather than corrupting state.
 
-This phase is client-only. It must not import private Pi internals, invoke TUI renderers, serialize components, add server-rendered tool HTML, or replace the virtualized timeline.
+### Phase 4 — portable renderer and display features
 
-### Phase 4 — complete-session search and accessibility (parallel after stable row APIs)
+These features can proceed in parallel after Phase 2 establishes shared renderer ownership. Each feature must use shared DTOs and fixtures rather than raw Pi objects.
 
-#### 4A. Search
+#### 4A. Remote-safe images
 
-- [x] Add incremental plain-text indexing over loaded projected entries.
-- [ ] Fetch remaining pages sequentially for complete-session search with cancellation/progress.
-- [ ] Implement next/previous result navigation through virtual row mounting.
+- [ ] Define shared image and explicit omission-placeholder DTOs.
+- [ ] Render images in user messages and supported tool results.
+- [ ] Bound MIME type, image count, encoded bytes, and accepted display dimensions.
+- [ ] Never silently drop unsupported, malformed, oversized, or history-omitted images.
+- [ ] Keep base64 out of logs, search text, completion state, diagnostics, and telemetry.
+- [ ] Test snapshot, append, history, reset, virtualization, Tailscale, malformed input, and CSP behavior.
 
-#### 4B. Accessibility and remaining exporter parity
+#### 4B. Questionnaire result rendering
 
-- [ ] Replace transcript-wide live announcements with small status regions.
-- [ ] Verify load/search/tool/composer keyboard order and focus retention.
-- [ ] Compare density, typography, responsive dimensions, tool summaries, Markdown, code, diffs, and images against exporter source and deterministic screenshots.
-- [ ] Verify dashboards remain usable and do not inherit transcript-only virtualization assumptions.
+- [ ] Normalize questionnaire arguments/results into shared browser DTOs.
+- [ ] Render question count, labels, choices, selected/custom answers, cancellation, running, and errors.
+- [ ] Keep this transcript-only initially.
+- [ ] Do not imply support for remotely answering arbitrary `ctx.ui.custom()` interactions.
+- [ ] Preserve the actual questionnaire tool's local Herdr lifecycle.
 
-These workstreams can proceed in parallel because search owns its index/components while accessibility/parity owns semantics/styles, but changes to shared virtual-row APIs require coordination.
+#### 4C. Syntax highlighting
 
-### Phase 5 — required browser gate and hardening
+- [ ] Port the richer extension's selective Highlight.js core registry.
+- [ ] Use existing Pi theme variables and preserve Markdown spacing.
+- [ ] Render unknown languages safely as plain text.
+- [ ] Add a synchronous-size cutoff for large code blocks.
+- [ ] Add hostile-language-label and large-block fixtures.
 
-- [ ] Bootstrap authentication succeeds and strips the secret fragment.
-- [ ] Multi-thousand-entry sessions render a bounded DOM and page to the first entry without gaps or duplicates.
-- [ ] Prepending preserves the visible anchor within a small pixel tolerance.
-- [ ] Live growth follows only at the bottom; jump-to-latest restores following.
-- [ ] Expanded tool details survive virtual unmount/remount and dynamic resize.
-- [ ] Stale page responses and lineage resets never mix branches.
-- [ ] Complete-session search finds initially unloaded content.
-- [ ] Composer shortcuts, autocomplete, steer/follow-up, abort, reconnect disabling, and feedback work through the real server.
-- [ ] Desktop and phone viewports keep timeline controls and composer usable.
-- [ ] Keyboard traversal retains focus and meaningful accessible names.
-- [ ] CSP, unsafe content, payload limits, Origin checks, reconnects, lifecycle cleanup, RPC stdout cleanliness, and Herdr behavior remain intact.
-- [ ] `nub run check` is green and Playwright is mandatory, not optional or skipped.
+#### 4D. Diff rendering
 
-## Parallel execution rules
+- [ ] First adapt the safe bounded unified-diff renderer from the richer extension.
+- [ ] Preserve plain-text fallback and virtualization.
+- [ ] Evaluate `@pierre/diffs` only for a demonstrated side-by-side/navigation requirement.
+- [ ] Bound file count, hunk count, line length, and total projected bytes.
 
-Safe parallelism begins only after Phase 1 freezes protocol names, reset semantics, fixture shapes, and stable row IDs.
+Exit criteria:
 
-- Phase 2A owns server/protocol production files.
-- Phase 2B owns browser store/virtualizer production files.
-- Phase 2C owns only Playwright/config/fixture files.
-- No parallel edits to `app.tsx`, `Timeline.tsx`, or shared timeline CSS during Phase 3.
-- Integrate and verify Phase 2 before starting search/accessibility polish.
-- Review the stable integrated diff after each major phase; do not ask reviewers to reason over concurrent partial states.
+- these render identically under a mock transport and the standalone extension;
+- no feature imports Pi or daemon runtime code into the shared package.
 
-## Acceptance criteria
+### Phase 5 — portable interactive features
 
-- Every active-branch entry is reachable through bounded authenticated pages regardless of total session size.
-- No snapshot or page exceeds fixed server byte/count limits, and no client can request an unbounded payload.
-- The transcript DOM remains bounded while scrolling through very large, variable-height sessions.
-- Older-page loading and live updates do not cause visible scroll jumps or steal position from a reader.
-- Branch/session generation changes cannot mix stale and current history.
-- Tool expansion, focus, keyboard control, and complete-session search remain functional under virtualization.
-- The transcript and composer closely follow the local Pi exporter source and supplied references rather than a separately invented design.
-- Chromium Playwright tests exercise the real built app, real HTTP/WebSocket server, and real bootstrap authentication and are a required release gate.
-- Existing TUI/RPC lifecycle, security, dashboards, output cleanliness, and Herdr semantics do not regress.
+These share UI and command envelopes, but each host adapter executes them differently.
+
+#### 5A. Image attachments
+
+- [ ] Add bounded picker, paste, and drop support.
+- [ ] Preview and remove attachments before submission.
+- [ ] Define shared draft/attachment state and image command DTOs.
+- [ ] Enforce count, MIME, byte, and dimension limits before transport submission.
+- [ ] Preserve exact draft and attachments on rejection; clear only after authoritative acceptance.
+- [ ] Standalone adapter uses Pi's public image-capable message APIs.
+- [ ] Future managed adapter uses RPC image-capable prompt/steer/follow-up commands.
+
+#### 5B. Model and thinking controls
+
+- [ ] Add a selector consistent with the command palette and `Opt-M` behavior.
+- [ ] Keep browser components dependent only on shared model DTOs and command acceptance.
+- [ ] Standalone adapter uses public Pi model/thinking APIs.
+- [ ] Future managed adapter uses typed RPC operations.
+- [ ] Update displayed state only from authoritative host state/events.
+- [ ] Preserve draft/focus on rejection or stale generation.
+
+#### 5C. Provider status and dashboards
+
+- [ ] Add the compact status strip below the composer.
+- [ ] Define bounded serialized Agentflow/background provider DTOs and revisions.
+- [ ] Add read-only summary and drill-down components first.
+- [ ] Keep provider subscriptions/actions in the standalone Pi event-bus adapter.
+- [ ] Do not import Agentflow or background runtime classes into the shared package.
+- [ ] Add actions only with explicit command IDs, generation checks, bounded arguments, and authoritative responses.
+- [ ] Do not mark autonomous background work as Herdr blocked.
+
+#### 5D. Command discovery UI
+
+- [ ] Keep ordinary prompt/steer/follow-up behavior unchanged.
+- [ ] Allow command-name discovery through `pi.getCommands()` if useful.
+- [ ] Do not advertise executable standalone slash dispatch until Pi exposes a canonical extension API or a separately approved local-only design exists.
+- [ ] Keep daemon RPC command discovery/execution outside the standalone adapter.
+
+Exit criteria:
+
+- components run against a mock host and standalone adapter;
+- host-specific capabilities are negotiated explicitly rather than inferred from UI presence.
+
+### Phase 6 — standalone hardening and managed-child guard
+
+- [ ] Define one daemon-owned environment marker for managed children.
+- [ ] When present, `web-ui` opens no HTTP listener, starts no Tailscale Serve process, registers no browser-control routes, and emits no URLs.
+- [ ] Keep standalone startup limited to supported TUI/RPC modes and never write diagnostics to RPC stdout.
+- [ ] Retain standalone random path, fragment bootstrap, cookie auth, exact Origin policy, and `frame-ancestors 'none'`.
+- [ ] Test spoofed proxy/Tailscale headers having no standalone effect.
+- [ ] Test partial startup, reload, new/resume/fork, and shutdown for resource leaks.
+- [ ] Test standalone use when the shared package is installed but the daemon does not exist.
+- [ ] Test managed no-op while Agentflow/background and other ordinary extensions still load.
+
+Exit criteria:
+
+- standalone remains independently deployable and secure;
+- daemon-managed Pi children expose only RPC from this extension's perspective.
+
+### Phase 7 — publish host-neutral conformance assets
+
+This phase supports independent daemon conformance without importing or orchestrating daemon code from the extension/shared package.
+
+- [ ] Publish/freeze versioned schemas and golden fixture streams with expected reducer states.
+- [ ] Add a mock `SessionTransport` capable of rendering a complete session without Pi or HTTP.
+- [ ] Cover messages/live deltas, tools, images/omissions, compactions, branches, model/thinking changes, queues/retries, provider DTOs, resets, and stale generations.
+- [ ] Keep host differences explicit through capability flags rather than checks scattered through components.
+- [ ] Run extension producer conformance against the published fixtures.
+- [ ] Leave daemon projection/schema conformance and daemon bundle checks exclusively to `apps/remote-session-daemon/PLAN.md`.
+
+## Browser notifications
+
+Notifications are useful but should follow the stable client and host boundaries:
+
+- [ ] Define host-neutral notification-worthy events such as settled, failed, question pending, and child unavailable.
+- [ ] Notify only while the document is hidden/unfocused.
+- [ ] Request permission from an explicit user action.
+- [ ] Keep standalone ephemeral-origin notifications optional because permissions may repeat across ports/origins.
+- [ ] Prefer the stable daemon origin for routine managed notifications.
+- [ ] Do not add a service worker/PWA unless closed-page delivery becomes an explicit requirement.
+
+## Testing strategy
+
+### Shared package
+
+- runtime schema acceptance/rejection;
+- generation/revision reducer transitions;
+- reset and history behavior;
+- hostile Markdown/URL/image/tool payloads;
+- renderer semantics and accessibility;
+- preferences and keyboard ownership;
+- deterministic mock-transport fixtures;
+- import-boundary enforcement.
+
+### Standalone extension
+
+- Pi lifecycle and mode gating;
+- authentication and exact Origin policy;
+- SSE reconnect/backpressure/reset;
+- input admission and draft preservation;
+- history and completion endpoints;
+- provider registration/subscription/action cleanup;
+- managed-child no-op;
+- deployment-like bundle loading below non-root paths;
+- Playwright visual and behavior coverage.
+
+### Cross-consumer contract
+
+- both producers validate through the same runtime schemas;
+- both operation streams produce the same reducer state for equivalent sessions;
+- both render the same DOM/accessible behavior from equivalent fixtures;
+- neither final bundle contains runtime paths into the other host package.
+
+## Parallel execution map
+
+### Sequential foundation
+
+1. Phase 0 baseline and references.
+2. Phase 1 internal modularization.
+3. Phase 2 bundling and package extraction.
+4. Phase 3 wire/scalability foundation.
+
+Do not skip directly to feature additions inside the monolithic client; that would increase extraction cost and duplicate work.
+
+### Parallel after Phase 2
+
+Can proceed independently against shared DTOs and fixtures:
+
+- images;
+- questionnaire results;
+- syntax highlighting;
+- bounded diff rendering;
+- status-strip visual components.
+
+### Parallel after command envelopes stabilize
+
+- attachments;
+- model/thinking controls;
+- provider actions;
+- daemon managed transport and projection.
+
+### Must remain sequential or gated
+
+- virtualization follows stable row identity and history operations;
+- provider actions follow read-only provider DTOs and command admission;
+- notifications follow stable host origins/event semantics;
+- generic RPC dialog answering follows a child-local Herdr lifecycle solution;
+- executable standalone slash dispatch follows canonical Pi support or a separately approved design.
+
+## Deferred or explicitly excluded
+
+- process spawning, discovery, Tailscale identity, roles, leases, and persistence in the extension;
+- daemon imports of extension or provider runtime code;
+- central transcript proxying;
+- session iframes and cross-frame `postMessage` protocols;
+- generic JSON Patch, offline mutation, or collaborative editing;
+- service workers without a closed-page notification requirement;
+- arbitrary browser execution of TUI renderers or `ctx.ui.custom()`;
+- direct exposure of provider runtime instances, credentials, abort controllers, or filesystem APIs;
+- ad hoc cross-package imports that bypass root workspace package boundaries.
+
+## Completion criteria
+
+This plan is complete when:
+
+- `packages/pi-web-ui-client` is an independently checked host-neutral package with narrow exports;
+- `web-ui` consumes it through a verified workspace dependency and remains independently deployable as part of the dedicated setup repository;
+- the extension uses bundled local assets, strict security headers, bounded incremental SSE, paged history, and transcript virtualization;
+- visual identity, DOM semantics, keyboard behavior, scroll behavior, and accessibility remain stable;
+- images, questionnaire results, syntax highlighting, attachments, model controls, provider status, and bounded diff rendering are implemented or explicitly deferred with fixtures;
+- standalone authentication, lifecycle, Tailscale convenience, and command admission remain correct;
+- managed children cause the extension to open no web resources;
+- shared mock/contract fixtures allow the daemon to adopt the UI without copying client code;
+- aggregate checks, deployment-like tests, and Playwright coverage pass.

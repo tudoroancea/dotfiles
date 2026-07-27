@@ -1,48 +1,158 @@
 # Pi Web UI
 
-A session-scoped browser companion for one running Pi process. It starts only in TUI or RPC mode, follows Pi session replacement, and is not a daemon or process manager.
+A deliberately tiny browser companion for the current Pi session. It serves a
+single-column transcript that mirrors Pi's HTML exporter — user and
+assistant messages, thinking, Markdown, images, bash execution, tool calls with
+results, compactions, branch summaries, model changes, and custom messages.
 
-## Local use
+There is no build step, no npm server dependency, and no wire protocol: every
+relevant Pi event simply re-broadcasts a fresh full snapshot of the active branch
+over Server-Sent Events. Remote access uses the system `tailscale` CLI.
 
-1. Install/build once from this directory with `nub install` (the package lifecycle builds `dist/web`).
-2. Start Pi normally.
-3. Pi announces a loopback URL. Run `/copy-remote-url` to copy a short-lived, directly usable authenticated link.
-4. Open the link in a browser. The fragment credential is exchanged once and removed from browser history.
+## Usage
 
-The default listener is `127.0.0.1` on an ephemeral port. Browser actions have the same shell and filesystem authority as the Pi process.
+The server starts automatically at `session_start` in **TUI** and **RPC** modes
+and binds to loopback only (`127.0.0.1`, ephemeral port) under a random path. In
+parallel, the extension starts a foreground `tailscale serve` proxy on the same
+ephemeral port. The proxy is stopped with the session and is available only to
+devices permitted by the tailnet's access controls.
 
-## Configuration
+- In TUI, notifications report the local server and when the tailnet proxy is ready.
+- In RPC, stderr reports diagnostic base URLs. Running either copy command returns
+  the complete authenticated URL in an RPC notification instead of using the host
+  clipboard.
 
-All runtime settings are read once into the validated server configuration:
+Use one of the two copy commands:
 
-- `PI_WEB_UI_HOST` — bind address (default `127.0.0.1`).
-- `PI_WEB_UI_PORT` — listener port, including `0` for ephemeral (default).
-- `PI_WEB_UI_PUBLIC_URL` — browser-visible HTTP(S) URL, including an optional base path such as `https://machine.example/_pi/s/id/`.
-- `PI_WEB_UI_BASE_PATH` — explicit base path; when a public URL is set, both paths must match.
-- `PI_WEB_UI_ALLOWED_ORIGINS` — comma-separated exact HTTP(S) origins. Wildcards are rejected.
-
-`PI_WEB_UI_REMOTE_URL` remains an alias for `PI_WEB_UI_PUBLIC_URL`.
-
-The listener ignores proxy and Tailscale identity headers. Configuring a public URL does not make a proxy trusted and does not change authentication.
-
-## Tailscale Serve
-
-Keep Pi bound to loopback and use a fixed port so the proxy target survives Pi restarts. Determine the machine's Tailscale HTTPS URL first, then configure Serve and start Pi with matching settings:
-
-```sh
-export PI_WEB_UI_PORT=43123
-export PI_WEB_UI_PUBLIC_URL=https://machine.example.ts.net/
-tailscale serve --bg http://127.0.0.1:43123
-pi
+```
+/copy-url
+/copy-remote-url
 ```
 
-The public URL must be configured before Pi starts so startup discovery, exact Origin validation, secure path-scoped cookies, WebSocket `wss:` derivation, and `/copy-remote-url` all use the browser-visible address. Consult the installed Tailscale version's `tailscale serve --help` because CLI syntax can vary.
+`/copy-url` copies a loopback link for a browser on the same machine.
+`/copy-remote-url` copies the HTTPS Tailscale Serve link for another machine on
+the tailnet; while Serve is starting, the command asks you to retry shortly.
+Both links contain a fresh one-time authentication code in the URL fragment,
+for example `http://127.0.0.1:<port>/<random-path>/#code=<one-time>`. Up to eight
+unredeemed codes remain valid for two minutes; each is invalidated on first use.
+Paste the chosen link into a browser. The page renders live and updates as the session
+progresses. While Pi is running, the status bar mirrors the rotating message
+selected by `working-word.ts`.
 
-Do not expose this extension directly to the public internet. Tailscale network identity reduces exposure but does not replace the extension's per-run authorization.
+### Message input
 
-## Lifecycle and limitations
+A sticky composer at the bottom sends ordinary user messages through Pi's public
+`sendUserMessage()` API. Enter inserts a newline. `Option+Enter` sends while idle
+or steers a running turn; `Ctrl+Enter`/`Cmd+Enter` sends while idle or queues a
+follow-up while Pi is running. The visible button sends (or steers) on a normal
+tap/click. Right-click it on desktop or long-press it on mobile to open explicit
+Send / Steer / Queue choices. The editor starts at one line and grows with its
+content on desktop; on mobile it stays one line while idle and expands into the
+visual space above the keyboard while focused. Accepted steering and follow-up
+messages remain listed above the editor until Pi begins delivering them; a
+rejected request keeps the exact draft and shows the reason.
 
-- `/reload`, `/new`, `/resume`, `/fork`, and `/clone` close the old server and create a fresh generation. A standalone replacement generation requires a newly copied bootstrap link.
-- Transient disconnects within one generation reconnect with bounded backoff and resnapshot.
-- Arbitrary Pi extension dialogs are not bridged to the browser. Questionnaire results render in the timeline, but answering a TUI questionnaire from the browser is out of scope.
-- A future machine daemon may reverse-proxy this extension at a stable base path. This package deliberately does not spawn Pi, choose working directories, discover machines, trust proxy headers, or manage daemon readiness.
+Press plain `i` outside an editable control to focus the composer. Typing `@`
+opens file completion backed by Pi's current autocomplete provider in TUI mode.
+RPC mode uses Pi's managed `fd`, a system `fd`, or a bounded filesystem fallback.
+Arrow keys
+move through results, Tab inserts the active result, Escape dismisses them, and
+results can also be clicked.
+
+The composer mirrors the TUI footer: context usage and accumulated cost interrupt
+the upper-left border, model and thinking level sit on the upper-right border,
+and the compact cwd interrupts the lower-right border. Slash commands are
+intentionally not supported; see
+[`SLASH_COMMAND_DISPATCH.md`](./docs/SLASH_COMMAND_DISPATCH.md).
+
+### Display preferences
+
+Five transcript details are hidden/collapsed by default and can be toggled with
+plain single-key hotkeys (no modifier) or from the `Cmd/Ctrl+K` command palette.
+Each choice is persisted to `localStorage`, with a host-scoped cookie carrying it
+across the server's ephemeral ports:
+
+| Key | Toggles                                                |
+| --- | ------------------------------------------------------ |
+| `t` | thinking blocks (default collapsed)                    |
+| `e` | full tool-call output (default collapsed)              |
+| `s` | message timestamps (default hidden)                    |
+| `m` | model / thinking-level switch entries (default hidden) |
+| `p` | effective system prompt (default hidden)               |
+
+Hotkeys are ignored while a modifier is held (so browser shortcuts such as
+`Cmd/Ctrl+T` still work).
+
+`Cmd/Ctrl+K` opens a small command palette centered in the viewport that lists all
+five preferences above (each with its single-key hotkey) and toggles them. It is
+an accessible modal dialog: arrow keys / `Tab` move between commands, `Enter`/`Space`
+toggles the focused command, `Escape` or a backdrop click closes it, focus is
+trapped while open, and the plain-key hotkeys are suppressed until it closes. The palette items derive directly from the same persisted
+preferences, so it adds no storage of its own.
+
+## How it works
+
+- **Static assets** (`src/client/index.html`, `src/client/app.js`, `src/client/styles.css`) are served
+  directly from disk. The browser loads Preact + hooks + htm + marked from a CDN
+  as native ES modules — nothing is bundled or installed.
+- **Tailnet proxy**: `tailscale serve` terminates HTTPS on the machine's tailnet
+  address and forwards to the loopback server. Each session uses its own
+  ephemeral HTTPS port, so concurrent Pi sessions do not replace one another's
+  Serve configuration. If Tailscale is absent or disconnected, local access
+  continues to work.
+- **Auth**: the one-time code carried in the URL fragment is POSTed to `auth`,
+  which exchanges it for a random, path-scoped `HttpOnly; SameSite=Strict` cookie.
+  The `events` SSE stream requires that cookie. Codes are single-use, expire after
+  two minutes, and are capped at eight outstanding links; the fragment never
+  reaches the server during navigation.
+- **Snapshots**: on connect, after message/tool/session events, and when a small
+  freshness check notices an otherwise unannounced session append, the server
+  sends `{ header, entries, leafId, sessionName, isRunning, workingWord, theme, systemPrompt, metadata }`
+  for the current branch. In-progress assistant messages and running tool executions are
+  overlaid as synthetic entries until they are persisted. The browser follows
+  Pi's configured theme; automatic light/dark pairs follow the browser color
+  scheme.
+- **Input**: authenticated same-origin POST endpoints accept bounded message and
+  file-completion requests. Idle messages, steering messages, and queued
+  follow-ups use explicit delivery modes. No browser interaction is a Herdr
+  blocked scope; Pi's normal agent lifecycle remains authoritative.
+- The server closes cleanly on `session_shutdown`.
+
+## Scope / intentionally omitted
+
+This extension remains a deliberately minimal milestone. It does **not** include
+the exporter's sidebar/session tree or metadata/tool-map header, and it
+intentionally omits slash-command dispatch, pagination, virtualization,
+WebSockets, public internet access, dashboards, provider controls, a broad
+security/CSP layer, and any configuration system. Syntax highlighting is not
+included; code blocks render as plain monospaced text. The browser must be online
+and trusts the pinned Preact,
+htm, and marked modules served by esm.sh; this is the explicit tradeoff of the
+requested no-build-tools route for this minimal milestone.
+
+## Planning and architecture
+
+- [`PLAN.md`](./PLAN.md) tracks the standalone extension and reusable `packages/pi-web-ui-client` work.
+- [`../../../apps/remote-session-daemon/PLAN.md`](../../../apps/remote-session-daemon/PLAN.md) separately tracks the machine-level daemon implementation.
+- [`../../../../PI_SETUP_REPO_MIGRATION_PLAN.md`](../../../../PI_SETUP_REPO_MIGRATION_PLAN.md) tracks the one-time move from the current dotfiles-owned symlink into a dedicated `~/.pi` repository.
+- [`docs/RPC_FIRST_REMOTE_DASHBOARD.md`](./docs/RPC_FIRST_REMOTE_DASHBOARD.md) defines the current daemon-owned RPC architecture for the cross-machine dashboard.
+- [`docs/REMOTE_SESSION_INFRA_PLAN.md`](./docs/REMOTE_SESSION_INFRA_PLAN.md) preserves the earlier extension-server/iframe design and the infrastructure rationale that remains useful.
+- [`docs/ADDITIONAL_DETAILS.md`](./docs/ADDITIONAL_DETAILS.md) records supporting base-path, security, and lifecycle requirements.
+- [`docs/SSE_TRAFFIC_ANALYSIS.md`](./docs/SSE_TRAFFIC_ANALYSIS.md) measures the current full-snapshot transport cost.
+- [`docs/SLASH_COMMAND_DISPATCH.md`](./docs/SLASH_COMMAND_DISPATCH.md) documents the upstream command-dispatch boundary.
+
+## Development checks
+
+Install the local development dependencies and run the complete check:
+
+```sh
+nub install
+nubx playwright install chromium
+nub run check
+```
+
+The Playwright suite launches the real authenticated HTTP/SSE server and production browser assets with deterministic session snapshots. Its assertions use accessible browser behavior rather than Preact component internals.
+
+## Roadmap
+
+[`PLAN.md`](./PLAN.md) is the only actionable roadmap. It deliberately sequences behavior-preserving modularization, local bundling, and extraction of `packages/pi-web-ui-client` before the remaining portable features—images, questionnaire results, syntax highlighting, attachments, provider dashboards, model controls, notifications, and bounded diff rendering—are added. This keeps the standalone extension and daemon-hosted dashboard on one browser implementation instead of growing the current monolithic client in place.

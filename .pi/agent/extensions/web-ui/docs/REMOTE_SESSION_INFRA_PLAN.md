@@ -1,8 +1,10 @@
 # Remote Pi Session Infrastructure Plan
 
+> **Superseded for managed sessions:** [`RPC_FIRST_REMOTE_DASHBOARD.md`](./RPC_FIRST_REMOTE_DASHBOARD.md) replaces this document's child extension server, reverse proxy, managed readiness/capability, and iframe architecture. This file remains useful as historical rationale for approved roots, Tailscale ingress, discovery alternatives, process isolation, and recovery requirements.
+
 ## Objective
 
-Enable an authorized user on a private Tailscale network to choose a machine and an approved folder, start or resume a Pi session there, and attach to the session-scoped UI in `.pi/agent/extensions/web-ui-simple/` without turning that extension into a process manager.
+Enable an authorized user on a private Tailscale network to choose a machine and an approved folder, start or resume a Pi session there, and attach to the session-scoped UI in `.pi/agent/extensions/web-ui/` without turning that extension into a process manager.
 
 This is a follow-on architecture plan. It preserves the extension's standalone local/tailnet workflow while defining a separate managed mode for host-agent launches.
 
@@ -34,7 +36,7 @@ Browser
 
 A central dashboard may discover machines and iframe their stable per-host session URLs, but it should not proxy all transcript traffic by default. Direct cross-origin iframes preserve isolation: the dashboard can display a child UI but cannot read its session DOM or content.
 
-The current `web-ui-simple` implementation already provides the correct session boundary: it starts an ephemeral loopback HTTP server in TUI/RPC mode, streams full active-branch snapshots over authenticated SSE, and closes its resources on session shutdown. Its extension-owned, per-session `tailscale serve` process is retained as a standalone convenience, not reused as the managed multi-session ingress.
+The current `web-ui` implementation already provides the standalone session boundary: it starts an ephemeral loopback HTTP server in TUI/RPC mode, streams full active-branch snapshots over authenticated SSE, and closes its resources on session shutdown. Its extension-owned, per-session `tailscale serve` process is retained as a standalone convenience, not reused as the managed multi-session ingress.
 
 ## Daemon scope
 
@@ -286,7 +288,7 @@ Preserve two explicit startup modes and the current session-scoped lifecycle:
    - Tailscale CLI spawning remains a standalone transport convenience only; managed mode disables it.
    - Continue starting resources only in `session_start` and closing them in `session_shutdown`.
 
-The current implementation is `.pi/agent/extensions/web-ui-simple/index.ts`. Its loopback server, relative browser URLs, authenticated full-snapshot SSE stream, and shutdown lifecycle are the foundation for these seams; it is no longer a skeleton.
+The current implementation is `.pi/agent/extensions/web-ui/src/index.ts`. Its loopback server, relative browser URLs, authenticated full-snapshot SSE stream, and shutdown lifecycle are the foundation for these seams; it is no longer a skeleton.
 
 ## Host-agent state and recovery
 
@@ -378,4 +380,4 @@ Do not grow this into the final dashboard architecture. It has weak cross-platfo
 
 ## Decision summary
 
-The rough daemon idea works: the **per-machine host agent is the system-wide daemon**, with one independent instance on every machine that should accept remote launches. It is not a centralized cross-machine authority and should not be embedded into the web UI extension. Keep `web-ui-simple` responsible for exactly one live session and preserve its existing direct-access behavior as standalone mode. Managed mode disables extension-owned Tailscale Serve and adds only readiness, stable-base-path, trusted-proxy authorization, framing, and future command seams. Each machine's host agent remains responsible for local launch policy, supervision, stable routing, and Tailscale-backed authorization.
+The rough daemon idea works: the **per-machine host agent is the system-wide daemon**, with one independent instance on every machine that should accept remote launches. It is not a centralized cross-machine authority and should not be embedded into the web UI extension. Keep `web-ui` responsible for exactly one live session and preserve its existing direct-access behavior as standalone mode. The current RPC-first design supersedes this document's managed extension seams; each machine's daemon owns managed launch policy, supervision, browser serving, projection, and Tailscale-backed authorization.
