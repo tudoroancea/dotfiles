@@ -1,5 +1,4 @@
 # API keys ==========================================================================
-source ~/pave_api_key.sh
 
 # general tools configuration =====================================================
 eval "$(uv generate-shell-completion zsh)"

@@ -1,6 +1,5 @@
 # API keys ==========================================================================
 source ~/gemini-cli.sh
-source ~/pave_api_key.sh
 source ~/zen_api_key.sh
 source ~/openrouter_api_key.sh
 

@@ -1,5 +1,4 @@
 source $HOME/zen_api_key.sh
-source $HOME/pave_api_key.sh
 
 export PATH="$PATH:/opt/pi"
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
@@ -33,4 +32,3 @@ export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
 # go
 export PATH="/opt/go/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
-
