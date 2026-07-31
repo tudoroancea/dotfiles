@@ -3,13 +3,13 @@
   "diff_view_style": "unified",
   "cli_default_open_behavior": "existing_window",
   "project_panel": {
-    "dock": "right",
+    "dock": "right"
   },
   "outline_panel": {
-    "dock": "right",
+    "dock": "right"
   },
   "collaboration_panel": {
-    "dock": "right",
+    "dock": "right"
   },
   "restore_on_startup": "launchpad",
   // Editor
@@ -19,64 +19,40 @@
       "args": [],
       "projects": [
         {
-          "paths": [
-            "/home/ted"
-          ]
+          "paths": ["/home/ted"]
         },
         {
-          "paths": [
-            "/home/ted/dev/alloy"
-          ]
+          "paths": ["/home/ted/dev/alloy"]
         },
         {
-          "paths": [
-            "/home/ted/dev/anvil2/./"
-          ]
+          "paths": ["/home/ted/dev/anvil2/./"]
         },
         {
-          "paths": [
-            "/home/ted/dev/automating-automation/./"
-          ]
+          "paths": ["/home/ted/dev/automating-automation/./"]
         },
         {
-          "paths": [
-            "/home/ted/dev/quanser-control-test-0"
-          ]
+          "paths": ["/home/ted/dev/quanser-control-test-0"]
         },
         {
-          "paths": [
-            "/home/ted/dev/quanser-control-test-2"
-          ]
+          "paths": ["/home/ted/dev/quanser-control-test-2"]
         },
         {
-          "paths": [
-            "/home/ted/dev/quanser_aero_sdk"
-          ]
+          "paths": ["/home/ted/dev/quanser_aero_sdk"]
         },
         {
-          "paths": [
-            "/home/ted/dev/robotics-practicals/./"
-          ]
+          "paths": ["/home/ted/dev/robotics-practicals/./"]
         },
         {
-          "paths": [
-            "/home/ted/dev/vibe-quanser"
-          ]
+          "paths": ["/home/ted/dev/vibe-quanser"]
         },
         {
-          "paths": [
-            "/home/ted/dotfiles/./"
-          ]
+          "paths": ["/home/ted/dotfiles/./"]
         },
         {
-          "paths": [
-            "/home/tudor"
-          ]
+          "paths": ["/home/tudor"]
         },
         {
-          "paths": [
-            "/home/ubuntu/Documents/robotics-practicals"
-          ]
+          "paths": ["/home/ubuntu/Documents/robotics-practicals"]
         }
       ]
     },
@@ -90,27 +66,24 @@
       "args": [],
       "projects": [
         {
-          "paths": [
-            "/home/tudor/dev/controls_challenge/./"
-          ]
+          "paths": ["/home/tudor/dev/controls_challenge/./"]
         }
       ]
     }
   ],
-  "agent_servers": {
-    },
+  "agent_servers": {},
   "session": {
-    "trust_all_worktrees": false,
+    "trust_all_worktrees": false
   },
   "git_panel": {
     "group_by": "none",
     "dock": "right",
-    "tree_view": true,
+    "tree_view": true
   },
   "use_smartcase_search": true,
   "search": {
     "regex": true,
-    "case_sensitive": false,
+    "case_sensitive": false
   },
   "tab_size": 2,
   "pane_split_direction_vertical": "right",
@@ -122,18 +95,18 @@
   "inlay_hints": {
     "enabled": true,
     "show_parameter_hints": true,
-    "show_other_hints": true,
+    "show_other_hints": true
   },
   "show_signature_help_after_edits": true,
   // UI
   "unstable.ui_density": "compact",
   "tab_bar": {
     "show": true,
-    "show_nav_history_buttons": false,
+    "show_nav_history_buttons": false
   },
   "toolbar": {
     "breadcrumbs": true,
-    "quick_actions": true,
+    "quick_actions": true
   },
   // Fonts
   "buffer_font_size": 12.0,
@@ -144,29 +117,29 @@
     "copy_on_select": true,
     "font_family": "JetBrainsMono Nerd Font",
     "font_weight": 400,
-    "detect_venv": "off",
+    "detect_venv": "off"
   },
   // Keymap
   "vim_mode": true,
   "vim": {
     "use_system_clipboard": "always",
-    "use_smartcase_find": true,
+    "use_smartcase_find": true
   },
   // Color theme
   "theme": {
     "mode": "system",
     "light": "Zed Legacy: Rosé Pine Dawn",
-    "dark": "Zed Legacy: Rosé Pine",
+    "dark": "Zed Legacy: Rosé Pine"
   },
   "icon_theme": {
     "mode": "system",
     "light": "Catppuccin Latte",
-    "dark": "Catppuccin Mocha",
+    "dark": "Catppuccin Mocha"
   },
   "experimental.theme_overrides": {
     "syntax": {
-      "comment": {},
-    },
+      "comment": {}
+    }
   },
   // Extensions
   "auto_install_extensions": {
@@ -181,80 +154,63 @@
     "toml": true,
     "lua": true,
     "sql": true,
-    "log": true,
+    "log": true
   },
   // LSP
   "format_on_save": "off",
   "enable_language_server": true,
-  // "language_servers": ["!biome"],
   "languages": {
     "YAML": {
       "tab_size": 2,
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
-    // "TypeScript": {
-    //   "formatter": [
-    //     {
-    //       "language_server": {
-    //         "name": "biome",
-    //       },
-    //     },
-    //     { "code_action": "source.organizeImports.biome" },
-    //   ],
-    // },
-    // "TSX": {
-    //   "formatter": [
-    //     {
-    //       "language_server": {
-    //         "name": "biome",
-    //       },
-    //     },
-    //     { "code_action": "source.organizeImports.biome" },
-    //   ],
-    // },
+    "TypeScript": { "formatter": [{ "language_server": { "name": "oxfmt" } }] },
+    "JavaScript": { "formatter": [{ "language_server": { "name": "oxfmt" } }] },
+    "TSX": { "formatter": [{ "language_server": { "name": "oxfmt" } }] },
     "JSON": {
       "tab_size": 2,
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
     "JSONC": {
       "tab_size": 2,
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
     "XML": {
+      "tab_size": 2
+    },
+    "HTML": {
       "tab_size": 2,
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
     "Python": {
       "language_servers": ["ty", "ruff"],
       "formatter": [
         { "code_action": "source.organizeImports.ruff" },
-        { "language_server": { "name": "ruff" } },
-      ],
-    },
+        { "language_server": { "name": "ruff" } }
+      ]
+    }
   },
   "lsp": {
-    "biome": {
-      "binary": {
-        "path": "~/.bun/bin/biome",
-        "arguments": ["lsp-proxy"],
-      },
-    },
     "ty": {
       "binary": {
         "path": "~/.local/bin/ty",
-        "arguments": ["server"],
-      },
+        "arguments": ["server"]
+      }
     },
     "pyrefly": {
       "binary": {
         "path": "/Users/tudoroancea/.local/bin/pyrefly",
-        "arguments": ["lsp"],
-      },
+        "arguments": ["lsp"]
+      }
     },
     "tinymist": {
       "initialization_options": {
         "exportPdf": "onSave",
-        "formatterMode": "typstyle",
-      },
-    },
+        "formatterMode": "typstyle"
+      }
+    }
   },
-  "file_scan_exclusions": [".worktrees/**"],
+  // "file_scan_exclusions": [".worktrees/**"],
   // Remote
   // AI
   "show_edit_predictions": true,
@@ -263,16 +219,16 @@
       "api_url": "http://localhost:8080/v1/completions",
       "max_output_tokens": 1024,
       "prompt_format": "zeta2",
-      "model": "bartowski/zed-industries_zeta-2-GGUF",
+      "model": "bartowski/zed-industries_zeta-2-GGUF"
     },
     "ollama": {
       "max_output_tokens": 1024,
       "prompt_format": "zeta2",
-      "api_url": "http://localhost:2276/v1",
+      "api_url": "http://localhost:2276/v1"
     },
     "provider": "zed",
     "disabled_globs": ["*.mlir"],
-    "mode": "subtle",
+    "mode": "subtle"
     // "provider": "open_ai_compatible_api",
     // "open_ai_compatible_api": {
     //   "api_url": "http://localhost:8080/v1/completions",
@@ -297,13 +253,13 @@
       "effort": "medium",
       "enable_thinking": true,
       "provider": "zed.dev",
-      "model": "claude-sonnet-4-6",
+      "model": "claude-sonnet-4-6"
     },
     "inline_assistant_model": {
       "provider": "zed.dev",
-      "model": "claude-sonnet-4-6",
+      "model": "claude-sonnet-4-6"
     },
-    "enabled": true,
+    "enabled": true
   },
   // Git
   "git": {
@@ -312,14 +268,14 @@
     "inline_blame": {
       "enabled": true,
       "show_commit_summary": true,
-      "delay_ms": 500,
-    },
+      "delay_ms": 500
+    }
   },
   // Misc
   "telemetry": {
     "diagnostics": false,
-    "metrics": false,
+    "metrics": false
   },
   "auto_update": true,
-  "autosave": "on_focus_change",
+  "autosave": "on_focus_change"
 }

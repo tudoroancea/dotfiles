@@ -113,7 +113,7 @@ status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-use
 "gpt-5.6-sol" = 1
 
 [marketplaces.openai-bundled]
-last_updated = "2026-07-31T07:22:33Z"
+last_updated = "2026-07-31T09:23:27Z"
 source_type = "local"
 source = "/Users/tudoroancea/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
@@ -141,6 +141,9 @@ enabled = true
 enabled = true
 
 [plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."sites@openai-bundled"]
 enabled = true
 
 [hooks.state]
