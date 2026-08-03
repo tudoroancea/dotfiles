@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "open -g \"raycast-x://extensions/raycast/raycast/confetti\""
+            "command": "[ '$(uname)' = 'Darwin' ] && open -g 'raycast-x://extensions/raycast/raycast/confetti'"
           }
         ]
       }
