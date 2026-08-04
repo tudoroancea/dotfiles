@@ -33,3 +33,13 @@ approved-commands = [
     "bun run fmt",
     "bun run test:e2e",
 ]
+
+[projects."github.com/tudoroancea/pi-setup"]
+approved-commands = [
+    "wt step copy-ignored --require-include",
+    """
+set -eu
+test -e agent/npm || ln -s {{ primary_worktree_path }}/agent/npm agent/npm
+test -e agent/git || ln -s {{ primary_worktree_path }}/agent/git agent/git
+""",
+]

@@ -1,0 +1,16 @@
+onboarding = false
+
+[ui.toast]
+delivery = "terminal"
+
+[theme]
+name = "rose-pine-dawn"
+auto_switch = true
+
+[ui]
+show_agent_labels_on_pane_borders = true
+
+agent_panel_sort = "priority"
+[experimental]
+switch_ascii_input_source_in_prefix = false
+kitty_graphics = true

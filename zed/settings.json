@@ -114,6 +114,7 @@
   "buffer_font_family": "JetBrainsMono Nerd Font",
   "ui_font_family": "JetBrainsMono Nerd Font",
   "terminal": {
+    "option_as_meta": true,
     "copy_on_select": true,
     "font_family": "JetBrainsMono Nerd Font",
     "font_weight": 400,
