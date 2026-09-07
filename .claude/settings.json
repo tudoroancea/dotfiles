@@ -490,6 +490,7 @@
     ]
   },
   "syntaxHighlightingDisabled": false,
+  "effortLevel": "high",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
@@ -499,5 +500,5 @@
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "effortLevel": "high"
+  "autoMemoryEnabled": false
 }

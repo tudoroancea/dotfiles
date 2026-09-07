@@ -1,11 +1,12 @@
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "high"
 approvals_reviewer = "user"
 
 notify = ["/Users/tudoroancea/dotfiles/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
 service_tier = "default"
+sandbox_mode = "workspace-write"
 
 [projects."/Users/tudoroancea/dev/tinyanvil"]
 trust_level = "trusted"
@@ -101,6 +102,49 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/home/ted/dev/casadi"]
+[projects."/Users/tudoroancea/Documents/Codex/2026-08-03/hel"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-08-05/computer-plugin-computer-use-openai-bundled"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/cadence"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/pi"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/holohover"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-08-24/i-need-you-to-help-me"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/lpr"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-08-27/i-x20"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/ted-stack"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/ted-usage"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-04/doe"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-05/i-x20"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/minimal_tracking_nmpc"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-07/do-x20"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-07/do-we-need-x20"]
 trust_level = "trusted"
 
 [notice]
@@ -126,6 +170,7 @@ status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-use
 [tui.model_availability_nux]
 "gpt-5.5" = 3
 "gpt-5.6-sol" = 1
+gpt-6-astra = 1
 
 [marketplaces.openai-bundled]
 last_updated = "2026-08-24T07:32:09Z"
@@ -133,7 +178,6 @@ source_type = "local"
 source = "/home/ted/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
-last_updated = "2026-07-31T07:23:50Z"
 source_type = "local"
 source = "/Users/tudoroancea/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
@@ -161,10 +205,16 @@ enabled = true
 [plugins."sites@openai-bundled"]
 enabled = true
 
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
 [hooks.state]
 
 [hooks.state."/Users/tudoroancea/.codex/hooks.json:stop:0:0"]
-trusted_hash = "sha256:40a02a817f671c861fab27b7e6d0dbdef8635e5d230b47afaf57abbe936a6326"
+trusted_hash = "sha256:01a517a0c4989f173498d25d7ef8150c22415d577c08b7e59cfe368379de203e"
 
 [hooks.state."/Users/tudoroancea/.codex/hooks.json:pre_tool_use:0:0"]
 trusted_hash = "sha256:85ec42ddf6bc313aab6f4a6392ff61a7d39ad72c620e6c8fa811ee58cfe33a6d"
@@ -197,6 +247,8 @@ worktree-auto-cleanup-enabled = false
 show-context-window-usage = true
 dock-icon-preference = "app-default"
 mac-menu-bar-enabled = false
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh"]
+defaultTerminalLocation = "right"
 
 [desktop.appearanceLightChromeTheme]
 accent = "#d7827e"
@@ -207,7 +259,6 @@ surface = "#faf4ed"
 
 [desktop.appearanceLightChromeTheme.fonts]
 code = "JetBrainsMono Nerd Font"
-ui = "JetBrainsMono Nerd Font"
 
 [desktop.appearanceLightChromeTheme.semanticColors]
 diffAdded = "#56949f"
@@ -223,7 +274,6 @@ surface = "#232136"
 
 [desktop.appearanceDarkChromeTheme.fonts]
 code = '"JetBrainsMono Nerd Font"'
-ui = '"JetBrainsMono Nerd Font"'
 
 [desktop.appearanceDarkChromeTheme.semanticColors]
 diffAdded = "#9ccfd8"
@@ -254,21 +304,19 @@ startup_timeout_sec = 120
 NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
 NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
 NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
-NODE_REPL_TRUSTED_CODE_PATHS = "/Users/tudoroancea/.codex"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/tudoroancea/.codex:/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
 CODEX_HOME = "/Users/tudoroancea/.codex"
-NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,8785b5437d98636c3002d3d7e64b98db79c3b66870b1bd3d18dea953a99b1562"
 BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+BROWSER_USE_TINYSKY_ENABLED = "1"
 NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
 NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
-NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = "Control desktop apps on macOS through Computer Use."
 BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
-BROWSER_USE_CODEX_APP_VERSION = "26.727.40816"
+BROWSER_USE_CODEX_APP_VERSION = "26.901.51231"
+NODE_REPL_TRUSTED_SERVICES = '{"browser":"/Users/tudoroancea/.codex/plugins/cache/openai-bundled/browser/26.901.51231/scripts/browser-service.mjs"}'
 CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
 
-[mcp_servers.computer-use]
-command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
-args = ["mcp"]
-cwd = "."
+[mcp_servers.cua_repl]
+command = "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"
 enabled = false
 
 [shell_environment_policy.set]
