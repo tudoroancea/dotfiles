@@ -32,3 +32,5 @@ export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
 # go
 export PATH="/opt/go/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
+
+export PATH="$HOME/dev/cadence/bin:$PATH"

@@ -88,6 +88,21 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/Documents/Codex/2026-07-26/fj"]
 trust_level = "trusted"
 
+[projects."/home/ted/dev/vibe-quanser"]
+trust_level = "trusted"
+
+[projects."/home/ted/dev/alloy"]
+trust_level = "trusted"
+
+[projects."/home/ted/dev/cadence"]
+trust_level = "trusted"
+
+[projects."/home/ted/dev/ted-usage"]
+trust_level = "trusted"
+
+[projects."/home/ted/dev/casadi"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true
@@ -113,9 +128,9 @@ status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-use
 "gpt-5.6-sol" = 1
 
 [marketplaces.openai-bundled]
-last_updated = "2026-07-31T09:23:27Z"
+last_updated = "2026-08-24T07:32:09Z"
 source_type = "local"
-source = "/Users/tudoroancea/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
+source = "/home/ted/dotfiles/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
 last_updated = "2026-07-31T07:23:50Z"
@@ -260,3 +275,6 @@ enabled = false
 BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
 NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,8785b5437d98636c3002d3d7e64b98db79c3b66870b1bd3d18dea953a99b1562"
 NODE_REPL_TRUSTED_CODE_PATHS = "/Users/tudoroancea/.codex"
+
+[features.context_management]
+experimental_mode = true
