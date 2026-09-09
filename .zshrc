@@ -47,3 +47,6 @@ source $ZSH/oh-my-zsh.sh
 
 # Enable Powerlevel10k instant prompt. Should stay close to the end of ~/.zshrc.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Vite+ bin (https://viteplus.dev)
+. "$HOME/.vite-plus/env"

@@ -32,13 +32,10 @@
       "Bash(vite dev:*)",
       "Bash(vite preview:*)"
     ],
-    "ask": [
-      "Bash(uv pip install:*)",
-      "Bash(uv sync)",
-      "Bash(uv add:*)"
-    ],
+    "ask": ["Bash(uv pip install:*)", "Bash(uv sync)", "Bash(uv add:*)"],
     "defaultMode": "auto"
   },
+  "model": "claude-fable-5-1[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -492,6 +489,7 @@
   "syntaxHighlightingDisabled": false,
   "effortLevel": "high",
   "tui": "fullscreen",
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
   "editorMode": "vim",
@@ -500,5 +498,9 @@
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "autoMemoryEnabled": false
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "low"
+    }
+  }
 }

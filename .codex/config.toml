@@ -147,6 +147,15 @@ trust_level = "trusted"
 [projects."/Users/tudoroancea/Documents/Codex/2026-09-07/do-we-need-x20"]
 trust_level = "trusted"
 
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-08/referenced-chatgpt-conversation-this-is-an"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/dev/ecos"]
+trust_level = "trusted"
+
+[projects."/Users/tudoroancea/Documents/Codex/2026-09-09/create-an-image-of"]
+trust_level = "trusted"
+
 [notice]
 hide_gpt5_1_migration_prompt = true
 "hide_gpt-5.1-codex-max_migration_prompt" = true
@@ -311,8 +320,8 @@ BROWSER_USE_TINYSKY_ENABLED = "1"
 NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
 NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
 BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
-BROWSER_USE_CODEX_APP_VERSION = "26.901.51231"
-NODE_REPL_TRUSTED_SERVICES = '{"browser":"/Users/tudoroancea/.codex/plugins/cache/openai-bundled/browser/26.901.51231/scripts/browser-service.mjs"}'
+BROWSER_USE_CODEX_APP_VERSION = "26.903.61454"
+NODE_REPL_TRUSTED_SERVICES = '{"browser":"/Users/tudoroancea/.codex/plugins/cache/openai-bundled/browser/26.903.61454/scripts/browser-service.mjs"}'
 CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
 
 [mcp_servers.cua_repl]
@@ -320,9 +329,7 @@ command = "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"
 enabled = false
 
 [shell_environment_policy.set]
-BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
 NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,8785b5437d98636c3002d3d7e64b98db79c3b66870b1bd3d18dea953a99b1562"
-NODE_REPL_TRUSTED_CODE_PATHS = "/Users/tudoroancea/.codex"
 
 [features.context_management]
 experimental_mode = true

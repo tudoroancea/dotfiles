@@ -19,40 +19,69 @@
       "args": [],
       "projects": [
         {
-          "paths": ["/home/ted"]
+          "paths": [
+            "/home/ted"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/alloy"]
+          "paths": [
+            "/home/ted/dev/alloy"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/anvil2/./"]
+          "paths": [
+            "/home/ted/dev/anvil2/./"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/automating-automation/./"]
+          "paths": [
+            "/home/ted/dev/automating-automation/./"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/quanser-control-test-0"]
+          "paths": [
+            "/home/ted/dev/neural_process_mpc"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/quanser-control-test-2"]
+          "paths": [
+            "/home/ted/dev/quanser-control-test-0"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/quanser_aero_sdk"]
+          "paths": [
+            "/home/ted/dev/quanser-control-test-2"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/robotics-practicals/./"]
+          "paths": [
+            "/home/ted/dev/quanser_aero_sdk"
+          ]
         },
         {
-          "paths": ["/home/ted/dev/vibe-quanser"]
+          "paths": [
+            "/home/ted/dev/robotics-practicals/./"
+          ]
         },
         {
-          "paths": ["/home/ted/dotfiles/./"]
+          "paths": [
+            "/home/ted/dev/vibe-quanser"
+          ]
         },
         {
-          "paths": ["/home/tudor"]
+          "paths": [
+            "/home/ted/dotfiles/./"
+          ]
         },
         {
-          "paths": ["/home/ubuntu/Documents/robotics-practicals"]
+          "paths": [
+            "/home/tudor"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ubuntu/Documents/robotics-practicals"
+          ]
         }
       ]
     },
@@ -66,7 +95,30 @@
       "args": [],
       "projects": [
         {
-          "paths": ["/home/tudor/dev/controls_challenge/./"]
+          "paths": [
+            "/home/tudor/dev/controls_challenge/./"
+          ]
+        }
+      ]
+    },
+    {
+      "host": "LA015ts",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/ted/dev/alloy"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/cadence"
+          ]
+        },
+        {
+          "paths": [
+            "/home/ted/dev/laad"
+          ]
         }
       ]
     }
@@ -240,7 +292,7 @@
     // },
   },
   "agent": {
-    "terminal_init_command": "clear && pi",
+    "terminal_init_command": "",
     "enable_feedback": false,
     "play_sound_when_agent_done": "when_hidden",
     "expand_edit_card": false,
@@ -251,10 +303,10 @@
     "dock": "left",
     "default_profile": "write",
     "default_model": {
-      "effort": "medium",
+      "effort": "max",
       "enable_thinking": true,
-      "provider": "zed.dev",
-      "model": "claude-sonnet-4-6"
+      "provider": "opencode",
+      "model": "go/deepseek-v4-flash"
     },
     "inline_assistant_model": {
       "provider": "zed.dev",

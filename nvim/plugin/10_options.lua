@@ -16,6 +16,7 @@ vim.cmd('filetype plugin indent on')
 if vim.fn.exists('syntax_on') ~= 1 then vim.cmd('syntax enable') end
 
 -- UI =========================================================================
+vim.o.cmdheight = 0
 vim.o.breakindent    = true
 vim.o.breakindentopt = 'list:-1'
 vim.o.colorcolumn    = '+1'
