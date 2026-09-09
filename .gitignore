@@ -4,3 +4,5 @@
 .claude/settings.local.json
 .wrangler/cache
 .worktrees
+worktrunk/approvals.toml*
+miserc.toml
