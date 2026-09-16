@@ -127,12 +127,10 @@ pi-usage() {
  }
 alias pirc="cd ~/.pi && pi --provider opencode-go --model minimax-m2.5 --thinking medium"
 """ }
-"~/.zshrc/general-variables" = {
-block = """
+"~/.zshrc/general-variables" = { block = """
 export EDITOR="nvim"
 export CLAUDE_CODE_NO_FLICKER=1
-"""
-}
+""" }
 "~/.zshrc/omz" = { block = """
 export ZSH="$HOME/.oh-my-zsh"
 ENABLE_CORRECTION="false"
@@ -150,6 +148,7 @@ plugins=(
 )
 source $ZSH/oh-my-zsh.sh
 """ }
+"~/.zshrc/p10k-finish" = { line = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
 
 # "~/.zprofile/local-bin" = { block = 'export PATH="$HOME/.local/bin:$PATH"' }
 # "~/.gitconfig" = { source = "dotfiles/gitconfig", mode = "symlink" }
@@ -157,9 +156,13 @@ source $ZSH/oh-my-zsh.sh
 # "~/.codex/skills" = { source = "agents/shared-skills", mode = "symlink-each" }
 
 [tools]
+ruff = "latest"
+uv = "latest"
+# "uv:ruff" = "latest"
 # python = "3.13"
 # node = "24"
 # bun = "latest"
+
 
 # Explicit upstream GitHub release backends.
 # "github:neovim/neovim" = "latest"
