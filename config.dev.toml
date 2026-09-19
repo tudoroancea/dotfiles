@@ -1,0 +1,22 @@
+[dotfiles]
+"~/.zshrc/uv" = { line = "eval '$(uv generate-shell-completion zsh)'" }
+"~/.zshrc/bun" = { block = """
+# bun completions
+[ -s "/home/ted/.bun/_bun" ] && source "/home/ted/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+""" }
+
+[tools]
+node = "latest"
+npm = "latest"
+"npm:wrangler" = "latest"
+"npm:oxlint" = "latest"
+"npm:oxfmt" = "latest"
+bun = "latest"
+nub = "latest"
+uv = "latest"
+ty = "latest"
+ruff = "latest"

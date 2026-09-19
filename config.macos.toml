@@ -114,3 +114,78 @@ export UV_INDEX_MOREAU_PASSWORD=""
 
 export PATH="$PATH:$HOME/.cargo/bin"
 """}
+
+[tools]
+##############################################
+# dump from `brew list --installed-on-request`
+##############################################
+# ast-grep
+# basedpyright
+# bat
+# btop
+# ccache
+# cloc
+# cloudflared
+# cmake
+# code-server
+# conda-lock
+# duti
+# eigen
+# fastfetch
+# fd
+# fzf
+# gcc
+# gemini-cli
+# gh
+# git-delta
+# gmp
+# go
+# google-benchmark
+# gperftools
+# graphviz
+# herdr
+# ipopt
+# lazygit
+# libmatio
+# libomp
+# llama.cpp
+# lld
+# llvm@18
+# llvm@20
+# lua-language-server
+# macmon
+# mactop
+# mdcat
+# mise
+# mole
+# neovim
+# ninja
+# node@24
+# openjdk@11
+# pdfpc
+# postgresql@14
+# postgresql@15
+# proxsuite
+# pympress
+# pyright
+# qemu
+# ripgrep
+# rust
+# simde
+# starship
+# stylua
+# suite-sparse
+# swift-format
+# tinymist
+# tmux
+# tracy
+# tree
+# tree-sitter-cli
+# typst
+# wakeonlan
+# wget
+# worktrunk
+# yaml-cpp
+# yazi
+# yt-dlp
+# zsh

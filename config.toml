@@ -16,7 +16,11 @@ zshrc = "activate"
 "~/.config/btop/btop.conf" = { source = "btop/btop.conf", mode = "symlink" }
 "~/.config/worktrunk/config.toml" = { source = "worktrunk/config.toml", mode = "symlink" }
 
-# .zshrc
+######################
+# zsh config
+######################
+# needs to be before mise shims
+"~/.zprofile/local-bin" = { block = 'export PATH="$HOME/.local/bin:$PATH"' }
 "~/.zshrc/p10k-init" = { block = """
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
@@ -71,19 +75,6 @@ submodule_rm() {
   git rm -f "$1"
   rm -rf .git/modules/"$1"
 }
-alias oc="opencode"
-alias clauded="claude --dangerously-skip-permissions"
-# mamba aliases
-alias ma=mamba
-alias mact='mamba activate'
-alias mde='mamba deactivate'
-alias mls='mamba list'
-alias mels='mamba env list'
-alias mcen='mamba create -n'
-alias mup='mamba update'
-alias min='mamba install'
-alias miny='mamba install -y'
-alias mind='mamba install -d'
 
 # other python aliases
 alias upip='uv pip'
@@ -150,98 +141,24 @@ source $ZSH/oh-my-zsh.sh
 """ }
 "~/.zshrc/p10k-finish" = { line = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
 
-# "~/.zprofile/local-bin" = { block = 'export PATH="$HOME/.local/bin:$PATH"' }
 # "~/.gitconfig" = { source = "dotfiles/gitconfig", mode = "symlink" }
 # "~/.config/nvim" = { source = "dotfiles/nvim", mode = "symlink" }
 # "~/.codex/skills" = { source = "agents/shared-skills", mode = "symlink-each" }
 
+[bootstrap.repos]
+"~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
+"~/.oh-my-zsh/custom/themes/powerlevel10k" = { url = "https://github.com/romkatv/powerlevel10k.git" }
+"~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" = { url = "https://github.com/zsh-users/zsh-syntax-highlighting.git" }
+"~/.oh-my-zsh/custom/plugins/zsh-autosuggestions" = { url = "https://github.com/zsh-users/zsh-autosuggestions" }
+"~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search" = { url = "https://github.com/joshskidmore/zsh-fzf-history-search" }
+
+[bootstrap.packages]
+"brew:btop" = "latest"
+
 [tools]
-ruff = "latest"
-uv = "latest"
-# "uv:ruff" = "latest"
-# python = "3.13"
-# node = "24"
-# bun = "latest"
-
-
-# Explicit upstream GitHub release backends.
-# "github:neovim/neovim" = "latest"
-# "github:aristocratos/btop" = "latest"
-# "github:junegunn/fzf" = "latest"
-# "github:sharkdp/fd" = "latest"
-# "github:BurntSushi/ripgrep" = "latest"
-# "github:jesseduffield/lazygit" = "latest"
-
-##############################################
-# dump from `brew list --installed-on-request`
-##############################################
-# ast-grep
-# basedpyright
-# bat
-# btop
-# ccache
-# cloc
-# cloudflared
-# cmake
-# code-server
-# conda-lock
-# duti
-# eigen
-# fastfetch
-# fd
-# fzf
-# gcc
-# gemini-cli
-# gh
-# git-delta
-# gmp
-# go
-# google-benchmark
-# gperftools
-# graphviz
-# herdr
-# ipopt
-# lazygit
-# libmatio
-# libomp
-# llama.cpp
-# lld
-# llvm@18
-# llvm@20
-# lua-language-server
-# macmon
-# mactop
-# mdcat
-# mise
-# mole
-# neovim
-# ninja
-# node@24
-# openjdk@11
-# pdfpc
-# postgresql@14
-# postgresql@15
-# proxsuite
-# pympress
-# pyright
-# qemu
-# ripgrep
-# rust
-# simde
-# starship
-# stylua
-# suite-sparse
-# swift-format
-# tinymist
-# tmux
-# tracy
-# tree
-# tree-sitter-cli
-# typst
-# wakeonlan
-# wget
-# worktrunk
-# yaml-cpp
-# yazi
-# yt-dlp
-# zsh
+"tmux" = "latest"
+"github:neovim/neovim" = "latest"
+"github:junegunn/fzf" = "latest"
+"github:sharkdp/fd" = "latest"
+"github:BurntSushi/ripgrep" = "latest"
+"github:jesseduffield/lazygit" = "latest"
