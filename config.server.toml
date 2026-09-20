@@ -1,0 +1,14 @@
+[dotfiles]
+"~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
+"~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
+"~/.fx/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
+"~/.fx/skills" = { source = "agents/shared/skills", mode = "symlink-each" }
+
+[tools]
+node = "latest"
+npm = "latest"
+"npm:wrangler" = "latest"
+"npm:oxlint" = "latest"
+"npm:oxfmt" = "latest"
+nub = "latest"
+"github:vercel-labs/fx" = "latest"

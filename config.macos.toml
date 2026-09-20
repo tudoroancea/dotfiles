@@ -83,9 +83,15 @@ export PATH="$PATH:$HOME/.cargo/bin"
 "~/.config/zed" = { source = "zed", mode = "symlink-each" }
 "~/.config/ghostty" = { source = "ghostty", mode = "symlink" }
 
+"~/.fx/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
+"~/.fx/skills" = { source = "agents/shared/skills", mode = "symlink-each" }
+
 
 [bootstrap.packages]
 "brew-cask:ghostty" = "latest"
+
+[tools]
+"github:vercel-labs/fx" = "latest"
 ##############################################
 # dump from `brew list --installed-on-request`
 ##############################################
