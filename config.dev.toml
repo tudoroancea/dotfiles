@@ -1,6 +1,6 @@
 [dotfiles]
 "~/.zshrc/uv" = { block = """
-eval '$(uv generate-shell-completion zsh)'
+eval \"$(uv generate-shell-completion zsh)\"
 export UV_PYTHON_PREFERENCE=only-managed
 # Fix completions for uv run to autocomplete .py files
 _uv_run_mod() {
@@ -22,6 +22,11 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 """ }
 
+"~/.zshrc/worktrunk" = { block = "if command -v wt >/dev/null 2>&1; then eval \"$(command wt config shell init zsh)\"; fi" }
+"~/.config/worktrunk/config.toml" = { source = "worktrunk/config.toml", mode = "symlink" }
+
+"~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
+
 [tools]
 node = "latest"
 npm = "latest"
@@ -33,3 +38,4 @@ nub = "latest"
 uv = "latest"
 ty = "latest"
 ruff = "latest"
+worktrunk = "latest"

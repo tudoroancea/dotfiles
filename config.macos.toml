@@ -48,10 +48,17 @@ _gt_yargs_completions()
 compdef _gt_yargs_completions gt
 ###-end-gt-completions-###
 
+# mojo
 export PATH="$PATH:/Users/tudoroancea/.modular/bin"
 eval "$(magic completion --shell zsh)"
+
+# lmstudio
 export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
+
+# zig version manager (zvm)
 export PATH="$PATH:$HOME/.zvm/self"
+
+# antigravity
 export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
 
 # >>> conda initialize >>>
@@ -69,18 +76,13 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-# worktrunk
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
-
-# pnpm
-export PNPM_HOME="/Users/tudoroancea/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-
+# cargo
 export PATH="$PATH:$HOME/.cargo/bin"
-"""}
+""" }
+
+"~/.config/zed" = { source = "zed", mode = "symlink-each" }
+"~/.config/ghostty" = { source = "ghostty", mode = "symlink" }
+
 
 [tools]
 ##############################################

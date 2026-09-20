@@ -11,10 +11,8 @@ zshrc = "activate"
 [dotfiles]
 "~/.tmux.conf" = { source = ".tmux.conf", mode = "symlink" }
 "~/.p10k.zsh" = { source = ".p10k.zsh", mode = "symlink" }
-"~/.config/ghostty/config" = { source = "ghostty/config", mode = "symlink" }
 "~/.condarc" = { source = ".condarc", mode = "symlink" }
 "~/.config/btop/btop.conf" = { source = "btop/btop.conf", mode = "symlink" }
-"~/.config/worktrunk/config.toml" = { source = "worktrunk/config.toml", mode = "symlink" }
 
 ######################
 # zsh config
@@ -113,8 +111,8 @@ pi-usage() {
  }
 alias pirc="cd ~/.pi && pi --provider opencode-go --model minimax-m2.5 --thinking medium"
 """ }
-"~/.zshrc/fzf" = { line = "source <(fzf --zsh)" }
-"~/.zshrc/ripgrep" = { line = "export RIPGREP_CONFIG_PATH='$HOME/.ripgreprc'" }
+"~/.zshrc/fzf" = { block = "source <(fzf --zsh)" }
+# "~/.zshrc/ripgrep" = { block = "export RIPGREP_CONFIG_PATH='$HOME/.ripgreprc'" }
 "~/.zshrc/general-variables" = { block = """
 export EDITOR="nvim"
 export CLAUDE_CODE_NO_FLICKER=1
@@ -136,7 +134,7 @@ plugins=(
 )
 source $ZSH/oh-my-zsh.sh
 """ }
-"~/.zshrc/p10k-finish" = { line = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
+"~/.zshrc/p10k-finish" = { block = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
 
 "~/.config/nvim" = { source = "nvim", mode = "symlink" }
 

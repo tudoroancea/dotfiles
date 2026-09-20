@@ -1,0 +1,26 @@
+[dotfiles]
+"~/.zshrc/linux" = { block = """
+source $HOME/zen_api_key.sh
+
+source $HOME/.local/bin/env
+
+# nvm
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# nub
+export PATH="$HOME/.nub/bin:$PATH"
+export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
+
+# go
+export PATH="/opt/go/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"
+
+export PATH="$HOME/dev/cadence/bin:$PATH"
+
+""" }
+"~/.zshrc/nub" = { block = """
+export PATH="$HOME/.nub/bin:$PATH"
+export PATH="$($HOME/.nub/bin/nub bin -g):$PATH"
+""" }
