@@ -1,12 +1,39 @@
 # setup
 
-You can clone this repo with
+## new macbook
 
-```bash
-git clone --recurse-submodules https://github.com/tudoroancea/dotfiles ~/dotfiles
+```bash 
+# install Command Line Tools (for git)
+xcode-select -p || xcode-select --install
+git --version
+
+# Install mise and expose it 
+curl -fsSL https://mise.run | sh
+export PATH="$HOME/.local/bin:$PATH"
+mise --version
+
+# configure github credentials
+mise use -g gh
+mise x gh -- gh auth login --hostname github.com --git-protocol ssh --web
+mise x gh -- gh auth setup-git --hostname github.com
+
+# run bootstrap
+mise bootstrap --adopt git@github.com:tudoroancea/dotfiles.git --dry-run
+mise bootstrap --adopt git@github.com:tudoroancea/dotfiles.git
 ```
 
-and then follow the following steps to install the different components.
+## new remote linux server
+
+```bash
+mise bootstrap remote \
+  --host user@server \
+  --install-mise \
+  --adopt git@github.com:tudoroancea/dotfiles.git \
+  --update \
+  --env linux,... # edit here the exact overlay list
+```
+
+# old stuff
 
 ## Pi
 
@@ -20,19 +47,6 @@ nub run check
 ```
 
 `setup.sh` performs the clone and install when `~/.pi` is absent. Set `PI_SETUP_REPOSITORY_URL` only to override the default SSH URL.
-
-## zsh
-
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/joshskidmore/zsh-fzf-history-search ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-fzf-history-search
-# (old prompt): curl -sS https://starship.rs/install.sh | sh
-ln -s ~/dotfiles/.zshrc ~/.zshrc
-ln -s ~/dotfiles/.p10k.zsh ~/.p10k.zsh
-```
 
 ## tmux
 

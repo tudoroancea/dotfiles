@@ -1,5 +1,18 @@
 [dotfiles]
-"~/.zshrc/uv" = { line = "eval '$(uv generate-shell-completion zsh)'" }
+"~/.zshrc/uv" = { block = """
+eval '$(uv generate-shell-completion zsh)'
+export UV_PYTHON_PREFERENCE=only-managed
+# Fix completions for uv run to autocomplete .py files
+_uv_run_mod() {
+    if [[ "$words[2]" == "run" && "$words[CURRENT]" != -* ]]; then
+        _arguments '*:filename:_files -g "*.py"'
+    else
+        _uv "$@"
+    fi
+}
+compdef _uv_run_mod uv
+
+""" }
 "~/.zshrc/bun" = { block = """
 # bun completions
 [ -s "/home/ted/.bun/_bun" ] && source "/home/ted/.bun/_bun"

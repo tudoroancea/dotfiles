@@ -58,16 +58,11 @@ alias pdb="python3 -m pdb"
 alias lg=lazygit
 alias c='code'
 alias z='zed'
-alias nv=nvim
 alias v=nvim
-alias va='NVIM_APPNAME=nvim-astronvim nvim'
-alias vk='NVIM_APPNAME=nvim-kickstart nvim'
-alias vs='NVIM_APPNAME=nvim-from-scratch nvim'
 ccopy() {
     cat "$1" | pbcopy
 }
-alias dotf="cd ~/dotfiles && nvim"
-alias zrc="cd ~/dotfiles && nvim .zshrc"
+alias zrc="nvim ~/.zshrc"
 alias fda='fd -u'
 alias sizes='du -h -d 1 .'
 submodule_rm() {
@@ -118,6 +113,8 @@ pi-usage() {
  }
 alias pirc="cd ~/.pi && pi --provider opencode-go --model minimax-m2.5 --thinking medium"
 """ }
+"~/.zshrc/fzf" = { line = "source <(fzf --zsh)" }
+"~/.zshrc/ripgrep" = { line = "export RIPGREP_CONFIG_PATH='$HOME/.ripgreprc'" }
 "~/.zshrc/general-variables" = { block = """
 export EDITOR="nvim"
 export CLAUDE_CODE_NO_FLICKER=1
@@ -141,9 +138,7 @@ source $ZSH/oh-my-zsh.sh
 """ }
 "~/.zshrc/p10k-finish" = { line = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
 
-# "~/.gitconfig" = { source = "dotfiles/gitconfig", mode = "symlink" }
-# "~/.config/nvim" = { source = "dotfiles/nvim", mode = "symlink" }
-# "~/.codex/skills" = { source = "agents/shared-skills", mode = "symlink-each" }
+"~/.config/nvim" = { source = "nvim", mode = "symlink" }
 
 [bootstrap.repos]
 "~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
@@ -153,6 +148,10 @@ source $ZSH/oh-my-zsh.sh
 "~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search" = { url = "https://github.com/joshskidmore/zsh-fzf-history-search" }
 
 [bootstrap.packages]
+"apt:ca-certificates" = "latest"
+"apt:curl" = "latest"
+"apt:git" = "latest"
+"apt:zsh" = "latest"
 "brew:btop" = "latest"
 
 [tools]
@@ -162,3 +161,4 @@ source $ZSH/oh-my-zsh.sh
 "github:sharkdp/fd" = "latest"
 "github:BurntSushi/ripgrep" = "latest"
 "github:jesseduffield/lazygit" = "latest"
+bat = "latest"
