@@ -26,6 +26,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.config/worktrunk/config.toml" = { source = "worktrunk/config.toml", mode = "symlink" }
 
 "~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
+"~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
 
 [tools]
 node = "latest"
@@ -39,3 +40,4 @@ uv = "latest"
 ty = "latest"
 ruff = "latest"
 worktrunk = "latest"
+"npm:skills" = "latest"

@@ -84,7 +84,8 @@ export PATH="$PATH:$HOME/.cargo/bin"
 "~/.config/ghostty" = { source = "ghostty", mode = "symlink" }
 
 
-[tools]
+[bootstrap.packages]
+"brew-cask:ghostty" = "latest"
 ##############################################
 # dump from `brew list --installed-on-request`
 ##############################################
