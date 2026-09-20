@@ -1,0 +1,41 @@
+# Root Pi/tool runtime state
+/pi-acp/
+/web-search.json
+
+# Global agent credentials and machine-local state
+/agent/auth.json
+/agent/trust.json
+/agent/sessions/
+/agent/cache/
+/agent/tmp/
+/agent/bin/
+/agent/workflows/
+/agent/agentflow/
+/agent/background-processes/
+data/
+/agent/git
+/agent/npm/node_modules
+/agent/models-store.json
+/agent/dumped-system-prompt.md
+
+# Local environment and generated package/build state
+.env
+.env.*
+!.env.example
+.DS_Store
+**/.DS_Store
+**/node_modules/
+**/dist/
+!apps/remote-session-daemon/dist/
+!apps/remote-session-daemon/dist/client/
+!apps/remote-session-daemon/dist/client/**
+**/test-results/
+**/playwright-report/
+
+# Migration-only private metadata
+/.migration-private/
+
+# worktrees
+.worktrees/
+# I am dumb
+.workrtees/

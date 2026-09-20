@@ -1,0 +1,16 @@
+[
+  {
+    "type": "auto_retry_start",
+    "attempt": 1,
+    "maxAttempts": 3,
+    "delayMs": 10,
+    "errorMessage": "fixture retry"
+  },
+  { "type": "auto_retry_end", "success": true, "attempt": 1 },
+  {
+    "type": "queue_update",
+    "steering": ["correct course"],
+    "followUp": ["then summarize"]
+  },
+  { "type": "agent_settled" }
+]

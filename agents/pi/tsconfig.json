@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "agent/extensions/*.ts",
+    "agent/extensions/lib/**/*.ts",
+    "agent/scripts/tui-showcase.ts"
+  ],
+  "exclude": ["agent/extensions/herdr-agent-state.ts"]
+}

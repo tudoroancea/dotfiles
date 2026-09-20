@@ -1,0 +1,9 @@
+[[pre-start]]
+copy-runtime = "wt step copy-ignored --require-include"
+
+[[pre-start]]
+link-pi-package-stores = """
+set -eu
+test -e agent/npm || ln -s {{ primary_worktree_path }}/agent/npm agent/npm
+test -e agent/git || ln -s {{ primary_worktree_path }}/agent/git agent/git
+"""

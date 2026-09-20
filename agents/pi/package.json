@@ -1,0 +1,47 @@
+{
+  "name": "pi-setup",
+  "private": true,
+  "workspaces": [
+    "agent/extensions/web-ui",
+    "agent/extensions/agentflow",
+    "agent/extensions/background-processes",
+    "agent/extensions/boxed-editor",
+    "agent/extensions/copy-regions",
+    "agent/extensions/fff",
+    "agent/extension-tests",
+    "packages/*",
+    "apps/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "check": "nub run check:instructions && nub run format:check && nub run lint && nub run typecheck && nub run test",
+    "check:instructions": "node agent/scripts/sync-agent-instructions.mjs --check",
+    "showcase:tui": "node agent/scripts/tui-showcase.ts",
+    "sync:instructions": "node agent/scripts/sync-agent-instructions.mjs",
+    "check:extensions": "npm outdated --prefix agent/npm; git -C agent/git/github.com/championswimmer/pi-context-usage fetch origin && git -C agent/git/github.com/championswimmer/pi-context-usage log --oneline HEAD..origin/HEAD",
+    "format": "oxfmt package.json tsconfig.json .oxfmtrc.json .oxlintrc.json agent/AGENTS.md agent/instructions agent/scripts/README.md agent/scripts/sync-agent-instructions.mjs agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format",
+    "format:check": "oxfmt --check package.json tsconfig.json .oxfmtrc.json .oxlintrc.json agent/AGENTS.md agent/instructions agent/scripts/README.md agent/scripts/sync-agent-instructions.mjs agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format:check",
+    "lint": "oxlint --deny-warnings --ignore-pattern agent/extensions/herdr-agent-state.ts agent/extensions/*.ts agent/extensions/lib agent/scripts/tui-showcase.ts && nub run --recursive --if-present --sequential lint",
+    "typecheck": "tsc --noEmit && nub run --recursive --if-present --sequential typecheck",
+    "test": "TMPDIR=/tmp nub run --recursive --if-present --sequential test && TMPDIR=/tmp nub run --filter pi-web-ui test:e2e"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.86.1",
+    "@earendil-works/pi-tui": "0.86.1",
+    "@types/node": "26.1.1",
+    "oxfmt": "0.59.0",
+    "oxlint": "1.75.0",
+    "typebox": "1.3.8",
+    "typescript": "7.0.2"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.14"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "nub",
+      "version": "^0.5.0",
+      "onFail": "error"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "title": "π – Broad fixture",
+  "landmarks": [
+    {
+      "tag": "section",
+      "class": "system-prompt",
+      "role": null,
+      "ariaLabel": "Effective system prompt",
+      "ariaExpanded": null
+    },
+    {
+      "tag": "button",
+      "class": "thinking-toggle",
+      "role": null,
+      "ariaLabel": "Collapse thinking",
+      "ariaExpanded": "true"
+    },
+    {
+      "tag": "div",
+      "class": "tool-output expandable ",
+      "role": "button",
+      "ariaLabel": "Collapse tool output",
+      "ariaExpanded": "true"
+    },
+    {
+      "tag": "span",
+      "class": "agentflow-status status-completed",
+      "role": null,
+      "ariaLabel": "completed",
+      "ariaExpanded": null
+    },
+    {
+      "tag": "button",
+      "class": "scroll-to-bottom",
+      "role": null,
+      "ariaLabel": "Scroll to bottom",
+      "ariaExpanded": null
+    },
+    {
+      "tag": "footer",
+      "class": "composer",
+      "role": null,
+      "ariaLabel": null,
+      "ariaExpanded": null
+    },
+    {
+      "tag": "textarea",
+      "class": "composer-input",
+      "role": null,
+      "ariaLabel": "Message",
+      "ariaExpanded": null
+    },
+    {
+      "tag": "button",
+      "class": "composer-button",
+      "role": null,
+      "ariaLabel": "Send message",
+      "ariaExpanded": "false"
+    }
+  ],
+  "topLevelClasses": ["status-bar", "system-prompt", "messages", "composer-dock"],
+  "themeVariables": [
+    ["--body-bg", "#191724"],
+    ["--container-bg", "#1f1d2e"],
+    ["--text", "#e0def4"],
+    ["--accent", "#9ccfd8"],
+    ["--borderAccent", "#c4a7e7"]
+  ]
+}

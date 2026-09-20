@@ -1,0 +1,39 @@
+{
+  "name": "pi-copy-regions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format": "oxfmt package.json tsconfig.json vitest.config.ts index.ts regions.ts guidance.ts test/*.ts",
+    "format:check": "oxfmt --check package.json tsconfig.json vitest.config.ts index.ts regions.ts guidance.ts test/*.ts",
+    "lint": "oxlint --deny-warnings vitest.config.ts index.ts regions.ts guidance.ts test/*.ts",
+    "test": "vitest run test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@dotfiles/pi-web-ui-client": "workspace:*",
+    "@earendil-works/pi-coding-agent": "0.86.1",
+    "@earendil-works/pi-tui": "0.86.1",
+    "@tanstack/react-virtual": "3.14.8",
+    "@types/jsdom": "21.1.7",
+    "@types/node": "26.1.1",
+    "dompurify": "3.2.6",
+    "highlight.js": "11.11.1",
+    "jsdom": "28.1.0",
+    "oxfmt": "0.59.0",
+    "oxlint": "1.75.0",
+    "preact": "10.24.3",
+    "typebox": "1.3.8",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

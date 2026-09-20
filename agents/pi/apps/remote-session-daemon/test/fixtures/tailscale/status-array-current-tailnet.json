@@ -1,0 +1,14 @@
+{
+  "Version": "future",
+  "CurrentTailnet": { "MagicDNSSuffix": "example-tailnet.ts.net", "Future": true },
+  "Self": { "DNSName": "laptop.example-tailnet.ts.net.", "Unknown": [1] },
+  "Peer": [
+    { "DNSName": "phone.example-tailnet.ts.net.", "New": "ignored" },
+    { "DNSName": "phone.example-tailnet.ts.net." },
+    { "DNSName": "outside.example.org." },
+    { "DNSName": "Not-Canonical.example-tailnet.ts.net." },
+    { "DNSName": "missing-dot.example-tailnet.ts.net" },
+    null
+  ],
+  "UnknownTopLevel": true
+}

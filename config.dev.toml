@@ -28,6 +28,10 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
 "~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
 
+"~/.pi" = { source = "agents/pi", mode = "symlink-each" }
+"~/.claude" = { source = "agents/claude", mode = "symlink-each" }
+# "~/.codex" = { source = "agents/claude", mode = "symlink-each" }
+
 [tools]
 node = "latest"
 npm = "latest"
@@ -41,3 +45,5 @@ ty = "latest"
 ruff = "latest"
 worktrunk = "latest"
 "npm:skills" = "latest"
+"npm:@openai/codex" = "latest"
+"claude" = "latest"

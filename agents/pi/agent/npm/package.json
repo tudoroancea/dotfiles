@@ -1,0 +1,10 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.86.1",
+    "@earendil-works/pi-coding-agent": "0.86.1",
+    "@plannotator/pi-extension": "^0.27.16",
+    "pi-web-access": "^0.30.0"
+  }
+}

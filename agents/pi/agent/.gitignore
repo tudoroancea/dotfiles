@@ -1,0 +1,12 @@
+sessions
+auth.json
+cache
+bin
+dumped-system-prompt.md
+pi-acp
+workflows
+agentflow
+!extensions/agentflow
+background-processes
+!extensions/background-processes
+tmp
