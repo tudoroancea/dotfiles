@@ -29,10 +29,9 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
 
 "~/.claude" = { source = "agents/claude", mode = "symlink-each" }
-# "~/.claude/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
-# "~/.claude/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
-# "~/.codex/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
-# "~/.codex/config.toml/shared" = { source = "agents/claude", mode = "symlink-each" }
+"~/.claude/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
+"~/.codex/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
+# "~/.codex/config.toml/shared" = { source = "agents/codex/config.toml", mode = "symlink-each" }
 "~/.codex/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
 "~/.zshrc/get_skill" = { block = """
 get_skill() {

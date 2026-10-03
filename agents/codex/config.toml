@@ -1,10 +1,7 @@
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "high"
-approvals_reviewer = "user"
-service_tier = "default"
-sandbox_mode = "workspace-write"
 
 [features]
 hooks = true
