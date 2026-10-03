@@ -13,6 +13,13 @@
 - [x] Phase 4a — Remove implicit Claude deadlines and preserve terminal usage/cost on every drainable failure path.
 - [x] Phase 5 — Replace Pi context imports with a generated global instruction projection.
 
+## Mise instruction migration
+
+General instructions now come from `agents/shared/AGENTS.md`. Mise renders `agents/pi/AGENTS.md.tera` for installed Pi sessions. The Pi-local `mise run instructions` task concatenates the same shared and Pi-specific sources for worktree sessions. The custom sync script and `agent/instructions/general.md` are removed. Claude children import the shared source with `agents/shared` explicitly added to the allowed roots. The earlier generation phases below describe the previous setup.
+
+- [x] Verified mise symlink replacement, exact rendered text, repeated applies, and isolated worktree rendering. Agentflow tests: 188 passed, one live test skipped. Type checking, focused lint, and formatting passed.
+- Herdr lifecycle ownership is unchanged: this migration changes static prompt inputs only. No event handlers, UI, or resource cleanup are added.
+
 ## Objective
 
 Keep the existing Pi setup and all current Agentflow semantic tools unchanged. Add one narrowly scoped capability:

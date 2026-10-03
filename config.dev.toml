@@ -11,8 +11,8 @@ _uv_run_mod() {
     fi
 }
 compdef _uv_run_mod uv
-
 """ }
+
 "~/.zshrc/bun" = { block = """
 # bun completions
 [ -s "/home/ted/.bun/_bun" ] && source "/home/ted/.bun/_bun"
@@ -28,9 +28,63 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
 "~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
 
-"~/.pi" = { source = "agents/pi", mode = "symlink-each" }
+"~/.pi" = { source = "agents/pi", mode = "symlink-each", exclude = ["agent/AGENTS.md", "mise.toml", "AGENTS.md.tera"] }
+"~/.pi/agent/AGENTS.md" = { source = "agents/pi/AGENTS.md.tera", mode = "template" }
 "~/.claude" = { source = "agents/claude", mode = "symlink-each" }
-# "~/.codex" = { source = "agents/claude", mode = "symlink-each" }
+# "~/.codex/config.toml/shared" = { source = "agents/claude", mode = "symlink-each" }
+"~/.codex/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
+"~/.zshrc/get_skill" = { block = """
+get_skill() {
+  if [ "$#" -ne 3 ]; then
+    echo "Usage: get_skill <repo_name> <skill_name> <dir>" >&2
+    return 2
+  fi
+
+  local repo_name="$1"
+  local skill_name="$2"
+  local destination_dir="$3"
+  local destination
+  local temp_dir
+
+  case "$destination_dir" in
+    /*) ;;
+    *) destination_dir="$PWD/$destination_dir" ;;
+  esac
+  destination="$destination_dir/$skill_name"
+
+  if [ -e "$destination" ]; then
+    echo "get_skill: destination already exists: $destination" >&2
+    return 1
+  fi
+
+  temp_dir="$(mktemp -d)" || return 1
+  mkdir -p "$destination_dir" || {
+    rm -rf "$temp_dir"
+    return 1
+  }
+
+  (
+    trap 'rm -rf "$temp_dir"' EXIT
+    cd "$temp_dir" || exit 1
+    skills add "$repo_name" \
+      --skill "$skill_name" \
+      --agent universal \
+      --project \
+      --copy \
+      --yes || exit 1
+
+    if [ ! -d ".agents/skills/$skill_name" ]; then
+      echo "get_skill: installed skill not found: $skill_name" >&2
+      exit 1
+    fi
+
+    mv ".agents/skills/$skill_name" "$destination"
+  )
+}
+"""}
+
+[vars]
+agent_instructions_root = "{{ xdg_config_home }}/mise/agents"
 
 [tools]
 node = "latest"
@@ -47,3 +101,11 @@ worktrunk = "latest"
 "npm:skills" = "latest"
 "npm:@openai/codex" = "latest"
 "claude" = "latest"
+zig = "latest"
+zls = "latest"
+herdr = "latest"
+"aqua:boyter/scc" = "latest"
+
+[tasks.bootstrap]
+dir = "agents/pi"
+run = "nub install"

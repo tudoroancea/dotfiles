@@ -14,7 +14,7 @@ describe("controlled Claude system prompt asset", () => {
   it("compiles shared general and Claude-specific instructions exactly once", async () => {
     const result = await compileMarkdownImports({
       rootPath: promptPath,
-      allowedRoots: [agentDir],
+      allowedRoots: [agentDir, resolve(agentDir, "../../shared")],
     });
 
     expect(occurrences(result.text, "## Operating profiles")).toBe(1);
@@ -24,12 +24,15 @@ describe("controlled Claude system prompt asset", () => {
     expect(occurrences(result.text, "Available tools are Read, Glob, Grep")).toBe(1);
     expect(occurrences(result.text, "${activeSkillsIndex}")).toBe(1);
     expect(result.sources).toHaveLength(2);
+    expect(result.sources[0]?.path).toBe(resolve(agentDir, "../../shared/AGENTS.md"));
+    expect(result.text).not.toContain("# Pi-specific instructions");
+    expect(result.text).not.toContain("## Claude child routing");
   });
 
   it("retains the audited standalone resource boundaries without Claude preset assumptions", async () => {
     const { text } = await compileMarkdownImports({
       rootPath: promptPath,
-      allowedRoots: [agentDir],
+      allowedRoots: [agentDir, resolve(agentDir, "../../shared")],
     });
 
     expect(text).toContain(

@@ -1,0 +1,3 @@
+[tasks.instructions]
+description = "Render instructions for a worktree-local Pi session"
+run = "cat ../shared/AGENTS.md instructions.md > agent/AGENTS.md"

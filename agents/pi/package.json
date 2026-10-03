@@ -14,13 +14,11 @@
   ],
   "type": "module",
   "scripts": {
-    "check": "nub run check:instructions && nub run format:check && nub run lint && nub run typecheck && nub run test",
-    "check:instructions": "node agent/scripts/sync-agent-instructions.mjs --check",
+    "check": "nub run format:check && nub run lint && nub run typecheck && nub run test",
     "showcase:tui": "node agent/scripts/tui-showcase.ts",
-    "sync:instructions": "node agent/scripts/sync-agent-instructions.mjs",
     "check:extensions": "npm outdated --prefix agent/npm; git -C agent/git/github.com/championswimmer/pi-context-usage fetch origin && git -C agent/git/github.com/championswimmer/pi-context-usage log --oneline HEAD..origin/HEAD",
-    "format": "oxfmt package.json tsconfig.json .oxfmtrc.json .oxlintrc.json agent/AGENTS.md agent/instructions agent/scripts/README.md agent/scripts/sync-agent-instructions.mjs agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format",
-    "format:check": "oxfmt --check package.json tsconfig.json .oxfmtrc.json .oxlintrc.json agent/AGENTS.md agent/instructions agent/scripts/README.md agent/scripts/sync-agent-instructions.mjs agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format:check",
+    "format": "oxfmt package.json tsconfig.json .oxfmtrc.json .oxlintrc.json instructions.md agent/scripts/README.md agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format",
+    "format:check": "oxfmt --check package.json tsconfig.json .oxfmtrc.json .oxlintrc.json instructions.md agent/scripts/README.md agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format:check",
     "lint": "oxlint --deny-warnings --ignore-pattern agent/extensions/herdr-agent-state.ts agent/extensions/*.ts agent/extensions/lib agent/scripts/tui-showcase.ts && nub run --recursive --if-present --sequential lint",
     "typecheck": "tsc --noEmit && nub run --recursive --if-present --sequential typecheck",
     "test": "TMPDIR=/tmp nub run --recursive --if-present --sequential test && TMPDIR=/tmp nub run --filter pi-web-ui test:e2e"

@@ -6,6 +6,7 @@ import {
   type SDKResultMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileMarkdownImports } from "../claude/markdown-imports.ts";
@@ -35,7 +36,7 @@ const INTERRUPT_GRACE_MS = 2_000;
 const CLOSE_TIMEOUT_MS = 500;
 const MAX_OUTPUT = 100_000;
 const promptPath = fileURLToPath(new URL("../claude/prompts/system.md", import.meta.url));
-const agentDir = resolve(dirname(promptPath), "../../../../..");
+const agentDir = resolve(dirname(realpathSync(promptPath)), "../../../../..");
 
 export type ClaudeQueryFactory = (params: {
   prompt: string;
@@ -183,7 +184,7 @@ export class ClaudeSubagentRunner {
   private compileSystemPrompt(activeSkillsIndex: string): Promise<string> {
     this.promptPromise ??= compileMarkdownImports({
       rootPath: promptPath,
-      allowedRoots: [agentDir],
+      allowedRoots: [agentDir, resolve(agentDir, "../../shared")],
     })
       .then(({ text }) => text)
       .catch((error) => {

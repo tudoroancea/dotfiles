@@ -2,7 +2,7 @@
 
 ## Workspace ownership
 
-- `agent/` is Pi's global agent directory. Preserve `agent/AGENTS.md` as global guidance for every Pi session. Its generated general-instructions section must stay synchronized with `agent/instructions/general.md` through `nub run sync:instructions`.
+- `agent/` contains Pi's global resources. Author general instructions in `../shared/AGENTS.md` and Pi-specific instructions in `instructions.md`. Mise renders `~/.pi/agent/AGENTS.md`. Do not edit rendered instructions. From this directory, render worktree instructions with `mise run instructions`.
 - `agent/extensions/web-ui/` owns the standalone session web UI; `agent/extensions/web-ui-old/` is an archived donor and must remain disabled.
 - `agent/extensions/agentflow/` and `agent/extensions/background-processes/` own their respective Pi providers and runtime integrations.
 - TUI tool renderers live with their tool owner: `agent/extensions/lib/tools/` for built-ins and shared primitives, and each owning extension's `src/ui/` for extension tools. `agent/extensions/TUI_RENDERING.md` records the renderer contract and browser-parity decisions.
@@ -32,7 +32,7 @@ Keep package-level manifests and checks independently runnable. Do not delete fu
 
 ## Worktree extension testing
 
-- When testing Pi extensions from a non-primary worktree, launch Pi with `PI_CODING_AGENT_DIR="$(git rev-parse --show-toplevel)/agent"` so it loads that worktree's extension sources rather than `~/.pi/agent/extensions`.
+- When testing Pi extensions from a non-primary worktree, render instructions with the Pi-local `mise.toml`, then launch Pi with `PI_CODING_AGENT_DIR="$(git rev-parse --show-toplevel)/agents/pi/agent"` so it loads that worktree's extension sources rather than `~/.pi/agent/extensions`.
 - Worktrunk setup may copy `node_modules/` and `agent/auth.json` into the worktree and symlink `agent/npm/` and `agent/git/` to the primary worktree as described in `README.md`.
 - Treat symlinked Pi package stores as shared, read-only runtime dependencies. Run `pi install`, `pi remove`, and `pi update --extensions` only from the primary worktree.
 - Keep test sessions worktree-local and disposable; do not copy `agent/sessions/` from the primary worktree.

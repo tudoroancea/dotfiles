@@ -1,6 +1,6 @@
 # Pi setup
 
-This repository is the source-controlled portion of the Pi setup installed directly at `~/.pi`.
+This directory contains the Pi setup deployed by the dotfiles repository through mise.
 
 ## Layout
 
@@ -10,18 +10,17 @@ This repository is the source-controlled portion of the Pi setup installed direc
 - `packages/` is reserved for shared workspace packages such as the planned host-neutral web UI client.
 - `apps/` contains non-extension applications such as the planned remote session daemon.
 
-Repository development guidance lives in root [`AGENTS.md`](AGENTS.md). Global guidance loaded by every Pi session lives in [`agent/AGENTS.md`](agent/AGENTS.md).
+Repository development guidance lives in root [`AGENTS.md`](AGENTS.md). Mise combines [`../shared/AGENTS.md`](../shared/AGENTS.md) with Pi-specific instructions in [`instructions.md`](instructions.md) and renders `~/.pi/agent/AGENTS.md`. Agentflow Claude children import the shared file directly and add their controlled policy.
 
 ## Install
 
-Clone the repository as the real `~/.pi` directory, not as a nested directory or symlink:
+Apply the development setup from the dotfiles repository:
 
 ```sh
-git clone git@github.com:tudoroancea/pi-setup.git ~/.pi
-cd ~/.pi
-nub install
-nub run check
+mise -E dev bootstrap
 ```
+
+After editing instructions, run `mise -E dev bootstrap --only dotfiles`. Inspect rendered changes with `mise -E dev bootstrap dotfiles diff`. The bootstrap task installs Pi workspace dependencies.
 
 Credentials, trust decisions, sessions, caches, package stores, logs, and other machine-local runtime state are intentionally ignored. Restore those paths from an owner-only private backup after cloning, or let Pi initialize them on first use; never add them to Git. In particular, a fresh clone does not contain `agent/auth.json`, `agent/trust.json`, or session history.
 
@@ -43,13 +42,17 @@ Package-level manifests and checks remain independently runnable. Existing packa
 Pi normally loads this repository through `~/.pi/agent`, so a Pi process started normally will still use extensions from the primary checkout. To test the versions in another worktree, launch Pi with that worktree as its agent directory:
 
 ```sh
-PI_CODING_AGENT_DIR="$(git rev-parse --show-toplevel)/agent" pi
+cd "$(git rev-parse --show-toplevel)/agents/pi"
+mise run instructions
+PI_CODING_AGENT_DIR="$PWD/agent" pi
 ```
 
-The committed Worktrunk configuration prepares new worktrees automatically. Its blocking `pre-start` pipeline:
+The local `mise.toml` concatenates the same shared and Pi-specific sources. Repeat the render after instruction edits. The generated file is ignored by Git. This task leaves installed Pi instructions alone.
 
-1. Runs `wt step copy-ignored --require-include`. The committed `.worktreeinclude` selects `node_modules/` and `agent/auth.json`; Worktrunk uses reflink copy-on-write where supported, so dependencies can subsequently be changed in the worktree without changing the primary checkout.
-2. Symlinks `agent/npm/` and `agent/git/` to those directories in the primary worktree. They contain Pi packages installed from npm and git and do not need independent copies for extension development.
+The Pi-local `.config/wt.toml` records runtime preparation hooks from the standalone Pi repository. In the dotfiles repository, prepare the corresponding `agents/pi/` paths when creating a worktree:
+
+1. Copy `agents/pi/node_modules/` and `agents/pi/agent/auth.json` into the worktree. Keep credentials private.
+2. Symlink `agents/pi/agent/npm/` and `agents/pi/agent/git/` to those directories in the primary worktree. They contain Pi packages installed from npm and git and do not need independent copies for extension development.
 
 Operational constraints:
 

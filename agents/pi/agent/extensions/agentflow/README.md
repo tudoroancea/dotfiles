@@ -96,7 +96,7 @@ Isolation is best-effort while preserving the installed Claude/Claude Code accou
 
 ## Dotfiles integration policy
 
-- Shared all-agent behavior belongs in the global `AGENTS.md`; semantic routing remains in each tool's `promptGuidelines`.
+- Shared all-agent behavior belongs in `agents/shared/AGENTS.md`. Mise renders it with Pi-specific guidance for native Pi sessions; Claude children import only the shared file and their controlled policy. Semantic routing remains in each tool's `promptGuidelines`.
 - Agentflow publishes background/workflow progress with `setStatus`, which the existing Worktrunk footer renders without replacing either extension's UI.
 - Child agents do not inherit global extensions. Explicit child extensions are intersected with Pi's effective enabled-extension set, so a globally or project-disabled extension cannot be re-enabled by Agentflow. Finder, oracle, review, and delegate receive the resolved `pi-fff` extension; librarian receives its resolved research extensions; delegate also receives background-process tools when that extension is active in the parent.
 - Agentflow uses the explicit `ffgrep` and `fffind` tool names and leaves Pi's built-in `grep` and `find` inactive.

@@ -84,7 +84,7 @@ export PATH="$PATH:$HOME/.cargo/bin"
 "~/.config/ghostty" = { source = "ghostty", mode = "symlink" }
 
 "~/.fx/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
-"~/.fx/skills" = { source = "agents/shared/skills", mode = "symlink-each" }
+"~/.fx/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
 
 
 [bootstrap.packages]

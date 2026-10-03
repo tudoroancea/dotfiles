@@ -9,10 +9,6 @@ Checks installed Pi extensions for newer versions. Run `nub run check:extensions
 
 Extension versions are pinned exactly in `agent/settings.json`, so `pi update --extensions` never moves them; this script is the manual check loop. The git part requires the clone to exist (Pi reconciles it from settings on first start).
 
-## `sync-agent-instructions.mjs`
-
-Projects the canonical [`../instructions/general.md`](../instructions/general.md) into the marked generated section of [`../AGENTS.md`](../AGENTS.md). Run `nub run sync:instructions` from the repository root after changing the canonical instructions. `nub run check` invokes its `--check` mode and fails when the generated projection has drifted.
-
 ## `tui-showcase.ts` (`showcase:tui` root npm script)
 
 Opens the tool-renderer showcase in the terminal. Run `nub run showcase:tui` from the repository
