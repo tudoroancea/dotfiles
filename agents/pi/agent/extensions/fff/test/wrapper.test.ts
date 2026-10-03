@@ -13,12 +13,25 @@ function load(mode?: string, multiGrep = false) {
   const flags: string[] = [];
   const commands: string[] = [];
   const events: string[] = [];
+  const handlers = new Map<string, (event: unknown, ctx: unknown) => void>();
   const pi = {
-    registerTool: (tool: ToolDefinition<any, any, any>) => tools.push(tool),
+    registerTool: (tool: ToolDefinition<any, any, any>) => {
+      const index = tools.findIndex((registered) => registered.name === tool.name);
+      if (index >= 0) tools[index] = tool;
+      else tools.push(tool);
+    },
     registerFlag: (name: string) => flags.push(name),
     registerCommand: (name: string) => commands.push(name),
-    on: (event: string) => events.push(event),
+    on: (event: string, handler: (event: unknown, ctx: unknown) => void) => {
+      events.push(event);
+      handlers.set(event, handler);
+    },
     getFlag: () => undefined,
+    getActiveTools: () => tools.map((tool) => tool.name),
+    setActiveTools: (names: string[]) => {
+      const active = tools.filter((tool) => names.includes(tool.name));
+      tools.splice(0, tools.length, ...active);
+    },
     appendEntry: () => {},
   } as unknown as ExtensionAPI;
 
@@ -33,6 +46,20 @@ function load(mode?: string, multiGrep = false) {
   restore("PI_FFF_MULTIGREP", multiGrep ? "1" : undefined);
   try {
     fffRenderers(pi);
+    // Version 0.11 resolves startup configuration after Pi has populated flags.
+    // The before-agent hook prepares registrations without building a native index.
+    handlers.get("before_agent_start")?.(
+      {},
+      {
+        cwd: "/workspace/project",
+        sessionManager: { getEntries: () => [] },
+        ui: {
+          notify: (message: string) => {
+            throw new Error(message);
+          },
+        },
+      },
+    );
   } finally {
     restore("PI_FFF_MODE", previous.mode);
     restore("PI_FFF_MULTIGREP", previous.multi);
@@ -84,9 +111,11 @@ describe("fff wrapper", () => {
       "fff-history-db",
       "fff-enable-root-scan",
       "fff-enable-home-scan",
+      "fff-follow-symlinks",
+      "fff-warn-home-scan",
     ]);
     expect(commands).toEqual(["fff-mode", "fff-health", "fff-rescan"]);
-    // Its own two lifecycle handlers, and no warning handler: every tool found a renderer.
-    expect(events).toEqual(["session_start", "session_shutdown"]);
+    // Every tool found a renderer, so the wrapper adds no warning handler.
+    expect(events).toEqual(["session_start", "before_agent_start", "session_shutdown"]);
   });
 });

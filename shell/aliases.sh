@@ -91,9 +91,13 @@ create_worktree() {
     git worktree add ".worktrees/$new_branch" -b "$new_branch" "$base_branch"
 }
 pi-usage() {
+   if ! command -v ccusage-pi >/dev/null 2>&1; then
+       printf '%s\n' 'ccusage-pi is not installed. Use /session-breakdown in Pi instead.' >&2
+       return 127
+   fi
    local days="${1:-1}"
    local since
    since="$(date -v-"$days"d +%Y-%m-%d)"
    ccusage-pi daily --since "$since"
  }
-alias pirc="cd ~/.pi && pi --provider opencode-go --model minimax-m2.5 --thinking medium"
+alias pirc="cd ~/.pi && pi"

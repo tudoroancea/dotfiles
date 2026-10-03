@@ -1,3 +1,16 @@
 [tasks.instructions]
-description = "Render instructions for a worktree-local Pi session"
-run = "cat ../shared/AGENTS.md instructions.md > agent/AGENTS.md"
+description = "Render canonical instructions for a worktree-local Pi session"
+run = '''
+python3 - <<'PY'
+from pathlib import Path
+lines = Path("AGENTS.md.tera").read_text().splitlines(keepends=True)
+opening, closing = chr(123) * 2, chr(125) * 2
+expected = opening + ' read_file(path=vars.agent_instructions_root ~ "/shared/AGENTS.md") ' + closing
+if not lines or lines[0].strip() != expected:
+    raise SystemExit("AGENTS.md.tera must start with the shared instructions include")
+body = "".join(lines[1:])
+if opening in body or chr(123) + "%" in body:
+    raise SystemExit("Additional template expressions require updating the worktree renderer")
+Path("agent/AGENTS.md").write_text(Path("../shared/AGENTS.md").read_text() + "\n" + body)
+PY
+'''

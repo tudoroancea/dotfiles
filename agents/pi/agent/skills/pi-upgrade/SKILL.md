@@ -1,151 +1,91 @@
 ---
 name: pi-upgrade
-description: Upgrade Pi itself, installed npm/git Pi packages, and local custom Pi extensions to the latest compatible APIs. Use when asked to update, upgrade, or check Pi and its extensions; includes install-manager detection (especially nub), remote dotfiles synchronization, changelog review, SDK migrations, and verification.
-compatibility: Requires git and network access; uses nub when Pi is installed in nub's global package store.
+description: Upgrade Pi, installed Pi packages, and retained custom extensions. Inspect installation ownership, release notes, SDK changes, package pins, and verification before reporting success.
+compatibility: Requires git, network access, and the package manager that owns Pi. This development workspace uses Nub.
 ---
 
-# Pi upgrade
+# Upgrade Pi and its extensions
 
-Perform the upgrade end to end. Do not reduce this to a blind package-manager update: Pi SDK changes can require edits to local extensions.
+Resolve the inspection script relative to this skill directory:
 
-Resolve paths relative to this skill directory. Start by running:
-
-```bash
+```sh
 bash scripts/inspect-pi-install.sh
 ```
 
-Treat its output as evidence, not infallible detection. Never expose credentials or print `auth.json`.
+Treat detection as evidence. Never print credentials, `auth.json`, trust decisions, or transcripts.
 
-## 1. Synchronize the dotfiles repository first
+## Establish source and installation state
 
-Before changing or installing anything:
+1. Resolve deployed `~/.pi/agent` links to the setup checkout and read its rules.
+2. Check Git status, branch, upstream, and remotes. Preserve unrelated changes.
+3. Fetch the upstream remote, then compare `HEAD...@{upstream}`. Inspect incoming manifests, settings, extensions, and this skill before making changes. If fetch fails, diagnose it rather than trusting stale refs.
+4. Do not reset, rebase, overwrite local work, or integrate remote changes without the user's authorization. Source synchronization does not update the installed CLI.
+5. Record `pi --version`, command path, resolved path, owning installer, `pi list`, configured package sources, and workspace manifests.
 
-1. Locate the repository containing `~/.pi/agent` (resolve symlinks) and read its instructions.
-2. Check `git status`, current branch, upstream, and remotes. Preserve unrelated work.
-3. Run `git fetch --prune` for the upstream remote. If it fails, do not trust stale remote-tracking refs or skip this check. Diagnose authentication and, when appropriate, inspect the same repository through authenticated `gh` access or a one-off HTTPS fetch without rewriting the user's remote configuration. Do not integrate until a fetch succeeds.
-4. Compare `HEAD...@{upstream}` and inspect remote-only commits, especially changes under:
-   - `.pi/agent/settings.json`
-   - `.pi/agent/extensions/`
-   - `.pi/agent/skills/pi-upgrade/`
-   - package manifests and lockfiles
-5. Decide from the diff and manifests—not a commit subject alone—whether another machine already performed the source migration.
-6. If upstream is strictly ahead and the worktree is clean, fast-forward with `git pull --ff-only`. If local work or divergence exists, do not overwrite it; integrate through the repository's normal workflow or stop and explain the conflict.
-7. Re-run the installation inspection and re-read any changed manifests after integrating upstream.
+The dotfiles checkout owns `agents/pi/`. The deployed npm and Git stores are under `~/.pi/agent/npm` and `~/.pi/agent/git`. They are separate from the development workspace.
 
-A remote migration does not update this machine's globally installed Pi binary or package caches. Even when the source work is already present, continue with local installation/version checks and verification. Avoid recreating equivalent migration edits.
+When several npm installations exist, inspect the one beside the resolved Pi executable. For example, a Pi under `/opt/homebrew/lib/node_modules` belongs to `/opt/homebrew/bin/npm`, not necessarily the Mise npm on `PATH`. Confirm its global root before updating it.
 
-## 2. Establish the upgrade range and package state
+## Review the target before installing
 
-Record:
+Query the registry without installing:
 
-- `pi --version`, executable path, and resolved executable path
-- the detected global installer
-- `pi list` and configured package sources in global/project settings
-- custom extension manifests and lockfiles
-- clean/dirty state before edits
-
-For each configured npm/git Pi package, determine its installed version/ref and available target before mutation. Read intervening release notes for npm packages and inspect incoming commits for git packages, looking for breaking behavior, renamed resources, settings migrations, and filter paths that no longer exist.
-
-Get the latest Pi registry version without installing it. Prefer `nub view @earendil-works/pi-coding-agent version` when nub exists; otherwise use the detected package manager's registry query.
-
-Fetch the **target release's packaged changelog before upgrading** so the review covers every version between installed and target:
-
-```bash
-tmp=$(mktemp -d)
-tarball=$(nub view @earendil-works/pi-coding-agent dist.tarball)
-curl -fsSL "$tarball" -o "$tmp/pi.tgz"
-tar -xOf "$tmp/pi.tgz" package/CHANGELOG.md > "$tmp/CHANGELOG.md"
+```sh
+nub view @earendil-works/pi-coding-agent version
 ```
 
-Use the detected manager instead of `nub view` if nub is unavailable. Clean the temporary directory when finished.
+Download the target tarball into a temporary directory and read its packaged changelog, declarations, docs, and relevant companion-package changes. Read every intervening version, including changed behavior outside breaking-change headings. Remove the temporary download after the review.
 
-Read all intervening entries, not only headings named “Breaking Changes.” Search `Breaking`, `Changed`, `Removed`, `Deprecated`, `SDK`, `Extension`, `Tool`, `Session`, `TUI`, and `Model`. Follow linked official docs, examples, pull requests, or release commits when an entry affects code used locally. Compare the new packaged type declarations or upstream source when the migration is ambiguous.
+Map changes to actual retained imports and callers. Pay attention to:
 
-If installed Pi is already current, still check package sources, custom extension SDK dependency versions, and remote commits before concluding there is nothing to do.
+- Background completion and event-stream delivery, process cleanup, and session lifecycle.
+- Automatic naming, model requests, authentication, timeout, and cancellation.
+- Built-in renderer re-registration, tool exposure, reload, and explicit tool restrictions.
+- Editor, keybindings, TUI rendering, and historical session-cost parsing.
+- Interactive versus RPC, print, and JSON behavior. `ctx.hasUI` does not establish an interactive terminal.
 
-## 3. Update installed Pi packages and Pi itself
+Review newer versions of each installed package before moving a pin. From `agents/pi/`, `nub run check:extensions` checks the deployed stores. Read incoming Git commits for context-usage and release notes for web-access and FFF. If a package has no changelog, inspect its diff and current source.
 
-Run Pi's supported updater first:
+## Upgrade packages and the CLI
 
-```bash
+Run the supported updater first:
+
+```sh
 pi update --all
 ```
 
-Capture its complete outcome. It may update npm/git Pi packages before self-update fails.
+Capture the complete result. Package updates can succeed before a self-update fails.
 
-Review configured package sources afterward:
+Pinned npm versions and Git refs do not advance automatically. Update reviewed pins explicitly with `pi install <source>@<target>`. Keep intentional pins. FFF is a dependency of the local renderer wrapper, not a second entry in `settings.packages`.
 
-- Unversioned npm sources can advance normally.
-- Versioned npm sources are pinned and skipped.
-- Git tags/commits are pinned and reconciled but are not advanced to a newer ref.
-- Local paths are source code, not copied packages.
+If self-update fails, use the verified owning manager. For an npm-owned Pi, include the verified prefix when the active npm differs. For a Nub-owned global package, use `nub add --global`. Do not install another manager to work around incorrect detection or overwrite a standalone/Nix/source installation.
 
-For every pinned source, determine whether “latest” means the newest registry version, release tag, or default-branch commit. Inspect changelogs/diffs before moving it, then use `pi install <same-source>@<new-version-or-ref>` to update the configured pin. Do not silently unpin intentionally pinned dependencies. Verify unpinned git clones against their remotes rather than assuming `pi update` advanced them.
+Verify command resolution, `pi --version`, and the owning manager's package listing after installation. Update host SDK dependencies in the deployed npm manifest if present, and regenerate its existing npm lockfile separately.
 
-In this setup repository, run `nub run check:extensions` first: it lists newer versions of the npm-installed extensions (`npm outdated --prefix agent/npm`) and upstream commits past the pinned SHA of the git-installed extension (`git fetch` + `git log HEAD..origin/HEAD` in `agent/git/`).
+## Migrate the development workspace
 
-### Self-update fallback
+Run from `agents/pi/`:
 
-If Pi self-update fails, use the installer that actually owns the resolved executable:
+1. Align retained `@earendil-works/pi-*` dependencies with the target. Preserve exact-versus-range policy.
+2. Update the FFF wrapper's reviewed vendor pin when requested.
+3. Run `nub install` to regenerate the root `nub.lock`. Do not introduce package-level lockfiles or delete the deployed npm lockfile.
+4. Typecheck against target declarations. Apply only migrations used by retained code.
+5. Keep long-lived resources balanced across startup, shutdown, reload, cancellation, and errors.
+6. Keep notifications silent outside TUI mode. Verify background work in supported long-lived TUI and RPC hosts.
 
-- **nub global store** (a path containing `global-nub`, or confirmed by `nub list -g`):
-  ```bash
-  nub add --global @earendil-works/pi-coding-agent@latest
-  ```
-  Pi currently identifies this layout as pnpm internally and may try `pnpm`; do not install pnpm merely to work around that failure.
-- **npm**: `npm install -g --ignore-scripts @earendil-works/pi-coding-agent@latest`
-- **pnpm**: `pnpm install -g --ignore-scripts @earendil-works/pi-coding-agent@latest`
-- **bun**: `bun install -g --ignore-scripts @earendil-works/pi-coding-agent@latest`
-- **yarn classic**: `yarn global add --ignore-scripts @earendil-works/pi-coding-agent@latest`
-- **standalone/source/Nix/unknown**: do not guess or overwrite managed paths; report the detected provenance and use its documented update mechanism.
+Retain historical cost decoding for old Pi sessions. Removing a producer does not make its persisted history disposable.
 
-Afterward run `hash -r`, then verify the command path, resolved path, `pi --version`, and the owning manager's global package listing. Never report an upgrade based only on a successful install command.
+## Verify and report
 
-## 4. Migrate local custom extensions
+Start with focused tests for changed components. Then run:
 
-Inspect every local TypeScript/JavaScript Pi extension that imports Pi SDK/TUI packages. Give extra scrutiny to:
-
-- `.pi/agent/extensions/agentflow/`
-- `.pi/agent/extensions/background-processes/`
-
-For each extension with a manifest:
-
-1. Update Pi SDK development dependencies to the target Pi version, including all locally used `@earendil-works/pi-*` packages. Preserve the manifest's existing exact-versus-range policy unless the changelog requires alignment.
-2. Regenerate its existing lockfile with the manager/format already used by that extension; do not introduce a second lockfile format. In this repository Agentflow currently owns `package-lock.json`, while background-processes owns `nub.lock`.
-3. Typecheck against the new declarations.
-4. Map every relevant changelog/API change to actual imports and call sites. Remove obsolete compatibility code and migrate to the current documented API.
-5. Compare SDK-heavy code with current official examples, especially child `AgentSession` creation/model runtime in Agentflow and process/tool/session/UI lifecycle behavior in background-processes.
-
-Do not make speculative migrations for APIs the extension does not use.
-
-### Lifecycle authority audit
-
-Never edit autogenerated `.pi/agent/extensions/herdr-agent-state.ts`. Audit all custom-extension changes against it:
-
-- Awaited human interaction must balance `herdr:blocked` active/inactive events in `finally`.
-- Autonomous foreground/background work must not be marked blocked.
-- Recheck TUI versus RPC/print/JSON behavior; `ctx.hasUI` does not make `ctx.ui.custom()` interactive.
-- Preserve Herdr's unseen-idle derivation of done and test exceptional cleanup.
-
-## 5. Verify before declaring success
-
-Use each extension's own scripts. At minimum, for both Agentflow and background-processes run:
-
-```bash
-nub run typecheck
-nub run test
-nub run lint
+```sh
+nub run check
+nub run --filter pi-background-processes smoke
 ```
 
-Then run their bounded smoke/RPC checks when available. Also verify any other changed custom extension with its local checks. Diagnose failures as API migrations first; do not weaken tests or types to force a pass.
+Also check real resource discovery against deployed settings. Confirm optional presentation extensions remain disabled and all requested skills, themes, and packages load without errors. Avoid live model calls unless they are needed and authorized.
 
-Finally:
+Finally, run `pi list`, repeat the installation inspection, and inspect Git diff/status. Report exact versions, pins, checks, failures, and remaining unverified behavior. Never weaken tests to force a pass.
 
-1. Run `pi list` and inspect installed npm package versions and git clone refs/remotes.
-2. Re-run the install inspection script.
-3. Review `git diff` and ensure only upgrade-related source/manifests/locks changed.
-4. Check `git status` and report any pre-existing unrelated changes separately.
-5. Do **not** reload the currently running Pi process into potentially version-skewed code. Tell the user to restart Pi so the upgraded binary and extensions load together.
-6. Do not commit or push unless requested. If changes remain uncommitted, say that another machine cannot discover them through remote commits until they are committed and pushed.
-
-Report: old/new Pi versions, how Pi was updated, package source updates/pins, remote commits reused, changelog migrations applied, changed files, checks run, and anything still blocked.
+Do not reload a running Pi process into version-skewed modules. Ask the user to restart Pi. Do not commit or push unless requested; uncommitted source changes are not available to another machine through Git.

@@ -84,8 +84,14 @@ function sendNotification(title: string, message: string) {
   if (!shouldNotify()) return;
 
   // Sanitize: remove semicolons as they are delimiters for OSC 777
-  const cleanTitle = title.replace(/;/g, " ").replace(/\s+/g, " ").trim();
-  const cleanMessage = message.replace(/;/g, " ").replace(/\s+/g, " ").trim();
+  const cleanTitle = title
+    .replace(/[;\x00-\x1f\x7f-\x9f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const cleanMessage = message
+    .replace(/[;\x00-\x1f\x7f-\x9f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   // Send multiple protocols for better compatibility
   // OSC 777: Ghostty / WezTerm
@@ -95,58 +101,6 @@ function sendNotification(title: string, message: string) {
 }
 
 // --- Confetti Logic ---
-type MinimalMessage = {
-  role?: string;
-  content?: unknown;
-};
-
-function messageContentToText(content: unknown): string {
-  if (typeof content === "string") return content;
-
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (
-          typeof part === "object" &&
-          part !== null &&
-          "text" in part &&
-          typeof part.text === "string"
-        ) {
-          return part.text;
-        }
-        return "";
-      })
-      .join(" ");
-  }
-
-  return "";
-}
-
-function isWorkflowSubagentSession(
-  event: { messages?: MinimalMessage[] },
-  ctx: { mode?: string; sessionManager?: unknown },
-): boolean {
-  const sessionManager = ctx.sessionManager as
-    | {
-        isPersisted?: () => boolean;
-        getSessionFile?: () => string | undefined;
-      }
-    | undefined;
-
-  // pi-dynamic-workflows uses SDK-created in-memory print-mode sessions for agent().
-  const isInMemoryPrintSession =
-    ctx.mode === "print" &&
-    (sessionManager?.isPersisted?.() === false || sessionManager?.getSessionFile?.() === undefined);
-
-  // WorkflowAgent prepends this to every workflow subagent prompt.
-  const hasWorkflowTaskLabel = event.messages?.some(
-    (message) =>
-      message.role === "user" && messageContentToText(message.content).includes("Task label:"),
-  );
-
-  return isInMemoryPrintSession && Boolean(hasWorkflowTaskLabel);
-}
-
 async function triggerConfetti() {
   if (!shouldNotify()) return;
   // Only run on macOS
@@ -158,17 +112,24 @@ async function triggerConfetti() {
 // --- Extension Entry Point ---
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
+    cleanupFocus?.();
+    isFocused = true;
+    focusEventsReceived = false;
+    focusReportingSupported = false;
+    lastActivityTime = Date.now();
     if (ctx.mode === "tui") setupFocusTracking();
   });
   pi.on("session_shutdown", () => cleanupFocus?.());
 
-  pi.on("tool_call", async (event) => {
-    if (event.toolName === "question" || event.toolName === "questionnaire") {
+  pi.on("tool_call", async (event, ctx) => {
+    if (ctx.mode !== "tui") return;
+    if (event.toolName === "questionnaire") {
       sendNotification("❓ Pi has a question", "Check the terminal to provide input.");
     }
   });
 
   pi.on("agent_end", async (event, ctx) => {
+    if (ctx.mode !== "tui") return;
     const noConfetti = pi.getFlag("no-confetti") as boolean;
     const lastAssistant = [...event.messages].reverse().find((m) => m.role === "assistant");
 
@@ -186,7 +147,7 @@ export default function (pi: ExtensionAPI) {
 
     sendNotification(success ? "✅ Pi finished" : "⚠️ Pi stopped", summary || "Task completed.");
 
-    if (!noConfetti && success && !isWorkflowSubagentSession(event, ctx)) {
+    if (!noConfetti && success) {
       await triggerConfetti();
     }
   });
@@ -200,6 +161,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("notify-test", {
     description: "Test notification (optional delay in seconds)",
     handler: async (args, ctx) => {
+      if (ctx.mode !== "tui") return;
       // Temporarily override focus state for testing
       const savedIsFocused = isFocused;
       const savedEventsReceived = focusEventsReceived;

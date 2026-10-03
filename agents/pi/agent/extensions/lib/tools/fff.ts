@@ -1,11 +1,11 @@
 // The `@ff-labs/pi-fff` search tools.
 //
-// Mirrors `packages/pi-web-ui-client/src/client/tools/fff.tsx`. `ffgrep` and `fffind` look like
-// the built-in `grep`/`find` but take different arguments — `exclude` instead of `glob`,
+// `ffgrep` and `fffind` resemble the built-in `grep` and `find` but take different
+// arguments: `exclude` instead of `glob`,
 // `caseSensitive` instead of `ignoreCase`, and a `cursor` that pages a previous result, which is
 // worth naming because a frecency-ranked page two is not the first page of results.
 //
-// Two things the vendor's own renderers do not do, and both surfaces should:
+// Two details omitted by the vendor's renderers:
 //
 //   - report a total the printed text does not carry. Which field that is differs per tool, and
 //     the names in `details` are misleading, so both are read against

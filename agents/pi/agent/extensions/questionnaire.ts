@@ -8,7 +8,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Editor, type EditorTheme, Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { withHerdrBlocked } from "./lib/herdr-blocked.ts";
 import { questionnaireRenderer } from "./lib/tools/questionnaire.ts";
 
 // Types
@@ -106,6 +105,13 @@ export default function questionnaire(pi: ExtensionAPI) {
         label: q.label || `Q${i + 1}`,
         allowOther: q.allowOther !== false,
       }));
+
+      if (new Set(questions.map((question) => question.id)).size !== questions.length) {
+        return errorResult("Error: Question IDs must be unique", questions);
+      }
+      if (questions.some((question) => question.options.length === 0 && !question.allowOther)) {
+        return errorResult("Error: Each question needs an option or a free-text answer", questions);
+      }
 
       const isMulti = questions.length > 1;
       const totalTabs = questions.length + 1; // questions + Submit
@@ -393,11 +399,7 @@ export default function questionnaire(pi: ExtensionAPI) {
             handleInput,
           };
         });
-      const result = await withHerdrBlocked(
-        pi.events,
-        "Waiting for questionnaire response",
-        showQuestionnaire,
-      );
+      const result = await showQuestionnaire();
 
       if (result.cancelled) {
         return {

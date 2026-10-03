@@ -2,38 +2,32 @@
   "name": "pi-setup",
   "private": true,
   "workspaces": [
-    "agent/extensions/web-ui",
-    "agent/extensions/agentflow",
     "agent/extensions/background-processes",
     "agent/extensions/boxed-editor",
     "agent/extensions/copy-regions",
-    "agent/extensions/fff",
-    "agent/extension-tests",
-    "packages/*",
-    "apps/*"
+    "agent/extensions/fff"
   ],
   "type": "module",
   "scripts": {
     "check": "nub run format:check && nub run lint && nub run typecheck && nub run test",
-    "showcase:tui": "node agent/scripts/tui-showcase.ts",
-    "check:extensions": "npm outdated --prefix agent/npm; git -C agent/git/github.com/championswimmer/pi-context-usage fetch origin && git -C agent/git/github.com/championswimmer/pi-context-usage log --oneline HEAD..origin/HEAD",
-    "format": "oxfmt package.json tsconfig.json .oxfmtrc.json .oxlintrc.json instructions.md agent/scripts/README.md agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format",
-    "format:check": "oxfmt --check package.json tsconfig.json .oxfmtrc.json .oxlintrc.json instructions.md agent/scripts/README.md agent/scripts/tui-showcase.ts agent/extensions/*.ts agent/extensions/lib && nub run --recursive --if-present --sequential format:check",
-    "lint": "oxlint --deny-warnings --ignore-pattern agent/extensions/herdr-agent-state.ts agent/extensions/*.ts agent/extensions/lib agent/scripts/tui-showcase.ts && nub run --recursive --if-present --sequential lint",
+    "check:extensions": "npm outdated --prefix ~/.pi/agent/npm; git -C ~/.pi/agent/git/github.com/championswimmer/pi-context-usage fetch origin && git -C ~/.pi/agent/git/github.com/championswimmer/pi-context-usage log --oneline HEAD..origin/HEAD",
+    "format": "oxfmt package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/scripts/README.md agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format",
+    "format:check": "oxfmt --check package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/scripts/README.md agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format:check",
+    "lint": "oxlint --deny-warnings vitest.config.ts agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential lint",
     "typecheck": "tsc --noEmit && nub run --recursive --if-present --sequential typecheck",
-    "test": "TMPDIR=/tmp nub run --recursive --if-present --sequential test && TMPDIR=/tmp nub run --filter pi-web-ui test:e2e"
+    "test:setup": "TMPDIR=/tmp vitest run",
+    "test": "nub run test:setup && TMPDIR=/tmp nub run --recursive --if-present --sequential test"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.86.1",
-    "@earendil-works/pi-tui": "0.86.1",
+    "@earendil-works/pi-ai": "1.0.0",
+    "@earendil-works/pi-coding-agent": "1.0.0",
+    "@earendil-works/pi-tui": "1.0.0",
     "@types/node": "26.1.1",
     "oxfmt": "0.59.0",
     "oxlint": "1.75.0",
     "typebox": "1.3.8",
-    "typescript": "7.0.2"
-  },
-  "overrides": {
-    "@hono/node-server": "1.19.14"
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   },
   "devEngines": {
     "packageManager": {

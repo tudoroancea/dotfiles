@@ -73,7 +73,7 @@ FFF alone. The `grep`/`find` entries in `FFF_RENDERERS` are kept for that day.
 
 ```sh
 nub run --filter pi-fff-renderers test        # the proxy: both slots replaced, everything forwarded
-nub run --filter pi-extension-integration-tests test   # the renderers themselves, and the goldens
+nub run test:setup                          # shared renderers and cross-owner goldens
 ```
 
 `test/wrapper.test.ts` loads the real vendor against a stub `ExtensionAPI`, which is safe because

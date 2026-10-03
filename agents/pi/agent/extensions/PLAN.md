@@ -1,114 +1,68 @@
-# Standalone and Cross-Extension Maintenance Plan
+# Standalone and cross-extension maintenance plan
 
 ## Scope
 
-This plan owns deferred maintenance that crosses top-level standalone extensions or does not belong to the packaged Agentflow, background-processes, Web UI/shared-client, or daemon plans.
+This plan owns standalone extensions, shared session-cost accounting, and TUI ownership checks. Background runtime maintenance belongs to `background-processes/PLAN.md`.
 
-It specifically owns:
+The Web UI, shared browser client, remote-session daemon, Agentflow runtime, Worktrunk statusline, and Herdr integration are retired. Their implementation plans and integration requirements no longer apply.
 
-- canonical session-cost accounting shared by TUI/session-summary consumers;
-- the future of the disabled Worktrunk statusline;
-- verification and simplification of `notify.ts`;
-- the product decision around `custom-header.ts`;
-- UI ownership checks among standalone editor/header/footer extensions.
+## Retained profile
 
-It does not own:
+- `automatic-session-name.ts` owns session naming independently of Agentflow. It names persisted, unnamed sessions after the first completed exchange on `agent_settled`, preserves manual names, and cancels stale requests on session transitions and shutdown.
+- `notify.ts` handles terminal-focus tracking, `questionnaire` notifications, completion notifications, and optional Raycast confetti only in TUI mode. It no longer detects or suppresses Agentflow children.
+- Background processes, FFF, questionnaire, and their owner-local renderers remain supported.
+- `boxed-editor/index.ts`, `builtin-tool-renderers.ts`, and `custom-header.ts` remain in the repository but are disabled by `agent/settings.json`. Pi owns the active editor, footer, header, and built-in tool presentation. Disabled code is not retired code.
+- `tests/resource-profile.test.ts` checks the enabled and disabled extension profile. `TUI_RENDERING.md` records the retained renderer contract.
 
-- Agentflow runtime work (`agentflow/PLAN.md`);
-- background runtime work (`background-processes/PLAN.md`);
-- Web UI/shared-client implementation (`web-ui/PLAN.md`);
-- remote daemon implementation (`../../apps/remote-session-daemon/PLAN.md`).
+## Canonical session-cost accounting
 
-## Context and invariants
+Session cost means recorded provider spend in the supplied top-level entries, not the cost of the current LLM context.
 
-- `boxed-editor` is the enabled TUI editor/footer owner and requires a second Escape for interruption while preserving autocomplete dismissal and Pi's current interrupt handler.
-- Human waits initiated by the agent or autonomous extension actions must retain balanced `withHerdrBlocked` handling; UI opened directly by the user must not report the agent as blocked.
-- TUI and browser presentation may share accounting semantics without sharing host-specific UI implementations.
-- Disabled code is not permission to delete it; retirement requires an explicit product decision recorded here.
+- `agent/extensions/lib/session-cost.ts` owns host-neutral accounting. Formatting remains with each consumer.
+- The retained, disabled boxed-editor consumer selects the whole session tree with `getEntries()`.
+- `/session-breakdown` reads every top-level entry in each historical JSONL file.
+- Assistant and tool-result usage, compaction usage, and branch-summary usage count from their top-level records. Nested snapshots and retained transcript tails do not count recursively.
+- Historical Agentflow cost, result, and tool representations remain supported. Non-empty `agentflow:` cost IDs deduplicate by the greatest recorded value.
+- Historical aggregation suppresses propagated child cost when the included persisted child session already represents it. Cost for unavailable or in-memory children remains counted.
+- Historical parsing retains legacy numeric-string costs. Removing the Agentflow runtime does not authorize removing this compatibility.
 
-## Phase 1 — canonical session-cost accounting
+Completed work:
 
-Canonical accounting now defines session cost as recorded provider spend in the supplied top-level entries, not the cost of the current LLM context:
+- [x] Extract canonical entry accounting and define consumer scopes.
+- [x] Cover duplicate Agentflow cost IDs, tool results, compactions, summaries, missing usage, and malformed details.
+- [x] Retain cross-file and persisted-child deduplication tests after runtime retirement.
 
-- Boxed Editor and Web UI report the whole session tree from `getEntries()`;
-- `/session-breakdown` reports every top-level entry in each historical JSONL file;
-- assistant/tool-result message usage plus compaction and branch-summary usage are counted from their top-level usage records;
-- explicit Agentflow cost/result/tool representations are deduplicated globally by non-empty `agentflow:` cost ID, retaining the greatest recorded value;
-- historical aggregation suppresses propagated Agentflow child cost already represented by an included persisted child session, while retaining cost for unavailable or in-memory children;
-- nested snapshots and retained transcript tails are not recursively counted.
+## Deferred notification maintenance
 
-- [x] Define whether each surface reports active-branch, whole-session-tree, or historical-file cost.
-- [x] Define which entry kinds are authoritative for assistant, tool, compaction, branch-summary, and Agentflow child costs.
-- [x] Specify keyed deduplication so the same Agentflow cost is never counted twice when represented by both cost and result entries.
-- [x] Extract only the host-neutral entry-accounting helper into `agent/extensions/lib/`; keep formatting and UI host-specific.
-- [x] Add shared fixtures covering branches, duplicate Agentflow cost IDs, tool results, compactions, summaries, missing usage, and malformed details.
-- [x] Make boxed-editor, Web UI projection, and `/session-breakdown` deliberately select the appropriate scope while sharing the accounting rules.
-
-Exit criteria:
-
-- differences between displayed totals are explained by scope, not divergent parsing;
-- all consumers agree for the same entry set;
-- Web UI shared-client boundaries remain intact because raw Pi entry accounting stays host-side.
-
-## Phase 2 — decide the Worktrunk statusline's future
-
-`worktrunk-statusline.ts` is disabled because its footer conflicts with boxed-editor, but it also owns Worktrunk marker updates that boxed-editor does not replace.
-
-- [ ] Confirm whether Worktrunk marker/status integration is still desired.
-- [ ] If desired, separate marker production from footer rendering and keep boxed-editor as the sole footer owner.
-- [ ] If not desired, explicitly retire the extension, remove its disable entry, and update footer-ownership tests in the same change.
-- [ ] Preserve balanced startup/shutdown for any retained timer or subprocess work.
-
-Exit criteria:
-
-- no dormant competing footer implementation remains without a documented reason;
-- desired Worktrunk integration, if retained, has one narrow responsibility.
-
-## Phase 3 — verify and simplify notifications
-
-`notify.ts` currently combines terminal-focus tracking, desktop notifications, question detection, completion behavior, and Agentflow-child suppression without dedicated tests.
-
-- [ ] Verify whether Pi already owns terminal focus reporting and whether the extension's raw stdin listener or `?1004` writes can interfere with TUI input/lifecycle.
-- [ ] Enumerate the actual registered question tools in a live session and determine whether the legacy `question` tool hook is still reachable.
-- [ ] Verify whether the current persisted-session and `Task label:` heuristics correctly distinguish Agentflow children.
-- [ ] Add focused tests for focused/unfocused completion, pending-question notification, child suppression, shutdown cleanup, and listener balancing.
-- [ ] Remove only branches proven unreachable after live verification.
-- [ ] Coordinate future browser notifications through host-neutral events in `web-ui/PLAN.md`; do not merge browser and macOS delivery implementations.
+- [ ] Verify whether Pi 1.0 already owns terminal focus reporting and whether the raw stdin listener or `?1004` writes interfere with input or lifecycle.
+- [x] Add focused tests for focused and unfocused completion, questionnaire notifications, OSC sanitization, confetti gating, shutdown cleanup, and listener balancing.
+- [x] Verify in lifecycle tests that session restart resets focus state without retaining a timer or listener.
 
 Exit criteria:
 
 - notifications have explicit event sources and tested focus gating;
 - no raw listener or terminal mode survives shutdown;
-- obsolete Agentflow-era heuristics are removed or documented.
+- RPC, print, and JSON modes produce no terminal notifications or focus-reporting writes.
 
-## Phase 4 — decide custom header ownership
+## Ongoing ownership checks
 
-`custom-header.ts` provides deliberate mascot/aesthetic behavior but repeats model and cwd information shown by boxed-editor and may not refresh after model changes.
+- [x] Cover standalone naming, manual-name preservation, persisted attempt guards, failed generation, cancellation, and stale-session results with 46 deterministic tests.
+- [ ] Keep the resource-profile test aligned with intentional enablement changes. Re-enabling a presentation extension requires an explicit editor, footer, header, or built-in renderer ownership decision.
+- [ ] Preserve historical Agentflow accounting fixtures when changing session parsing.
 
-- [ ] Decide whether the mascot header remains a desired product feature.
-- [ ] If retained, verify model-change and cwd/session-transition refresh behavior and remove duplicated metadata if it adds no value.
-- [ ] If retired, restore the preferred built-in-header behavior rather than silently losing key hints.
-- [ ] Add an ownership test ensuring exactly the intended enabled extension controls each of header, editor, and footer surfaces.
+## Test and deployment ownership
 
-Exit criteria:
-
-- the header is either intentionally retained and lifecycle-correct or explicitly retired;
-- active UI ownership is deterministic and test-enforced.
-
-## Dependency and parallelism
-
-- Phases 2, 3, and 4 are independent product decisions and may run in parallel.
-- Phase 1 can proceed independently, but the Web UI consumer should be migrated during Web UI Phase 1 projection modularization to avoid duplicate churn.
-- Browser notification work remains owned by `web-ui/PLAN.md`; this plan owns only the local notification producer audit.
+- [x] Move standalone extension tests into `agent/extensions/test/` and shared helper tests into `agent/extensions/lib/test/`.
+- [x] Keep cross-owner goldens and resource-loading checks in `tests/`, with one root test runner and no duplicate package runs.
+- [x] Replace whole-tree deployment with resource-specific links. Keep dependencies in the source workspace and private state in the deployed agent directory.
+- [x] Cover both source and directory-linked resource discovery, including exclusion of test files from extension loading.
 
 ## Verification
 
-Run focused tests for each affected extension, followed by:
+Run focused tests for each affected extension, then run from `agents/pi`:
 
 ```sh
 nub run check
 ```
 
-Also perform a TUI smoke covering double-Escape interruption, autocomplete dismissal, boxed-editor framing/footer, custom header behavior, notifications, and any retained Worktrunk marker behavior.
-
-Delete this plan when all phases are complete.
+Perform a TUI smoke covering Pi's editor, footer, and header, retained tool renderers, session naming, questionnaire notifications, completion notifications, and reload cleanup. Check RPC, print, and JSON mode guards separately.

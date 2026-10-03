@@ -1,0 +1,21 @@
+[dotfiles]
+"~/.zshrc/pirc" = { block = "alias pirc=\"cd ~/.pi && pi\"" }
+
+# Deploy runtime resources only. Dependencies stay in the source workspace;
+# credentials, sessions, caches, and Pi package stores stay under ~/.pi/agent.
+"~/.pi/agent" = { source = "agents/pi/agent", mode = "symlink-each", exclude = ["extensions", "skills", "scripts", ".gitignore", "scripts"] }
+"~/.pi/agent/AGENTS.md" = { source = "agents/pi/AGENTS.md.tera", mode = "template" }
+"~/.pi/agent/skills/pi-upgrade" = { source = "agents/pi/agent/skills/pi-upgrade", mode = "symlink" }
+"~/.pi/agent/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
+"~/.pi/agent/extensions" = { source = "agents/pi/agent/extensions", mode = "symlink" }
+
+[vars]
+agent_instructions_root = "{{ xdg_config_home }}/mise/agents"
+
+
+[tasks.bootstrap]
+dir = "agents/pi"
+run = "nub install"
+
+[tools]
+"npm:@earendil-works/pi-coding-agent" = "latest"

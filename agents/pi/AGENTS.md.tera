@@ -8,15 +8,8 @@
 - Call independent read-only tools in parallel. Use sequential calls only when one depends on another's result.
 - Never use placeholders or guess missing tool parameters.
 
-## Claude child routing
-
-- Use `agentflow_claude` with `model: "fable"` as an independent advisor only for exceptionally complex architecture, debugging, planning, or high-stakes review where the existing Pi agents need a stronger second opinion.
-- Use `agentflow_claude` with `model: "opus"` for frontend implementation, visual and UI design, UX, user-facing copy, and other taste-sensitive work. Ensure the `frontend-design` skill is available and ask the child to use it when relevant.
-- Prefer existing Pi and Agentflow tools for routine repository exploration, research, mechanical implementation, and ordinary review. Do not invoke Claude solely for model diversity when existing tools are sufficient.
-- Give the Claude child a self-contained task and state clearly whether it should advise only or edit files.
-
 ## Custom extensions feedback
 
-- When a top-level agent encounters unexpected behavior in a custom Pi extension, continue the user's task with a reasonable fallback and append a concise reproducible report to that extension's `ERRORS.md`, creating it in the owning extension directory when needed. This applies to Agentflow, background processes, the web UI, and other custom extensions.
+- When a top-level agent encounters unexpected behavior in a custom Pi extension, continue the user's task with a reasonable fallback and append a concise reproducible report to that extension's `ERRORS.md`, creating it in the owning extension directory when needed. This applies to background processes and other custom extensions.
 - Report extension defects such as misleading validation or runtime errors, unexplained aborts, lost artifacts, scheduler failures, delivery failures, stale status, cleanup leaks, or lifecycle inconsistencies. Do not log ordinary child-task or command failures, explicit cancellations, or correctly diagnosed invalid requests.
 - Include the date, extension/tool, run or job ID and artifact/session paths when available, expected versus actual behavior, a minimal reproduction, the fallback used, and current status. Never include secrets or unnecessary full prompts.

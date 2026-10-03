@@ -1,45 +1,56 @@
 # Pi setup
 
-This directory contains the Pi setup deployed by the dotfiles repository through mise.
+This directory owns the Pi terminal setup deployed through Mise. The web clients, daemon, and Agentflow are retired. Their earlier implementations remain recoverable from repository history and the separate `pi-setup` repository.
 
-## Layout
+## Retained resources
 
-- `agent/` is Pi's default global agent directory and contains settings, instructions, extensions, skills, prompts, and themes.
-- `agent/extensions/web-ui/` is the canonical standalone web UI extension.
-- `agent/extensions/web-ui-old/` is an archived donor and remains disabled in `agent/settings.json`.
-- `packages/` is reserved for shared workspace packages such as the planned host-neutral web UI client.
-- `apps/` contains non-extension applications such as the planned remote session daemon.
+- Background-process tools, copyable regions, native FFF search, automatic session naming, terminal notifications, working messages, questionnaire, tool selection, and historical usage reporting.
+- Boxed editor, compact built-in renderers, and custom header remain available but disabled in `agent/settings.json`.
+- Web-access and context-usage package sources are pinned in settings. FFF is pinned in its local wrapper manifest.
+- Rose Pine themes and custom keybindings remain unchanged.
+- `pi-upgrade` is a Pi-only skill. Typst guidance lives in `../shared/skills/typst-local` and is linked into the deployed Pi skill directory.
 
-Repository development guidance lives in root [`AGENTS.md`](AGENTS.md). Mise combines [`../shared/AGENTS.md`](../shared/AGENTS.md) with Pi-specific instructions in [`instructions.md`](instructions.md) and renders `~/.pi/agent/AGENTS.md`. Agentflow Claude children import the shared file directly and add their controlled policy.
+Historical cost readers still understand old Agentflow entries. Runtime history, credentials, trust decisions, caches, and background outputs are private machine state, not source files.
 
-## Install
+## Install and check
 
-Apply the development setup from the dotfiles repository:
-
-```sh
-mise -E dev bootstrap
-```
-
-After editing instructions, run `mise -E dev bootstrap --only dotfiles`. Inspect rendered changes with `mise -E dev bootstrap dotfiles diff`. The bootstrap task installs Pi workspace dependencies.
-
-Credentials, trust decisions, sessions, caches, package stores, logs, and other machine-local runtime state are intentionally ignored. Restore those paths from an owner-only private backup after cloning, or let Pi initialize them on first use; never add them to Git. In particular, a fresh clone does not contain `agent/auth.json`, `agent/trust.json`, or session history.
-
-## Workspace commands
+From this directory:
 
 ```sh
 nub install
 nub run check
-nub run format
-nub run --filter pi-web-ui check
-nub run --filter pi-agentflow test
-nub run --filter pi-background-processes test
+nub run --filter pi-background-processes smoke
 ```
 
-Package-level manifests and checks remain independently runnable. Existing package locks are retained until the root Nub workspace and lockfile are proven in both the prepared repository and a fresh clone.
+The root `nub.lock` owns development dependencies. `nub install` creates the workspace's root and package-level `node_modules` links under `agents/pi/`. Do not run a second workspace install under `~/.pi`.
 
-## Testing Pi from a worktree
+Mise links `~/.pi/agent/extensions` directly to the source directory, so extensions resolve their dependencies from the source workspace. Settings, models, keybindings, themes, prompts, and skills have separate deployment entries. Development manifests, test-runner configuration, and repository instructions are not deployed.
 
-Pi normally loads this repository through `~/.pi/agent`, so a Pi process started normally will still use extensions from the primary checkout. To test the versions in another worktree, launch Pi with that worktree as its agent directory:
+Credentials, sessions, caches, and background outputs remain machine-local under `~/.pi/agent`. Pi owns its separate npm and Git package stores there. Their installation and lockfiles are independent of `nub.lock`.
+
+From the dotfiles root, preview the development overlay before applying it:
+
+```sh
+mise -E dev bootstrap dotfiles apply --dry-run
+mise -E dev bootstrap dotfiles apply
+```
+
+If an existing deployment has a real `~/.pi/agent/extensions` directory, inspect it before replacing it with the directory link. Do not force-overwrite private or untracked files.
+
+`AGENTS.md.tera` is the canonical Pi-specific instruction source. Its first line imports `../shared/AGENTS.md`. Mise renders installed instructions; do not edit `~/.pi/agent/AGENTS.md` directly.
+
+## Test ownership
+
+- `agent/extensions/test/` covers standalone extensions, including naming, notifications, tool selection, and session breakdown.
+- `agent/extensions/lib/test/` covers shared accounting and renderer helpers.
+- `tests/` covers resource discovery and cross-owner renderer goldens.
+- Packaged extensions retain their own `test/` directories and independently runnable checks.
+
+The root `vitest.config.ts` includes only the first three directories. `nub run test:setup` runs them; `nub run test` also runs package-owned suites without duplicating them. Keep `.test.ts` files out of `agent/extensions/` itself, where Pi discovers extensions.
+
+## Test from another worktree
+
+Render worktree instructions, then select its resources explicitly:
 
 ```sh
 cd "$(git rev-parse --show-toplevel)/agents/pi"
@@ -47,21 +58,8 @@ mise run instructions
 PI_CODING_AGENT_DIR="$PWD/agent" pi
 ```
 
-The local `mise.toml` concatenates the same shared and Pi-specific sources. Repeat the render after instruction edits. The generated file is ignored by Git. This task leaves installed Pi instructions alone.
+Trust the local Mise config only after reviewing it. The rendering task uses the shared instructions and canonical template.
 
-The Pi-local `.config/wt.toml` records runtime preparation hooks from the standalone Pi repository. In the dotfiles repository, prepare the corresponding `agents/pi/` paths when creating a worktree:
+Prepare `agents/pi/` paths manually in the worktree. Install its dependencies, copy credentials only when needed, and link its `agent/npm/` and `agent/git/` to the primary deployment stores. The old standalone-repository Worktrunk hooks are removed.
 
-1. Copy `agents/pi/node_modules/` and `agents/pi/agent/auth.json` into the worktree. Keep credentials private.
-2. Symlink `agents/pi/agent/npm/` and `agents/pi/agent/git/` to those directories in the primary worktree. They contain Pi packages installed from npm and git and do not need independent copies for extension development.
-
-Operational constraints:
-
-- Do not copy `agent/sessions/`. Test sessions then remain disposable with the worktree.
-- Keep caches and other ignored runtime state worktree-local unless a test specifically requires them.
-- Do not run `pi install`, `pi remove`, or `pi update --extensions` from a worktree whose `agent/npm/` or `agent/git/` is symlinked; those commands would mutate the shared primary stores.
-
-Re-run `nub install` inside the worktree whenever its dependency manifests change. Worktrunk requires approval the first time the committed project hooks run; review and approve the displayed commands.
-
-## Daemon status
-
-`apps/remote-session-daemon/PLAN.md` specifies a future user service. Service implementation, installation, Tailscale ingress, and remote mutation are not part of repository setup and must not be enabled before that plan's security gates pass.
+Do not copy sessions. Keep tests disposable and runtime state worktree-local. Do not run Pi package install/remove/update commands from a secondary worktree with shared package stores.

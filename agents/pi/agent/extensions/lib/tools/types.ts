@@ -1,13 +1,8 @@
 // The TUI tool-call renderer contract.
 //
-// This mirrors `packages/pi-web-ui-client/src/client/tools/types.ts` deliberately: same
-// module layout, same names, same decode boundary. The two implementations are kept in sync
-// by that mirroring, so a change on one side should be recognizable on the other.
-//
-// Pi splits a tool call into two render slots — `renderCall` draws the header and
-// `renderResult` the body — and appends both into one status-tinted `Box`. That box is the
-// browser's `ToolBox`, so a spec here declares `header` and `body` exactly as it does there
-// and `defineRenderer` wires them into the two slots.
+// Pi splits a tool call into `renderCall` for the header and `renderResult` for the body,
+// then appends both into one status-tinted Box. `defineRenderer` wires each spec's header
+// and body into those slots.
 //
 // Tool arguments come from the model, so they are routinely incomplete (streaming) or
 // wrong-typed. Each spec declares one `decode` step, the single untrusted-to-typed

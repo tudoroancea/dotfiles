@@ -17,8 +17,8 @@
     "smoke": "TMPDIR=/tmp vitest run test/extension-smoke.test.ts && node scripts/rpc-smoke.mjs"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.86.1",
-    "@earendil-works/pi-tui": "0.86.1",
+    "@earendil-works/pi-coding-agent": "^1.0.0",
+    "@earendil-works/pi-tui": "1.0.0",
     "@types/node": "^26.1.1",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.74.0",

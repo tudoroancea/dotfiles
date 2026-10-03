@@ -42,6 +42,18 @@ if [[ "$installer" == 'unknown' ]] && command -v npm >/dev/null 2>&1; then
   fi
 fi
 
+if [[ "$installer" == 'unknown' && "$resolved_path" == *'/lib/node_modules/'* ]]; then
+  owning_prefix=${resolved_path%%/lib/node_modules/*}
+  owning_npm="$owning_prefix/bin/npm"
+  if [[ -x "$owning_npm" ]]; then
+    npm_root=$("$owning_npm" root --global 2>/dev/null || true)
+    if [[ -n "$npm_root" && "$resolved_path" == "$npm_root/"* ]]; then
+      installer='npm'
+      installer_evidence="$owning_npm --prefix $owning_prefix ($npm_root)"
+    fi
+  fi
+fi
+
 if [[ "$installer" == 'unknown' ]] && command -v bun >/dev/null 2>&1; then
   bun_bin=$(bun pm bin --global 2>/dev/null || true)
   if [[ -n "$bun_bin" && "$command_path" == "$bun_bin/"* ]]; then

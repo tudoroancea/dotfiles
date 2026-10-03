@@ -11,7 +11,6 @@ import {
   renderCompletionMessage,
   renderMonitorEventMessage,
 } from "./ui/tool-renderers.ts";
-import { registerBackgroundWebProvider } from "./web-provider.ts";
 
 const STATUS_KEY = "background-processes";
 const COMPLETION_TYPE = "background-process-completion";
@@ -109,7 +108,6 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
   let runtime: ProcessRuntime | undefined;
   let sessionContext: ExtensionContext | undefined;
   let terminalTimer: NodeJS.Timeout | undefined;
-  const announceWebProvider = registerBackgroundWebProvider(pi, () => runtime);
 
   const updateStatus = () => {
     if (!sessionContext) return;
@@ -378,7 +376,6 @@ export default function backgroundProcessesExtension(pi: ExtensionAPI): void {
     try {
       await next.initialize();
       updateStatus();
-      announceWebProvider();
     } catch (error) {
       if (runtime === next) runtime = undefined;
       if (sessionContext === context) {

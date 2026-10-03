@@ -1,10 +1,7 @@
 // pi-coding-agent's built-in tools: bash, read, write, edit, ls, grep, find.
 //
-// Mirrors `packages/pi-web-ui-client/src/client/tools/builtin.tsx`. Collapsed follows the
-// browser — one line naming the call and one line summarizing the result, never a window of
-// raw output. Expanded is the union of both surfaces, which is why `read`/`ls`/`grep`/`find`
-// hand their expanded body back to Pi's own renderer: it already produces syntax
-// highlighting and the `[Truncated: …]` warnings the browser has no equivalent for.
+// Collapsed results summarize the call without raw output. Expanded `read`, `ls`, `grep`,
+// and `find` results use Pi's renderer for syntax highlighting and truncation warnings.
 //
 // Argument keys come from the tool schemas in
 // `@earendil-works/pi-coding-agent/dist/core/tools/*.js`; every one of them names its file

@@ -28,9 +28,10 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.config/nvim_native" = { source = "nvim_native", mode = "symlink" }
 "~/.config/herdr" = { source = "herdr", mode = "symlink-each" }
 
-"~/.pi" = { source = "agents/pi", mode = "symlink-each", exclude = ["agent/AGENTS.md", "mise.toml", "AGENTS.md.tera"] }
-"~/.pi/agent/AGENTS.md" = { source = "agents/pi/AGENTS.md.tera", mode = "template" }
 "~/.claude" = { source = "agents/claude", mode = "symlink-each" }
+# "~/.claude/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
+# "~/.claude/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
+# "~/.codex/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
 # "~/.codex/config.toml/shared" = { source = "agents/claude", mode = "symlink-each" }
 "~/.codex/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
 "~/.zshrc/get_skill" = { block = """
@@ -81,10 +82,8 @@ get_skill() {
     mv ".agents/skills/$skill_name" "$destination"
   )
 }
-"""}
+""" }
 
-[vars]
-agent_instructions_root = "{{ xdg_config_home }}/mise/agents"
 
 [tools]
 node = "latest"
@@ -105,7 +104,3 @@ zig = "latest"
 zls = "latest"
 herdr = "latest"
 "aqua:boyter/scc" = "latest"
-
-[tasks.bootstrap]
-dir = "agents/pi"
-run = "nub install"

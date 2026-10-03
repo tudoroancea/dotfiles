@@ -141,7 +141,7 @@ describe("ArtifactStore", () => {
     const persisted = JSON.parse(await readFile(job.metadataPath, "utf8"));
     expect(persisted.outputBytes).toBe(5);
     expect(persisted.env).toBeUndefined();
-    expect((await import("node:fs/promises")).readdir(job.directory)).resolves.toEqual([
+    await expect((await import("node:fs/promises")).readdir(job.directory)).resolves.toEqual([
       "job.json",
       "output.log",
     ]);

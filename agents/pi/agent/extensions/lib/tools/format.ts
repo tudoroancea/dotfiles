@@ -1,10 +1,6 @@
 // Text helpers shared by every TUI tool renderer.
-//
-// Ported from `packages/pi-web-ui-client/src/client/format.ts` so both surfaces phrase the
-// same fact the same way; a wording change belongs in both files. `sanitizeRenderedValue`
-// has no browser counterpart — the DOM escapes what a terminal would execute.
 
-/** Home-relative path display, matching the browser's `shortenPath`. */
+/** Home-relative path display. */
 export function shortenPath(value: unknown): string {
   if (typeof value !== "string") return "";
   for (const prefix of ["/Users/", "/home/"]) {

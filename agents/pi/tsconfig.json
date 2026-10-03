@@ -11,8 +11,9 @@
   },
   "include": [
     "agent/extensions/*.ts",
+    "agent/extensions/test/**/*.ts",
     "agent/extensions/lib/**/*.ts",
-    "agent/scripts/tui-showcase.ts"
-  ],
-  "exclude": ["agent/extensions/herdr-agent-state.ts"]
+    "tests/**/*.ts",
+    "vitest.config.ts"
+  ]
 }

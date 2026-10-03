@@ -1,9 +1,8 @@
 // Tool-call renderers for the five background tools and the two delivered messages.
 //
-// Mirrors `packages/pi-web-ui-client/src/client/tools/background.tsx`: a launching tool's
-// header carries the command, so its job cards drop it; the observer tools carry neither, so
-// their cards keep it. Collapsed shows one aggregate status line and nothing else — the job
-// cards are the expanded view.
+// A launching tool's header carries the command, so its job cards omit it.
+// Observer cards keep the command. Collapsed results show one aggregate status line;
+// expanded results show the job cards.
 //
 // Layout comes from `lib/tools/render.ts`; the job vocabulary (status icons and tones,
 // command/cwd bounding, shared duration formatting) stays in `./formatters.ts` so a job

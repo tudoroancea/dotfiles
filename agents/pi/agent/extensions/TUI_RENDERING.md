@@ -1,87 +1,79 @@
-# Pi TUI rendering — reference
+# Pi TUI rendering reference
 
-How `@earendil-works/pi-tui` and Pi's tool-execution shell actually work, for anyone
-writing or reviewing a TUI renderer in this repo. Verified against
-`@earendil-works/pi-{tui,coding-agent}@0.86.1`; paths below are inside those packages.
+This reference describes `@earendil-works/pi-tui` and Pi's tool-execution shell for retained
+renderers in this repository. The declarations and behavior described here were checked against
+local `@earendil-works/pi-tui@1.0.0` and `@earendil-works/pi-coding-agent@1.0.0` packages.
+Package-relative paths below refer to their installed `dist/` declarations and JavaScript.
 
-The browser equivalents refer to `packages/pi-web-ui-client`. The two surfaces intentionally
-share behavior and vocabulary without sharing a presentation abstraction.
-
-## Renderer architecture and parity
+## Renderer ownership
 
 Renderers live with the tool owner:
 
-- `agent/extensions/lib/tools/` owns the shared TUI contract and primitives, plus renderers for
-  Pi's built-in tools and the wrapped FFF tools;
-- `agent/extensions/agentflow/src/ui/` owns Agentflow's tools and delivered-result message;
+- `agent/extensions/lib/tools/` owns the shared TUI contract and primitives, plus retained
+  renderers for Pi's built-in tools and the wrapped FFF tools;
 - `agent/extensions/background-processes/src/ui/` owns the background tools and messages;
 - `agent/extensions/questionnaire.ts` owns execution while
-  `agent/extensions/lib/tools/questionnaire.ts` owns its renderer;
-- `packages/pi-web-ui-client/src/client/tools/` owns the corresponding browser views.
+  `agent/extensions/lib/tools/questionnaire.ts` owns its renderer.
 
-Keep the host implementations aligned by mirroring module organization, decode boundaries, names,
-and fixtures. Collapsed renderers follow the browser's compact one-line summaries. Expanded
-renderers show the union of useful metadata available on either surface, expressed with each
-host's native layout. A behavior or wording change normally belongs on both sides, with focused
-owner tests, the cross-owner TUI goldens, and the shared showcase fixture updated together.
+Collapsed renderers provide compact summaries. Expanded renderers expose useful metadata and
+bounded output. Arguments cross the typed `decode` boundary before layout, and untrusted text
+passes through terminal sanitization. Focused owner tests and
+`tests/tool-goldens.test.ts` cover renderer behavior through Pi's shell.
 
-A shared declarative view model was evaluated after the renderer convergence and rejected. The
-view leaves are not mechanical: the terminal delegates some expanded built-in bodies back to Pi,
-measures and truncates by character cells, sanitizes ANSI, has one global expansion state, and
-cannot reproduce browser disclosures, accessibility, images, or status-tone overrides. A shared
-`Block[]` model would encode host exceptions or reduce both hosts to a lowest common denominator.
+The optional `builtin-tool-renderers.ts` registration is disabled in `agent/settings.json`.
+Its helpers and tests remain, but Pi supplies the active built-in presentation. Background,
+FFF, and questionnaire renderers remain with their owners. Browser parity is no longer an
+implementation requirement.
 
-Sharing only decoders is also deferred rather than assumed. The closest duplicate,
-questionnaire, has different boundaries: the browser consumes a raw transcript result and
-validates a bounded TypeBox data transfer object, while the TUI receives Pi's normalized result
-and applies terminal sanitization. Agentflow and background differ more: their TUI renderers
-consume owner-produced snapshot types, while the browser decoders defensively construct bounded
-renderer views from untrusted transcript data. Extracting these today would change ownership and
-runtime dependencies, not merely remove duplication. Revisit a shared decoder only when a
-concrete rule must again be fixed independently on both surfaces, a third host needs the same
-normalized data, and the consumers genuinely agree on one data transfer object. Presentation
-remains host-owned either way.
+### Local source references
+
+| Package           | Reference                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `pi-tui`          | `dist/tui.d.ts`, `dist/index.d.ts`, `dist/components/text.js`, `dist/components/box.js`  |
+| `pi-coding-agent` | `dist/core/extensions/types.d.ts`, `dist/modes/interactive/components/tool-execution.js` |
+| `pi-coding-agent` | `dist/core/tools/renderers/index.js`, `dist/core/export-html/tool-renderer.js`           |
+
+These files describe component input, per-row render context, framing, built-in slot inheritance,
+and HTML export behavior. They are read-only verification sources, not setup implementation targets.
 
 ## The one interface
 
 ```ts
 interface Component {
-  render(width: number): string[]; // ANSI-styled lines, one array entry per terminal row
-  invalidate(): void; // drop cached lines (theme change, forced redraw)
-  handleInput?(data: string): void; // focusable widgets only
+  render(width: number): string[]; // ANSI-styled lines, one entry per terminal row
+  invalidate(): void; // drop cached rendering state
+  handleInput?(data: string): void; // keyboard input when focused
+  handleMouse?(event: TuiMouseEvent): TuiMouseEventResult | undefined;
+  wantsKeyRelease?: boolean; // opt into Kitty key-release events
 }
 ```
 
-That is the whole contract. A component is a function from the available width to lines.
-There is no layout engine, no measurement pass and no box model: **anything CSS would do
-with layout you do by composing strings**, and anything CSS would do with color you get from
-`theme.fg`/`theme.bg`.
-
-`TUI` (`dist/tui.js`) owns the tree, calls `render(width)` and diff-repaints only the lines
-that changed. It is the reconciler plus the DOM.
+`Component` and the mouse event types are exported by `pi-tui`. Components compose lines at the
+available width. `theme.fg` and `theme.bg` apply ANSI colors. Pi 1.0 exports main-screen and
+alternate-screen TUI implementations through `TuiMainScreen` and `TuiAltScreen`.
 
 ## Component catalog
 
-| Construct                                       | Behavior                                                                                                                                      | Browser equivalent                                                                                            |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `Container`                                     | stacks children, concatenating their lines; no padding, no style                                                                              | `<div>` in normal block flow                                                                                  |
-| `Box(padX, padY, bgFn)`                         | `Container` plus `padX` spaces left/right, `padY` blank lines top/bottom, and `bgFn` applied to every line after padding it to the full width | `<div style="padding: …; background: …">` — literally what `.tool-execution` does                             |
-| `Text(text, padX, padY, bgFn?)`                 | leaf that **word-wraps** ANSI text to the content width (`wrapTextWithAnsi`), expands tabs to three spaces, caches on `(text, width)`         | `.tool-output`: `white-space: pre-wrap; overflow-wrap: anywhere`                                              |
-| `TruncatedText(text, padX, padY)`               | same, but **clips** each line to the width                                                                                                    | `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` (`.tool-run-summary`, `.agentflow-tool-row`) |
-| `Spacer(n)`                                     | `n` empty lines                                                                                                                               | `margin`                                                                                                      |
-| `Markdown`                                      | markdown → styled lines, including highlighted code blocks                                                                                    | our `marked` + DOMPurify pipeline                                                                             |
-| `Image(data, mime, theme, opts)`                | kitty/iTerm2 inline image with cell-size math, or a fallback                                                                                  | `<img>`                                                                                                       |
-| `Loader`, `CancellableLoader`, `BorderedLoader` | animated spinner rows                                                                                                                         | a CSS animation                                                                                               |
-| `SelectList`, `SettingsList`, `Editor`, `Input` | the only constructs with `handleInput` and focus                                                                                              | interactive form controls                                                                                     |
-| `TUI.showOverlay(component, options)`           | floating panel with anchor/size options, returning an `OverlayHandle`                                                                         | a modal / popover                                                                                             |
+| Construct                                       | Behavior                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Container`                                     | Stacks children and concatenates their lines without padding or styling.                          |
+| `Box(padX, padY, bgFn)`                         | Adds horizontal and vertical padding and applies `bgFn` to full-width lines.                      |
+| `Text(text, padX, padY, bgFn?)`                 | Wraps ANSI text with `wrapTextWithAnsi`, expands tabs to three spaces, and caches text and width. |
+| `TruncatedText(text, padX, padY)`               | Clips text to the available width instead of wrapping it.                                         |
+| `Spacer(n)`                                     | Produces `n` empty lines.                                                                         |
+| `Markdown`                                      | Produces styled Markdown lines, including highlighted code blocks.                                |
+| `Image(data, mime, theme, opts)`                | Renders Kitty or iTerm2 inline images when supported, or a fallback.                              |
+| `Loader`, `CancellableLoader`                   | Provide spinner components from `pi-tui`. `BorderedLoader` comes from `pi-coding-agent`.          |
+| `SelectList`, `SettingsList`, `Editor`, `Input` | Handle keyboard input when focused.                                                               |
+| `MouseRegion`                                   | Wraps a component with a normalized mouse handler.                                                |
+| `TUI.showOverlay(component, options)`           | Returns an `OverlayHandle` for a panel with anchor and size options.                              |
 
 ### Styling and measuring
 
-- `theme.fg(color, text)`, `theme.bg(bg, text)`, `theme.bold/italic/underline/inverse` wrap a
-  string in ANSI codes. The color keys (`toolTitle`, `accent`, `dim`, `muted`, `toolOutput`,
-  `success`, `warning`, `error`, `toolDiffAdded/Removed/Context`, `syntax*`) and background
-  keys (`toolPendingBg`, `toolSuccessBg`, `toolErrorBg`, `customMessageBg`, …) are **the same
-  names the browser uses as CSS variables**, which is why the palettes already match.
+- `theme.fg(color, text)`, `theme.bg(bg, text)`, `theme.bold`, `theme.italic`,
+  `theme.underline`, and `theme.inverse` wrap strings in ANSI codes. Foreground keys include
+  `toolTitle`, `accent`, `dim`, `muted`, `toolOutput`, `success`, `warning`, and `error`.
+  Background keys include `toolPendingBg`, `toolSuccessBg`, `toolErrorBg`, and `customMessageBg`.
 - `visibleWidth(s)` measures ignoring escape codes; `truncateToWidth(s, w, "…")` clips
   safely; `wrapTextWithAnsi(s, w)` wraps; `sliceByColumn` cuts a range. Use these instead of
   `String.length`/`slice` on any styled string.
@@ -91,20 +83,18 @@ that changed. It is the reconciler plus the DOM.
 
 ### Gotchas that bite
 
-- `Text.render` returns `[]` when the text is empty or whitespace-only, and `Box.render`
-  returns `[]` when its children produce no lines. That is how "a collapsed tool shows no
-  body at all" happens — return an empty `Text`/`Container` deliberately, not by accident.
-- Only focusable widgets receive input. Transcript rows never do, so **there is no
-  per-row click or per-row expansion**; expansion is one global flag (see below).
-- Untrusted strings must go through a sanitizer before rendering — a raw escape sequence
-  from a tool result can repaint the screen. See `sanitizeRenderedValue` in
-  `lib/tools/format.ts`. Normalize `\r\n` **before** sanitizing: the sanitizer maps a stray
-  CR to a space, so sanitizing first leaves a trailing space on every line.
-- `render(width)` receives a narrow width on a split pane, and `Container` passes it through
-  unchanged. `Text`/`Box` clamp their content width to at least one column and `Terminal`
-  falls back to 80 columns when stdout reports none, so zero is not reachable through the
-  shell — but a custom component doing arithmetic on `width` should still guard with
-  `if (width <= 0) return []` rather than emit negative-length padding.
+- `Text.render` returns `[]` for empty or whitespace-only text. `Box.render` returns `[]`
+  when its children produce no lines. An empty `Text` or `Container` hides the collapsed body.
+- Keyboard input goes to focused components. Mouse input is separate in Pi 1.0. The tool shell
+  wraps call and result components in `MouseRegion`; a left click toggles that tool's expansion
+  once a result exists. Renderers receive the current per-row `expanded` value.
+- A raw escape sequence from a tool result can repaint the screen.
+  `sanitizeRenderedValue` in `lib/tools/format.ts` strips terminal sequences from untrusted text.
+  Normalizing `\r\n` before sanitization avoids trailing spaces, since the sanitizer maps stray
+  carriage returns to spaces.
+- `render(width)` can receive a narrow viewport width. `Text` reduces horizontal padding to
+  fit, while `Box` retains its configured padding. Both clamp content width to at least one
+  column. A custom component can guard `width <= 0` before calculating padding or truncation.
 
 ## The tool-execution shell
 
@@ -118,27 +108,28 @@ Box(1, 1, bgFn)          bgFn = toolPendingBg | toolSuccessBg | toolErrorBg
 Spacer(1) + Image(...)   per image block in the result
 ```
 
-- The `Box` is the browser's `ToolBox`; `renderCall`/`renderResult` are its `header`/`body`.
-- **Tone is derived from `isPartial`/`result.isError` and cannot be overridden** — the
-  browser's `status()` hook has no equivalent. `renderShell: "self"` opts out of the framing
-  entirely and lets the renderer draw its own `Box` (images are still handled by the shell).
-- **Renderer inheritance is per slot** for the seven built-ins: registering
-  `{...createReadToolDefinition(cwd), renderResult}` keeps Pi's `renderCall`.
+- `renderCall` supplies the header and `renderResult` supplies the body within the same box.
+- Default framing derives its background from `isPartial` and `result.isError`.
+  `renderShell: "self"` replaces that framing with a plain container, allowing renderer-owned
+  boxes. Images are still handled by the shell.
+- Built-in renderer inheritance is per slot. `withBuiltInRenderers` in
+  `dist/core/tools/renderers/index.js` fills missing `renderCall` and `renderResult` slots.
+  Its map includes `read`, `bash`, `powershell`, `edit`, `write`, `grep`, `find`, and `ls`.
 - A renderer that throws is caught and replaced by the fallback, silently. Test your
   renderers.
 - `ctx: ToolRenderContext` carries `args`, `toolCallId`, `cwd`, `expanded`, `isPartial`,
   `executionStarted`, `argsComplete`, `showImages`, `isError`, `state` (per-row scratch
   object), `lastComponent` (the component this slot returned last time) and `invalidate()`.
-- Expansion is global: `interactive-mode.js` keeps one `toolOutputExpanded` bound to
-  `app.tools.expand` and pushes it into every tool component.
+- Expansion is stored on each `ToolExecutionComponent`. `setExpanded` rebuilds its display,
+  and the shell's mouse handler toggles that component without changing other rows.
 
 ## Composition snippets
 
 ### A tool renderer: compact when collapsed, complete when expanded
 
 ```ts
-import { keyHint, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import { sanitizeRenderedValue } from "./lib/tools/format.ts";
 
 pi.registerTool({
   name: "example",
@@ -148,8 +139,10 @@ pi.registerTool({
     const text = (ctx.lastComponent as Text | undefined) ?? new Text("", 0, 0);
     text.setText(
       theme.fg("toolTitle", theme.bold("example ")) +
-        theme.fg("accent", String(args.path ?? "…")) +
-        (args.limit === undefined ? "" : theme.fg("dim", ` · limit ${args.limit}`)),
+        theme.fg("accent", sanitizeRenderedValue(String(args.path ?? "…"))) +
+        (args.limit === undefined
+          ? ""
+          : theme.fg("dim", ` · limit ${sanitizeRenderedValue(String(args.limit))}`)),
     );
     return text;
   },
@@ -159,7 +152,10 @@ pi.registerTool({
       .map((part) => part.text ?? "")
       .join("\n");
     if (isPartial && !expanded) return new Text("", 0, 0); // renders zero lines
-    if (expanded) return new Text(theme.fg("toolOutput", `\n${output}`), 0, 0);
+    if (expanded) {
+      const safeOutput = sanitizeRenderedValue(output.replace(/\r\n/g, "\n"));
+      return new Text(theme.fg("toolOutput", `\n${safeOutput}`), 0, 0);
+    }
     const count = output ? output.split("\n").length : 0;
     return new Text(theme.fg("dim", count ? `${count} lines` : "no output"), 0, 0);
   },
@@ -168,7 +164,7 @@ pi.registerTool({
 
 ### Rows that never wrap, versus text that does
 
-`Text` wraps; for the browser's ellipsized one-line rows, produce the lines yourself:
+`Text` wraps. A component can instead truncate each entry to one terminal row:
 
 ```ts
 import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
@@ -199,17 +195,16 @@ const paragraph = (styled: string, maxLines: number): Component => ({
 });
 ```
 
-`maxLines` is how a terminal expresses the browser's nested `ExpandableOutput`: there is no
-inner disclosure to click, so pick a bound per state instead.
+`maxLines` bounds paragraph output per expansion state. The example assumes `maxLines >= 1`.
+The tool shell does not create nested disclosures for the renderer's internal sections.
 
 ### A row that updates itself
 
 `state` survives across renders of the same row; `invalidate()` asks for a repaint, and Pi
-answers it by re-running *both* render slots (`updateDisplay`), so the row recomputes rather
+answers it by re-running _both_ render slots (`updateDisplay`), so the row recomputes rather
 than repainting cached lines.
 
-`lib/tools/live.ts` is the implementation of this for the renderers here — use it rather than
-writing a timer per renderer:
+`lib/tools/live.ts` provides shared timer management for these renderers:
 
 ```ts
 body: (_args, result, ctx) => {
@@ -219,9 +214,9 @@ body: (_args, result, ctx) => {
 }
 ```
 
-Always clear timers on completion and on `session_shutdown` — a renderer is not a lifecycle
-owner, which is why `stopLiveRedraw()` exists and both extensions call it there. And keep a
-settled row deterministic: only a live row may tick, or the goldens move on their own.
+`liveRedraw(ctx, false)` clears a row's timer. Background-processes calls `stopLiveRedraw()`
+on `session_shutdown` to clear remaining timers, including launch cards whose snapshots stay
+running. Settled rows do not tick, so their golden output remains deterministic.
 
 ### Drawing your own framing
 
@@ -238,18 +233,13 @@ pi.registerTool({
 });
 ```
 
-This is the only way to express "pending while the tool result is already settled" — the browser
-does it with `status()`.
+Self framing allows a pending-colored box after the tool result has settled. It also removes
+the shared box around both slots. If each slot returns a box, the output contains separate boxes.
 
-It comes with a trap, and it is why the questionnaire does not use it. Dropping the shell drops
-the *shared* box the two slots append into, so each slot that draws produces its own box, and
-exactly one of them may be non-empty. No field of the render context distinguishes "pending" from
-"settled" in every host: Pi's HTML exporter calls `renderCall` with `isPartial: true` hardcoded and
-then `renderResult` with `isPartial: false`, emitting both
-(`dist/core/export-html/tool-renderer.js`). A renderer that splits on `isPartial` therefore draws
-two boxes in every `pi --export`, the first one reporting a state the call has left. So reach for
-`renderShell: "self"` only when `renderCall` alone can draw everything — a tool that tracks its own
-state and does not need its result — and otherwise let the body carry the state in its colours.
+Pi's HTML exporter calls `renderCall` with `isPartial: true` and `renderResult` with
+`isPartial: false`, emitting both outputs through `dist/core/export-html/tool-renderer.js`.
+A call renderer cannot use `isPartial` alone to infer that no final result exists across hosts.
+The questionnaire keeps default framing and expresses its state in the body instead.
 
 ### Composing a message renderer
 
@@ -260,7 +250,10 @@ transcript:
 pi.registerMessageRenderer("my-event", (message, { expanded, outputPad }, theme) => {
   const box = new Box(outputPad, 1, (line) => theme.bg("customMessageBg", line));
   box.addChild(new Text(theme.fg("customMessageLabel", theme.bold("■ event")), 0, 0));
-  if (expanded) box.addChild(new Text(theme.fg("dim", String(message.content)), 0, 0));
+  if (expanded) {
+    const content = sanitizeRenderedValue(String(message.content).replace(/\r\n/g, "\n"));
+    box.addChild(new Text(theme.fg("dim", content), 0, 0));
+  }
   return box;
 });
 ```
@@ -274,23 +267,20 @@ stack.addChild(new Spacer(1));
 stack.addChild(bodyComponent);
 ```
 
-`Container` is a plain `<div>`: lines in, lines out. Reach for `Box` only when you want
-padding or a background.
+`Container` concatenates child lines without styling. `Box` adds padding and a background.
 
-## Mapping the browser's primitives to lines
+## Shared renderer vocabulary
 
-What `packages/pi-web-ui-client/src/client/tools/shared.tsx` does, and its terminal form:
+The retained helpers in `lib/tools/` provide terminal layouts:
 
-| Browser                                           | Terminal                                                           |
-| ------------------------------------------------- | ------------------------------------------------------------------ |
-| `ToolBox` (status class + click)                  | the shell's `Box(1,1)` with a status `bgFn`                        |
-| `Summary` (`.compact-result`)                     | one `theme.fg("dim" \| "error", …)` line                           |
-| `Output` (`.tool-output`)                         | `Text(theme.fg("toolOutput", text), 0, 0)`                         |
-| `ExpandableOutput` (nested disclosure)            | a fixed `maxLines` bound plus `… N more lines`                     |
-| `SearchHeader`                                    | `bold(label) + accent(pattern) + dim(" · " + details.join(" · "))` |
-| `Facts` (CSS grid `dt`/`dd`)                      | one `dim("Label: value")` line per fact                            |
-| `StatusLine` (status · parts · "click to expand") | same, with `keyHint("app.tools.expand", …)`                        |
-| `ResultNotice`                                    | `theme.fg("warning", "[…]")`                                       |
-| `InvalidArg`                                      | `theme.fg("error", "[invalid arg]")`                               |
-| `ImageBlock`                                      | handled by the shell from the result's image blocks                |
-| image omission placeholders                       | no equivalent                                                      |
+| Output           | Terminal form                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| Compact summary  | One `theme.fg("dim", text)` or `theme.fg("error", text)` line.                                 |
+| Text output      | `Text(theme.fg("toolOutput", text), 0, 0)`.                                                    |
+| Bounded output   | A fixed line bound followed by a remaining-line count.                                         |
+| Search header    | A bold label, accented pattern, and dim details.                                               |
+| Facts            | One dim `Label: value` line per fact.                                                          |
+| Status line      | Status and metadata, with the configured `app.tools.expand` key hint.                          |
+| Result notice    | `theme.fg("warning", "[…]")`.                                                                  |
+| Invalid argument | `theme.fg("error", "[invalid arg]")`.                                                          |
+| Images           | The shell handles result image blocks when terminal capabilities and `showImages` permit them. |

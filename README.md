@@ -37,16 +37,15 @@ mise bootstrap remote \
 
 ## Pi
 
-Pi configuration is owned by the private [`tudoroancea/pi-setup`](https://github.com/tudoroancea/pi-setup) repository, cloned directly as a real `~/.pi` directory. Do not create a `~/.pi` symlink into this dotfiles checkout.
+Pi configuration lives in [`agents/pi`](agents/pi/README.md). Mise deploys its resources into `~/.pi` and renders the agent instructions. The private `pi-setup` repository remains an archive of the retired web UI, daemon, and Agentflow.
 
 ```bash
-git clone git@github.com:tudoroancea/pi-setup.git ~/.pi
-cd ~/.pi
+cd agents/pi
 nub install
 nub run check
 ```
 
-`setup.sh` performs the clone and install when `~/.pi` is absent. Set `PI_SETUP_REPOSITORY_URL` only to override the default SSH URL.
+Use the development overlay to deploy Pi. `setup.sh` no longer clones the archived repository.
 
 ## tmux
 

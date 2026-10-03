@@ -29,9 +29,6 @@ data/
 **/.DS_Store
 **/node_modules/
 **/dist/
-!apps/remote-session-daemon/dist/
-!apps/remote-session-daemon/dist/client/
-!apps/remote-session-daemon/dist/client/**
 **/test-results/
 **/playwright-report/
 

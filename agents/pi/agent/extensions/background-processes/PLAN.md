@@ -1,4 +1,4 @@
-# Background Processes Maintenance Plan
+# Background processes maintenance plan
 
 ## Scope
 
@@ -8,21 +8,20 @@ This plan owns deferred internal simplification and performance work for `agent/
 - `background_event_stream` remains event-oriented;
 - output, artifacts, result delivery, queues, and process trees remain bounded;
 - wait consumption, at-most-once delivery, cancellation, shutdown verification, and cleanup semantics remain intact;
-- the extension retains ownership of its runtime and exposes only bounded provider DTOs through the Pi event bus;
-- neither `web-ui` nor the remote-session daemon may import this runtime.
+- the extension owns its runtime, tool results, delivered messages, and TUI renderers;
+- long-lived TUI and RPC hosts remain supported, while print and JSON modes reject background tools.
 
-The current implementation is correct and checked. These phases are deferred because they affect safety-critical lifecycle or persistence paths and should not be mixed with ordinary dead-code cleanup.
+These phases affect safety-critical lifecycle or persistence paths. Keep them separate from documentation cleanup and integration retirement.
 
 ## Evidence
 
 - Production runtime: `src/runtime/process-runtime.ts`, `job-store.ts`, `artifact-store.ts`, `results.ts`, and `monitor.ts`
-- Provider boundary: `src/web-provider.ts`
-- Lifecycle integration: `src/index.ts`
+- Lifecycle and mode integration: `src/index.ts`
+- TUI renderers and dashboard: `src/ui/`
+- Rendering contract: `../TUI_RENDERING.md`
 - Current package checks: `package.json`
-- Shared UI boundary: `../web-ui/PLAN.md`
-- Daemon boundary: `../../../apps/remote-session-daemon/PLAN.md`
 
-## Phase 1 — measure and freeze lifecycle semantics
+## Phase 1: measure and freeze lifecycle semantics
 
 - [ ] Add or identify focused fixtures for launch overtaken by shutdown, terminal persistence failure, delivery persistence failure, monitor persistence failure, wait/stop management references, and artifact cleanup.
 - [ ] Document which persisted monitor fields are required for crash diagnostics versus only live display.
@@ -34,7 +33,7 @@ Exit criteria:
 - the invariants protected by generation and retry machinery are explicit;
 - simplification can be evaluated against measured behavior rather than line count.
 
-## Phase 2 — simplify runtime generation ownership
+## Phase 2: simplify runtime generation ownership
 
 Today a fresh `ProcessRuntime` and `JobStore` are created for each session, so the numeric generation API may be wider than production requires. It nevertheless protects shutdown races and post-shutdown finalization.
 
@@ -49,7 +48,7 @@ Exit criteria:
 - shutdown-race coverage is at least as strong as before;
 - the runtime API no longer represents unsupported multi-generation reuse.
 
-## Phase 3 — consolidate bounded checkpoint retries
+## Phase 3: consolidate bounded checkpoint retries
 
 Terminal metadata, completion-delivery records, and monitor-delivery metadata currently use similar bounded retry structures with different permanent-failure semantics.
 
@@ -63,7 +62,7 @@ Exit criteria:
 - duplicated retry control flow is removed;
 - each failure remains observable through its existing bounded contract.
 
-## Phase 4 — decide monitor persistence granularity
+## Phase 4: decide monitor persistence granularity
 
 Persisting monitor counters after live deliveries adds dirty/in-flight/drain machinery but provides crash-visible diagnostics.
 
@@ -75,9 +74,9 @@ Persisting monitor counters after live deliveries adds dirty/in-flight/drain mac
 Exit criteria:
 
 - checkpoint frequency is intentional and measured;
-- browser/TUI delivery and shutdown remain non-blocking and bounded.
+- result delivery and shutdown remain non-blocking and bounded in both TUI and RPC hosts.
 
-## Phase 5 — move derived path-bound work out of module initialization
+## Phase 5: move derived path-bound work out of module initialization
 
 `ARTIFACT_JOB_PATH_MAX_BYTES` is derived through worst-case serialization at import time.
 
@@ -99,7 +98,7 @@ Exit criteria:
 
 ## Verification
 
-For every phase, run from the repository root:
+For every phase, run from `agents/pi`, the Pi workspace root:
 
 ```sh
 nub run --filter pi-background-processes format:check

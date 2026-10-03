@@ -94,7 +94,7 @@ describe("boxed editor activity footer", () => {
     expect(composeActivityFooter(new Map(), 80)).toEqual([]);
   });
 
-  it("guards Boxed Editor as the only enabled footer owner", () => {
+  it("keeps the optional custom footer disabled by default", () => {
     const agentRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
     const extensionRoot = resolve(agentRoot, "extensions");
     const sources = readdirSync(extensionRoot, { recursive: true, withFileTypes: true })
@@ -118,11 +118,8 @@ describe("boxed editor activity footer", () => {
     const owners = sources.map((path) => relative(agentRoot, path)).sort();
     const enabledOwners = owners.filter((path) => !disabled.has(path));
 
-    expect(owners).toEqual([
-      "extensions/boxed-editor/index.ts",
-      "extensions/worktrunk-statusline.ts",
-    ]);
-    expect(enabledOwners).toEqual(["extensions/boxed-editor/index.ts"]);
+    expect(owners).toEqual(["extensions/boxed-editor/index.ts"]);
+    expect(enabledOwners).toEqual([]);
   });
 
   it("reads whole-session entries for the displayed cost", () => {
