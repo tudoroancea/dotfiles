@@ -1,0 +1,12 @@
+{
+  "name": "mise-npm-install",
+  "private": true,
+  "aube": {
+    "allowBuilds": {
+      "@nubjs/nub": true
+    }
+  },
+  "dependencies": {
+    "@nubjs/nub": "0.9.6"
+  }
+}

@@ -1,6 +1,12 @@
 [settings]
 lockfile = true
 
+[settings.npm]
+package_manager = "aube"
+
+[tool_alias]
+npm = "npm:npm"
+
 [bootstrap.user]
 login_shell = "/bin/zsh"
 
@@ -154,3 +160,6 @@ source $ZSH/oh-my-zsh.sh
 "github:BurntSushi/ripgrep" = "latest"
 "github:jesseduffield/lazygit" = "latest"
 bat = "latest"
+
+[bootstrap.hooks.final]
+run = "git config --global core.excludesfile ~/.config/mise/git/global-gitignore"
