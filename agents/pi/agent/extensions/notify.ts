@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 /**
  * Pi Notify Extension (Consolidated)
@@ -31,23 +31,20 @@ function shouldNotify(): boolean {
   return inactiveTime > ACTIVITY_TIMEOUT_MS;
 }
 
-function setupFocusTracking() {
+function setupFocusTracking(ctx: ExtensionContext, fullscreen: boolean) {
   if (cleanupFocus || !process.stdin.isTTY) return;
 
-  process.stdout.write("\x1b[?1004h"); // Enable focus reporting
+  if (!fullscreen) process.stdout.write("\x1b[?1004h");
   focusReportingSupported = true;
-  const stdinWasFlowing = process.stdin.readableFlowing === true;
 
   let pendingFocusChange: NodeJS.Timeout | null = null;
 
-  const handleData = (data: Buffer) => {
-    const str = data.toString();
-
+  const unsubscribe = ctx.ui.onTerminalInput((str) => {
     // Track activity for fallback heuristic
     lastActivityTime = Date.now();
 
     // Check for focus events
-    if (str.includes("\x1b[I")) {
+    if (str === "\x1b[I") {
       focusEventsReceived = true;
       // Debounce rapid changes
       if (pendingFocusChange) clearTimeout(pendingFocusChange);
@@ -56,7 +53,7 @@ function setupFocusTracking() {
         pendingFocusChange = null;
       }, DEBOUNCE_MS);
     }
-    if (str.includes("\x1b[O")) {
+    if (str === "\x1b[O") {
       focusEventsReceived = true;
       // Debounce rapid changes
       if (pendingFocusChange) clearTimeout(pendingFocusChange);
@@ -65,16 +62,15 @@ function setupFocusTracking() {
         pendingFocusChange = null;
       }, DEBOUNCE_MS);
     }
-  };
-
-  process.stdin.on("data", handleData);
+    if (!fullscreen && (str === "\x1b[I" || str === "\x1b[O")) return { consume: true };
+    return undefined;
+  });
 
   cleanupFocus = () => {
-    process.stdout.write("\x1b[?1004l"); // Disable focus reporting
-    process.stdin.off("data", handleData);
+    if (!fullscreen) process.stdout.write("\x1b[?1004l");
+    unsubscribe();
     if (pendingFocusChange) clearTimeout(pendingFocusChange);
     pendingFocusChange = null;
-    if (!stdinWasFlowing) process.stdin.pause();
     cleanupFocus = null; // Fix: Allow re-setup on reload
   };
 }
@@ -111,13 +107,19 @@ async function triggerConfetti() {
 
 // --- Extension Entry Point ---
 export default function (pi: ExtensionAPI) {
-  pi.on("session_start", (_event, ctx) => {
+  pi.on("session_start", async (_event, ctx) => {
     cleanupFocus?.();
     isFocused = true;
     focusEventsReceived = false;
     focusReportingSupported = false;
     lastActivityTime = Date.now();
-    if (ctx.mode === "tui") setupFocusTracking();
+    if (ctx.mode === "tui" && process.stdin.isTTY) {
+      await ctx.ui.custom<void>((tui, _theme, _keybindings, done) => {
+        setupFocusTracking(ctx, tui.mode === "fullscreen");
+        done();
+        return { render: () => [], invalidate: () => {} };
+      });
+    }
   });
   pi.on("session_shutdown", () => cleanupFocus?.());
 

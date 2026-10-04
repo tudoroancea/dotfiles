@@ -130,6 +130,7 @@ source $ZSH/oh-my-zsh.sh
 "~/.zshrc/p10k-finish" = { block = "[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh" }
 
 "~/.config/nvim" = { source = "nvim", mode = "symlink" }
+# "~/."
 
 [bootstrap.repos]
 "~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }

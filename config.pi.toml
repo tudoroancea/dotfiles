@@ -3,7 +3,7 @@
 
 # Deploy runtime resources only. Dependencies stay in the source workspace;
 # credentials, sessions, caches, and Pi package stores stay under ~/.pi/agent.
-"~/.pi/agent" = { source = "agents/pi/agent", mode = "symlink-each", exclude = ["extensions", "skills", "scripts", ".gitignore", "scripts"] }
+"~/.pi/agent" = { source = "agents/pi/agent", mode = "symlink-each", exclude = ["extensions", "skills", ".gitignore"] }
 "~/.pi/agent/AGENTS.md" = { source = "agents/pi/AGENTS.md.tera", mode = "template" }
 "~/.pi/agent/skills/pi-upgrade" = { source = "agents/pi/agent/skills/pi-upgrade", mode = "symlink" }
 "~/.pi/agent/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }

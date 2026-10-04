@@ -26,7 +26,7 @@
     }
   ],
   "extensions": [
-    "-extensions/builtin-tool-renderers.ts",
+    "-extensions/pi-ui-demo.ts",
     "-extensions/custom-header.ts"
   ],
   "terminal": {

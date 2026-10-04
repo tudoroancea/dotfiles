@@ -15,17 +15,29 @@ class FakeStdin extends EventEmitter {
 }
 
 let stdin: FakeStdin;
+let input: EventEmitter;
 let write: ReturnType<typeof vi.fn>;
 let shutdown: (() => Promise<void>) | undefined;
 let platformDescriptor: PropertyDescriptor;
 
-function harness(mode = "tui", noConfetti = false) {
+function harness(mode = "tui", noConfetti = false, fullscreen = false) {
   const handlers = new Map<string, Handler>();
   const commands = new Map<string, Command>();
   const ctx = {
     mode,
     hasUI: true,
-    ui: { notify: vi.fn(), custom: vi.fn(), setStatus: vi.fn() },
+    ui: {
+      notify: vi.fn(),
+      custom: vi.fn(async (factory) => {
+        factory({ mode: fullscreen ? "fullscreen" : "regular" }, {}, {}, () => {});
+      }),
+      onTerminalInput: vi.fn((handler) => {
+        const listener = (data: Buffer) => handler(data.toString());
+        input.on("data", listener);
+        return () => input.off("data", listener);
+      }),
+      setStatus: vi.fn(),
+    },
   };
   const pi = {
     on: vi.fn((event: string, handler: Handler) => handlers.set(event, handler)),
@@ -45,7 +57,7 @@ function harness(mode = "tui", noConfetti = false) {
       messages: [{ role: "assistant", stopReason, content }],
     });
   const focus = async (focused: boolean) => {
-    stdin.emit("data", Buffer.from(focused ? "\x1b[I" : "\x1b[O"));
+    input.emit("data", Buffer.from(focused ? "\x1b[I" : "\x1b[O"));
     await vi.advanceTimersByTimeAsync(100);
   };
   return { ctx, pi, emit, command, end, focus };
@@ -59,6 +71,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
   stdin = new FakeStdin();
+  input = new EventEmitter();
   write = vi.fn(() => true);
   vi.spyOn(process, "stdin", "get").mockReturnValue(stdin as unknown as typeof process.stdin);
   vi.spyOn(process, "stdout", "get").mockReturnValue({ write } as unknown as typeof process.stdout);
@@ -115,17 +128,48 @@ describe("notification mode boundaries", () => {
       expect.objectContaining({ handler: expect.any(Function) }),
     );
     expect(write).not.toHaveBeenCalled();
-    expect(stdin.listenerCount("data")).toBe(0);
+    expect(input.listenerCount("data")).toBe(0);
     expect(exec).not.toHaveBeenCalled();
   });
 });
 
 describe("TUI notifications", () => {
+  it("leaves fullscreen focus reporting and focus-event handling to Pi", async () => {
+    const h = harness("tui", false, true);
+    const on = vi.spyOn(stdin, "on");
+    await h.emit("session_start");
+    expect(write).not.toHaveBeenCalled();
+    expect(on).not.toHaveBeenCalled();
+    const handler = h.ctx.ui.onTerminalInput.mock.calls[0]![0];
+    expect(handler("\x1b[O")).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(100);
+    await h.end();
+    expect(output()).toHaveLength(2);
+    write.mockClear();
+    await h.emit("session_shutdown");
+    expect(write).not.toHaveBeenCalled();
+    expect(input.listenerCount("data")).toBe(0);
+    expect(stdin.pause).not.toHaveBeenCalled();
+  });
+
+  it("consumes regular-mode focus events but passes typing and pasted sequences through", async () => {
+    const h = harness();
+    await h.emit("session_start");
+    const handler = h.ctx.ui.onTerminalInput.mock.calls[0]![0];
+    expect(handler("typing")).toBeUndefined();
+    expect(handler("\x1b[200~pasted \x1b[O\x1b[201~")).toBeUndefined();
+    write.mockClear();
+    await vi.advanceTimersByTimeAsync(100);
+    await h.end();
+    expect(write).not.toHaveBeenCalled();
+    expect(handler("\x1b[O")).toEqual({ consume: true });
+    expect(handler("\x1b[I")).toEqual({ consume: true });
+  });
   it("enables focus reporting once and suppresses completion and questionnaire notifications while focused", async () => {
     const h = harness();
     await h.emit("session_start");
     expect(output()).toEqual(["\x1b[?1004h"]);
-    expect(stdin.listenerCount("data")).toBe(1);
+    expect(input.listenerCount("data")).toBe(1);
     write.mockClear();
     await h.end();
     await h.emit("tool_call", { toolName: "questionnaire" });
@@ -225,7 +269,7 @@ describe("TUI notifications", () => {
     ]);
     expect(exec).not.toHaveBeenCalled();
     expect(h.ctx.ui.notify).not.toHaveBeenCalled();
-    expect(h.ctx.ui.custom).not.toHaveBeenCalled();
+    expect(h.ctx.ui.custom).toHaveBeenCalledTimes(1);
   });
 
   it("honors no-confetti without suppressing desktop notification", async () => {
@@ -261,7 +305,7 @@ describe("TUI notifications", () => {
     await h.end();
     expect(output()).toHaveLength(2);
     write.mockClear();
-    stdin.emit("data", Buffer.from("typing"));
+    input.emit("data", Buffer.from("typing"));
     await h.end();
     expect(write).not.toHaveBeenCalled();
     await h.focus(true);
@@ -274,11 +318,11 @@ describe("TUI notifications", () => {
     const h = harness();
     await h.emit("session_start");
     write.mockClear();
-    stdin.emit("data", Buffer.from("\x1b[O"));
+    input.emit("data", Buffer.from("\x1b[O"));
     await vi.advanceTimersByTimeAsync(99);
     await h.end();
     expect(write).not.toHaveBeenCalled();
-    stdin.emit("data", Buffer.from("\x1b[I"));
+    input.emit("data", Buffer.from("\x1b[I"));
     await vi.advanceTimersByTimeAsync(100);
     await h.end();
     expect(write).not.toHaveBeenCalled();
@@ -295,21 +339,21 @@ describe("notification cleanup and commands", () => {
     async (flowing) => {
       stdin.readableFlowing = flowing;
       const unrelated = vi.fn();
-      stdin.on("data", unrelated);
+      input.on("data", unrelated);
       const h = harness();
       await h.emit("session_start");
-      stdin.emit("data", Buffer.from("\x1b[O"));
+      input.emit("data", Buffer.from("\x1b[O"));
       expect(vi.getTimerCount()).toBe(1);
       write.mockClear();
       await h.emit("session_shutdown");
       await h.emit("session_shutdown");
       expect(output()).toEqual(["\x1b[?1004l"]);
-      expect(stdin.listeners("data")).toEqual([unrelated]);
-      expect(stdin.pause).toHaveBeenCalledTimes(flowing ? 0 : 1);
+      expect(input.listeners("data")).toEqual([unrelated]);
+      expect(stdin.pause).not.toHaveBeenCalled();
       expect(vi.getTimerCount()).toBe(0);
       await vi.advanceTimersByTimeAsync(100);
       await h.emit("session_start");
-      expect(stdin.listenerCount("data")).toBe(2);
+      expect(input.listenerCount("data")).toBe(2);
       write.mockClear();
       await h.end();
       expect(write).not.toHaveBeenCalled();
@@ -319,10 +363,10 @@ describe("notification cleanup and commands", () => {
   it("restarts with a single listener and no stale debounce or unfocused state", async () => {
     const h = harness();
     await h.emit("session_start");
-    stdin.emit("data", Buffer.from("\x1b[O"));
+    input.emit("data", Buffer.from("\x1b[O"));
     await h.emit("session_start");
     expect(output()).toEqual(["\x1b[?1004h", "\x1b[?1004l", "\x1b[?1004h"]);
-    expect(stdin.listenerCount("data")).toBe(1);
+    expect(input.listenerCount("data")).toBe(1);
     expect(vi.getTimerCount()).toBe(0);
     write.mockClear();
     await vi.advanceTimersByTimeAsync(100);
@@ -336,11 +380,11 @@ describe("notification cleanup and commands", () => {
   it("removes TUI tracking when restarting in RPC, then can return to TUI", async () => {
     const h = harness();
     await h.emit("session_start");
-    stdin.emit("data", Buffer.from("\x1b[O"));
+    input.emit("data", Buffer.from("\x1b[O"));
     h.ctx.mode = "rpc";
     await h.emit("session_start");
     expect(output()).toEqual(["\x1b[?1004h", "\x1b[?1004l"]);
-    expect(stdin.listenerCount("data")).toBe(0);
+    expect(input.listenerCount("data")).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
     write.mockClear();
     await vi.advanceTimersByTimeAsync(60_000);
@@ -352,7 +396,7 @@ describe("notification cleanup and commands", () => {
     h.ctx.mode = "tui";
     await h.emit("session_start");
     expect(output()).toEqual(["\x1b[?1004h"]);
-    expect(stdin.listenerCount("data")).toBe(1);
+    expect(input.listenerCount("data")).toBe(1);
   });
 
   it("does not enable focus reporting or attach stdin listeners without a TTY", async () => {
@@ -361,7 +405,7 @@ describe("notification cleanup and commands", () => {
     await h.emit("session_start");
     await h.emit("session_shutdown");
     expect(write).not.toHaveBeenCalled();
-    expect(stdin.listenerCount("data")).toBe(0);
+    expect(input.listenerCount("data")).toBe(0);
     expect(stdin.pause).not.toHaveBeenCalled();
   });
 

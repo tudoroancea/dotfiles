@@ -2,12 +2,12 @@
 
 ## new macbook
 
-```bash 
+```bash
 # install Command Line Tools (for git)
 xcode-select -p || xcode-select --install
 git --version
 
-# Install mise and expose it 
+# Install mise and expose it
 curl -fsSL https://mise.run | sh
 export PATH="$HOME/.local/bin:$PATH"
 mise --version
@@ -33,106 +33,10 @@ mise bootstrap remote \
   --env linux,... # edit here the exact overlay list
 ```
 
-# old stuff
+## env mapping
 
-## Pi
-
-Pi configuration lives in [`agents/pi`](agents/pi/README.md). Mise deploys its resources into `~/.pi` and renders the agent instructions. The private `pi-setup` repository remains an archive of the retired web UI, daemon, and Agentflow.
-
-```bash
-cd agents/pi
-nub install
-nub run check
-```
-
-Use the development overlay to deploy Pi. `setup.sh` no longer clones the archived repository.
-
-## tmux
-
-```bash
-ln -s ~/dotfiles/.tmux.conf ~/.tmux.conf
-```
-
-## ghostty
-
-on macOS:
-```bash
-ln -s ~/dotfiles/ghostty ~/Library/Application\ Support/com.mitchellh.ghostty
-```
-on Linux:
-```bash
-ln -s ~/dotfiles/ghostty ~/.config/ghostty
-```
-
-## alacritty
-
-```bash
-ln -s ~/dotfiles/alacritty ~/.config/alacritty
-```
-
-## zed
-
-```bash
-ln -s ~/dotfiles/zed ~/.config/zed
-```
-
-## nvim
-
-Install `nvim` with either
-
-```bash
-sudo apt update && sudo apt install neovim
-```
-
-on linux or
-
-```bash
-brew install neovim
-```
-
-on macOS and then install the config with
-
-```bash
-ln -s ~/dotfiles/nvim ~/.config/nvim
-```
-
-## vscode
-
-Once you have installed your vscode of choice, you can do the following:
-
-- on Linux:
-
-```bash
-ln -s ~/dotfiles/vscode/settings.json ~/.config/Code/User/settings.json
-ln -s ~/dotfiles/vscode/keybindings.json ~/.config/Code/User/keybindings.json
-```
-
-- on macOS:
-
-```bash
-ln -s ~/dotfiles/vscode/settings.json ~/Library/Application\ Support/Code/User/settings.json
-ln -s ~/dotfiles/vscode/keybindings.json ~/Library/Application\ Support/Code/User/keybindings.json
-```
-
-## lazygit
-
-on macOS:
-
-```shell
-ln -s ~/dotfiles/lazygit/config.yml ~/Library/Application\ Support/lazygit/config.yml
-```
-
-and on Linux:
-
-```shell
-ln -s ~/dotfiles/lazygit/config.yml ~/.config/lazygit/config.yml
-```
-
-# SSH configuration on Linux
-see the following [tutorial](https://hostman.com/tutorials/how-to-install-and-configure-ssh-on-ubuntu-22-04/)
-
-## Global gitignore
-
-```bash
-git config --global core.excludesfile ~/dotfiles/.gitignore
-```
+| machine    | envs              |
+| ---------- | ----------------- |
+| `raspi`    | `server,linux,pi` |
+| `la015`    | `dev,linux,pi`    |
+| `bestiav2` | `dev,macos,pi`    |

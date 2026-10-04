@@ -92,6 +92,7 @@ export PATH="$PATH:$HOME/.cargo/bin"
 
 [tools]
 "github:vercel-labs/fx" = "latest"
+"llama.cpp" = { version = "latest", prerelease = true, version_prefix = "b" }
 ##############################################
 # dump from `brew list --installed-on-request`
 ##############################################

@@ -11,8 +11,8 @@
   "scripts": {
     "check": "nub run format:check && nub run lint && nub run typecheck && nub run test",
     "check:extensions": "npm outdated --prefix ~/.pi/agent/npm; git -C ~/.pi/agent/git/github.com/championswimmer/pi-context-usage fetch origin && git -C ~/.pi/agent/git/github.com/championswimmer/pi-context-usage log --oneline HEAD..origin/HEAD",
-    "format": "oxfmt package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/scripts/README.md agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format",
-    "format:check": "oxfmt --check package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/scripts/README.md agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format:check",
+    "format": "oxfmt package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format",
+    "format:check": "oxfmt --check package.json tsconfig.json vitest.config.ts .oxfmtrc.json .oxlintrc.json agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential format:check",
     "lint": "oxlint --deny-warnings vitest.config.ts agent/extensions/*.ts agent/extensions/test agent/extensions/lib tests && nub run --recursive --if-present --sequential lint",
     "typecheck": "tsc --noEmit && nub run --recursive --if-present --sequential typecheck",
     "test:setup": "TMPDIR=/tmp vitest run",

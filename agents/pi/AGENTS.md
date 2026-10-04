@@ -40,6 +40,5 @@ Keep package-level manifests and checks independently runnable. Update the works
 
 ## Plans
 
-- `agent/extensions/PLAN.md` owns cross-extension and standalone-extension maintenance.
 - `agent/extensions/background-processes/PLAN.md` owns background-runtime maintenance.
 - Update the owning plan as phases complete. Do not duplicate implementation ownership across plans.

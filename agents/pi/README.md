@@ -39,6 +39,22 @@ If an existing deployment has a real `~/.pi/agent/extensions` directory, inspect
 
 `AGENTS.md.tera` is the canonical Pi-specific instruction source. Its first line imports `../shared/AGENTS.md`. Mise renders installed instructions; do not edit `~/.pi/agent/AGENTS.md` directly.
 
+## Updates
+
+Run `nub run check:extensions` from this directory to inspect installed npm package updates and incoming `pi-context-usage` commits. Package sources are pinned in `agent/settings.json`; FFF is pinned separately in `agent/extensions/fff/package.json` and installed through the Nub workspace. Review release notes before changing pins.
+
+The `pi-upgrade` skill owns the full upgrade procedure. Do not update shared package stores from a secondary worktree.
+
+## Notification focus
+
+Notifications subscribe through `ctx.ui.onTerminalInput`, never directly to stdin. In regular mode the extension enables focus reporting, consumes focus events, and disables reporting on cleanup. In fullscreen mode Pi owns reporting and consumes those events after the extension observes them. Cleanup unsubscribes and clears pending debounce timers without pausing stdin. Without focus events, notification gating falls back to 45 seconds of inactivity. RPC, print, and JSON modes perform no terminal notification or focus writes.
+
+## Session-cost accounting
+
+`agent/extensions/lib/session-cost.ts` counts recorded provider spend from supplied top-level entries, not the current model context. The boxed editor reads the whole session tree; `/session-breakdown` reads every top-level entry in historical JSONL files. Assistant and tool-result usage, compactions, and branch summaries count, but nested snapshots and transcript tails do not count recursively.
+
+Preserve historical Agentflow fixtures and numeric-string cost parsing. Non-empty `agentflow:` cost IDs deduplicate by the greatest value. Historical aggregation suppresses propagated child cost only when the included persisted child session already represents it; unavailable or in-memory child cost remains counted.
+
 ## Test ownership
 
 - `agent/extensions/test/` covers standalone extensions, including naming, notifications, tool selection, and session breakdown.

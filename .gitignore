@@ -1,8 +1,1 @@
-.DS_Store
-.cache/clangd
-.zed
-.claude/settings.local.json
-.wrangler/cache
-.worktrees
-worktrunk/approvals.toml*
 miserc.toml
