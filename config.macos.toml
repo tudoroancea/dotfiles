@@ -86,6 +86,8 @@ export PATH="$PATH:$HOME/.cargo/bin"
 "~/.fx/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
 "~/.fx/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
 
+"~/.t3/userdata/keybindings.json" = { source = "t3code/keybindings.json", mode = "symlink" }
+"~/.t3/userdata/themes/rose-pine.json" = { source = "t3code/rose-pine.json", mode = "symlink" }
 
 [bootstrap.packages]
 "brew-cask:ghostty" = "latest"
