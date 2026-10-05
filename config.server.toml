@@ -4,6 +4,23 @@
 "~/.fx/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
 "~/.fx/skills" = { source = "agents/shared/skills", mode = "symlink-each" }
 
+[bootstrap.hooks.pre-packages]
+run = """
+if command -v apt-get >/dev/null 2>&1; then
+  . /etc/os-release
+  list_file=/etc/apt/sources.list.d/tailscale.list
+  keyring=/usr/share/keyrings/tailscale-archive-keyring.gpg
+  if [ ! -s "$list_file" ] || [ ! -s "$keyring" ]; then
+    curl -fsSL "https://pkgs.tailscale.com/stable/${ID}.${VERSION_CODENAME}.noarmor.gpg" | sudo tee "$keyring" >/dev/null
+    curl -fsSL "https://pkgs.tailscale.com/stable/${ID}.${VERSION_CODENAME}.tailscale-keyring.list" | sudo tee "$list_file" >/dev/null
+    sudo apt-get update
+  fi
+fi
+"""
+
+[bootstrap.packages]
+"apt:tailscale" = "latest"
+
 [tools]
 node = "latest"
 npm = "latest"

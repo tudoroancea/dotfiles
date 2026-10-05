@@ -91,6 +91,7 @@ export PATH="$PATH:$HOME/.cargo/bin"
 
 [bootstrap.packages]
 "brew-cask:ghostty" = "latest"
+"brew-cask:tailscale-app" = "latest"
 
 [tools]
 "github:vercel-labs/fx" = "latest"
