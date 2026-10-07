@@ -2,13 +2,13 @@
   "lastChangelogVersion": "1.0.4",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-6-luna",
+  "defaultProvider": "openai",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
-    "openai-codex/gpt-6-luna",
-    "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6.1-sol"
+    "openai/gpt-6-luna",
+    "openai/gpt-6-astra",
+    "openai/gpt-6.1-sol"
   ],
   "quietStartup": "header",
   "collapseChangelog": true,

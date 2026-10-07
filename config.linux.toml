@@ -1,13 +1,11 @@
+[tools]
+"npm:t3" = "nightly"
+
 [dotfiles]
 "~/.zshrc/linux" = { block = """
 source $HOME/zen_api_key.sh
 
 source $HOME/.local/bin/env
-
-# nvm
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 # nub
 export PATH="$HOME/.nub/bin:$PATH"
