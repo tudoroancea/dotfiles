@@ -33,6 +33,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 "~/.codex/skills/*" = { source = "agents/shared/skills/*", mode = "symlink" }
 # "~/.codex/config.toml/shared" = { source = "agents/codex/config.toml", mode = "symlink-each" }
 "~/.codex/AGENTS.md" = { source = "agents/shared/AGENTS.md", mode = "symlink" }
+"~/.codex/rules/maintainer-only.rules" = { source = "agents/codex/rules/maintainer-only.rules", mode = "symlink" }
 "~/.zshrc/get_skill" = { block = """
 get_skill() {
   if [ "$#" -ne 3 ]; then

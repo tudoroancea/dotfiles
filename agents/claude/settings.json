@@ -5,7 +5,13 @@
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(git tag:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh workflow run:*)"
+    ]
   },
   "model": "opus",
   "hooks": {

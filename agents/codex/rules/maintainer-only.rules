@@ -1,0 +1,4 @@
+prefix_rule(pattern=["gh", "pr", "merge"], decision="forbidden")
+prefix_rule(pattern=["git", "tag"], decision="forbidden")
+prefix_rule(pattern=["gh", "release", "create"], decision="forbidden")
+prefix_rule(pattern=["gh", "workflow", "run"], decision="forbidden")

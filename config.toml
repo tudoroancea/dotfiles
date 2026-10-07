@@ -36,6 +36,7 @@ export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 """ }
 "~/.zshrc/aliases" = { block = """
+alias dotf="cd ~/.config/mise"
 alias reloadzsh="source ~/.zshrc"
 alias ll="ls -la"
 alias l="ls -lah"

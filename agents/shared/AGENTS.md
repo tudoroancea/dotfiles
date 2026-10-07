@@ -44,6 +44,9 @@ When carrying out an agreed change, take initiative on the necessary in-scope fo
 - A new planning or design Markdown file is the exception: create one when a substantial discussion will be easier to review, revise, or implement as a durable artifact. Follow the file-selection rules under **Planning longer work**; keep short answers in the conversation.
 - A request to change, build, or fix authorizes the requested in-scope local edits and relevant non-destructive validation. Complete necessary follow-up actions without asking at every step. For low-risk, reversible choices within scope, make a reasonable assumption and proceed; ask when ambiguity could materially affect correctness, safety, cost, or scope.
 - Ask before writes outside the workspace, changes to remote systems, irreversible or out-of-scope destructive actions, purchases, commits, pushes, or a material expansion of scope. Routine in-scope deletion required by an authorized change does not need separate approval.
+- Invoking a skill, or dispatching a task such as an issue to implement, authorizes the steps its procedure describes, within the limits it states. A skill that commits, pushes the task's own branch, or opens a pull request needs no separate approval for those steps. Merging a pull request and pushing to the default branch still need the user.
+- Treat each quoted passage that carries a comment in the user's message as a separate instruction. Answer or act on every one, including the small ones.
+- In unattended work, such as a dispatched task with nobody watching the thread, do not wait for an answer. Take the reversible in-scope choice and record it, or stop the unit, and put the question in the handoff or the pull request.
 - Do not add an extra code-explanation summary unless the user requests one.
 
 ## Editing files
@@ -61,6 +64,7 @@ When carrying out an agreed change, take initiative on the necessary in-scope fo
 - Explain dependencies between phases and identify which work can happen in parallel and which must be sequential.
 - Use the plan to track progress, with simple checkmarks when sufficient.
 - Delete a temporary `PLAN.md` once its plan has been fully carried out. Preserve an established project planning document when repository instructions treat it as durable.
+- Keep implementation steps out of public records. Issue comments and pull request descriptions state scope, status, results and blockers, not step lists, which stay in the plan file.
 
 ## Working in a repository
 
@@ -75,11 +79,27 @@ Use a project-local `AGENTS.md` to record durable project knowledge, user prefer
 
 Record only information likely to remain useful in future sessions and not already stated clearly elsewhere in the repository. If the workspace's status is uncertain, leave `AGENTS.md` unchanged and ask or suggest the addition instead.
 
+An agent working on a dispatched task, one of several running in parallel, proposes `AGENTS.md` additions in its final report instead of editing the file, so that parallel branches do not conflict over it.
+
 ## Tools, parallelism, and delegation
 
 - When the harness allows it, run independent tool calls in parallel to save round trips. Formatting, linting, type checking, and independent tests are common examples.
 - Match ceremony to the task. Do not spawn subagents or a multi-agent panel for work one agent can finish in a single pass. Use delegation for genuine breadth, independent work, or adversarial review rather than ordinary tasks.
 - When several agents work in parallel, assign profiles, responsibilities, and file ownership up front so their work does not collide.
+- Review a change once, from another model family, with effort matched to its risk. Run the lint, format, type and test checks before asking. Confirm fixes with a short check on the fix alone, not another full review, and stop after it. The `cross-review` skill describes the procedure.
+
+### Models
+
+Choose models by role. This list maps each role to a current model and records the behaviour that earned it. When a new model is released, try it on an ordinary task in a role it might fill, and change the list only after it has done better there.
+
+| Model | Provider | Roles | Observed |
+| --- | --- | --- | --- |
+| Opus 5.5 | Claude | Design, coordination, style review | Leads design threads and documentation structure |
+| Fable 5.1 | Claude | Writing prose, deep review of Codex changes | Best documentation prose, at low effort |
+| gpt-6.1-sol | Codex | Implementation, benchmark runs, deep review of Claude changes | Medium or low effort is enough for bounded implementation |
+| gpt-6-astra | Codex | Cheap reviews, checks on fixes, quick questions | Fast at low effort, occasionally a sharp design remark |
+
+Use the provider with more of its usage window left for implementation and the other for review. Stop launching new agents past about 70% of a provider's window.
 
 ## Communication and prose
 
@@ -89,7 +109,7 @@ Record only information likely to remain useful in future sessions and not alrea
 
 ## Committing work
 
-- Commit only when the user asks. Never commit, amend, or push merely as a side effect of finishing a task.
+- Commit only when the user asks, or when an invoked skill or dispatched task includes committing. Never commit, amend, or push merely as a side effect of finishing a task.
 - Once asked to commit, include only changes made for the requested work in this session. Leave unrelated staged and unstaged changes exactly as they are.
 - Temporary draft commits and amendments are acceptable after the user has authorized committing.
 - Choose an appropriate short commit message without conventional prefixes such as `fix(ci)`.
@@ -99,7 +119,7 @@ Record only information likely to remain useful in future sessions and not alrea
 
 ### Python
 
-- In Python projects with a `.venv`, use `uv run python`, `uv run pytest`, and `uv run <module>` rather than activating the environment or invoking its Python directly.
+- In Python projects with a `.venv`, use `uv run path/to/script.py`, `uv run pytest`, `uv run <module>` and `uv run python -c` rather than activating the environment or invoking its Python directly.
 - Prefer uv's project workflow (`uv sync`, `uv add`) over direct virtual environment or pip-style management.
 - For standalone scripts, prefer `uv run --script` and use PEP 723 inline dependencies when practical.
 - Prefer Ruff for linting and formatting and ty for type checking. Use existing project dependencies when present; otherwise suggest or use globally installed tools as appropriate.

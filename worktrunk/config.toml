@@ -1,5 +1,12 @@
 worktree-path = "{{ repo_path }}/.worktrees/{{ branch | sanitize }}"
 
 [commit.generation]
-# codex
-command = "codex exec -m gpt-5.6-luna -c model_reasoning_effort='low' -c system_prompt='' --sandbox=read-only --json - | jq -sr '[.[] | select(.item.type? == \"agent_message\")] | last.item.text'"
+# Worktrunk's recommended Codex command. Unlike the current one, it loads no AGENTS.md, skills or
+# tools, so a commit message costs one small request. It needs ~/.codex/worktrunk-commit-instructions.txt
+# containing just "." with no newline. `wt config show` runs a test generation to confirm it works.
+command = "codex exec -m gpt-6-luna -c model_reasoning_effort='none' -c project_doc_max_bytes=0 -c skills.max_context_tokens=1 -c agents.enabled=false -c features.goals=false -c web_search=disabled -c 'model_instructions_file=\"~/.codex/worktrunk-commit-instructions.txt\"' -c features.shell_tool=false -c features.unified_exec=false -c features.apps=false -c features.plugins=false --ephemeral --sandbox=read-only --json - | jq -sr '[.[] | select(.item.type? == \"agent_message\")] | last.item.text'"
+# Personal conventions for every repository. A project adds its own in .config/wt.toml.
+template-append = """
+- Never use a conventional prefix such as `feat:` or `fix(ci):`
+- Use plain words, and add a body only when the change needs explaining
+"""
