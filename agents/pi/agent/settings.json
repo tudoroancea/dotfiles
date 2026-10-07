@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.0.2",
+  "lastChangelogVersion": "1.0.4",
   "theme": "rosepine-dawn/rosepine-moon",
   "hideThinkingBlock": true,
   "defaultProvider": "openai-codex",
@@ -34,5 +34,6 @@
   },
   "showCacheMissNotices": true,
   "editorPaddingX": 0,
-  "tuiMode": "fullscreen"
+  "tuiMode": "fullscreen",
+  "deviceId": "b4208b7c-7058-407e-b3f0-8d0f1c1aae11"
 }
