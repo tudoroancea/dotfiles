@@ -366,5 +366,14 @@
     "key": "mod+alt+enter",
     "command": "composer.sendAndNewThread",
     "when": "composerFocus && !draftThreadRoute"
+  },
+  {
+    "key": "mod+t",
+    "command": "rightPanel.new",
+    "when": "rightPanelOpen && !terminalFocus"
+  },
+  {
+    "key": "mod+shift+t",
+    "command": "view.reopenClosed"
   }
 ]
