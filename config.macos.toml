@@ -1,7 +1,6 @@
 [dotfiles]
 "~/.zshrc/macos" = { block = """
 # API keys ==========================================================================
-source ~/gemini-cli.sh
 source ~/zen_api_key.sh
 source ~/openrouter_api_key.sh
 
@@ -21,9 +20,6 @@ export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/include/eigen3"
 export OPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
 
 # general tools configuration =====================================================
-
-# opencode
-export PATH=/Users/tudoroancea/.opencode/bin:$PATH
 
 # go
 export PATH="$HOME/go/bin:$PATH"
@@ -54,12 +50,6 @@ eval "$(magic completion --shell zsh)"
 
 # lmstudio
 export PATH="$PATH:/Users/tudoroancea/.lmstudio/bin"
-
-# zig version manager (zvm)
-export PATH="$PATH:$HOME/.zvm/self"
-
-# antigravity
-export PATH="/Users/tudoroancea/.antigravity/antigravity/bin:$PATH"
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
