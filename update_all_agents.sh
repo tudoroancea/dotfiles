@@ -4,17 +4,7 @@ set -euo pipefail
 # Work from this checkout regardless of where the script was invoked.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-agents=(npm:@openai/codex claude npm:@earendil-works/pi-coding-agent)
 lock_paths=(mise.dev.lock mise.linux.lock mise.pi.lock locks/mise.dev locks/mise.linux locks/mise.pi)
-
-# Install T3 only on Linux; mise reads the machine's env from miserc.toml.
-local_tools=("${agents[@]}")
-local_os=$(uname -s)
-case "$local_os" in
-  Darwin) ;;
-  Linux) local_tools+=(npm:t3) ;;
-  *) echo "Unsupported local operating system" >&2; exit 1 ;;
-esac
 
 # Require a branch and clean lock paths so existing edits are not committed.
 branch=$(git symbolic-ref --short HEAD)
@@ -24,26 +14,16 @@ if [[ -n "$(git status --porcelain -- "${lock_paths[@]}")" ]]; then
 fi
 
 # Resolve the latest agents for both development machines.
-mise -E dev,macos,pi lock --global --bump \
-  --minimum-release-age=0 --platform macos-arm64,linux-x64 "${agents[@]}"
-# Add ARM64 artifacts for the same Pi version; server has no Codex or Claude.
-mise -E server,pi lock --global \
-  --minimum-release-age=0 --platform linux-arm64 npm:@earendil-works/pi-coding-agent
+mise -E dev lock --global --bump --minimum-release-age=0 --platform macos-arm64,linux-x64 npm:@openai/codex claude
+mise -E pi lock --global --bump --minimum-release-age=0 --platform macos-arm64,linux-x64,linux-arm64 npm:@earendil-works/pi-coding-agent
 # Resolve the newest T3 nightly and lock both Linux architectures.
-mise -E linux lock --global --bump \
-  --minimum-release-age=0 --platform linux-x64,linux-arm64 npm:t3
+mise -E linux lock --global --bump --minimum-release-age=0 --platform linux-x64,linux-arm64 npm:t3
 
 # Install the recorded versions locally and check each agent starts.
-mise install --locked "${local_tools[@]}"
+mise install --locked npm:@openai/codex claude npm:@earendil-works/pi-coding-agent
 for agent in codex claude pi; do
   mise exec -- "$agent" --version
 done
-
-# On Linux, verify T3 and update its service to the installed version.
-if [[ "$local_os" == Linux ]]; then
-  mise exec -- t3 --version
-  mise exec -- t3 service install
-fi
 
 # Commit only changed lockfiles and sidecars, leaving unrelated staging intact.
 git add -A -- "${lock_paths[@]}"
@@ -79,8 +59,7 @@ if [[ "$(git rev-parse HEAD)" != "$2" ]]; then
 fi
 
 # Install and verify all four tools using LA015's miserc.toml environment.
-mise install --locked \
-  npm:@openai/codex claude npm:@earendil-works/pi-coding-agent npm:t3
+mise install --locked npm:@openai/codex claude npm:@earendil-works/pi-coding-agent npm:t3
 for tool in codex claude pi t3; do
   mise exec -- "$tool" --version
 done
