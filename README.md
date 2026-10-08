@@ -25,6 +25,7 @@ mise --locked -E dev,macos,pi bootstrap --adopt git@github.com:tudoroancea/dotfi
 ## new remote linux server
 
 ```bash
+ssh -t user@server 'sudo apt-get update && sudo apt-get install -y git'
 mise bootstrap remote \
   --host user@server \
   --install-mise \
@@ -37,7 +38,7 @@ mise bootstrap remote \
 
 | machine    | platform      | envs              |
 | ---------- | ------------- | ----------------- |
-| `raspi`    | `linux-arm64` | `server,linux,pi`  |
+| `raspi`    | `linux-arm64` | `server,pi`  |
 | `la015`    | `linux-x64`   | `dev,linux,pi`     |
 | `bestiav2` | `macos-arm64` | `dev,macos,pi`     |
 
