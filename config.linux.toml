@@ -3,6 +3,8 @@
 
 [dotfiles]
 "~/.zshrc/linux" = { block = """
+export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+
 source $HOME/zen_api_key.sh
 
 source $HOME/.local/bin/env
