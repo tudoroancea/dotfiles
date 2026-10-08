@@ -5,28 +5,16 @@
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "auto",
     "deny": [
       "Bash(gh pr merge:*)",
       "Bash(git tag:*)",
       "Bash(gh release create:*)",
       "Bash(gh workflow run:*)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "model": "opus",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash '~/.claude/hooks/herdr-agent-state.sh' session",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
@@ -44,13 +32,12 @@
   },
   "enabledPlugins": {
     "clangd-lsp@claude-plugins-official": false,
-    "context7@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
     "lua-lsp@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": false,
-    "warp@claude-code-warp": true,
-    "worktrunk@worktrunk": true,
+    "warp@claude-code-warp": false,
+    "worktrunk@worktrunk": false,
     "plannotator@plannotator": false
   },
   "extraKnownMarketplaces": {
