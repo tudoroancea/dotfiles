@@ -36,11 +36,14 @@ revision=$(git rev-parse HEAD)
 
 # Pass the branch and pushed commit safely to LA015's remote Bash script.
 printf -v remote_command 'bash -s -- %q %q' "$branch" "$revision"
-ssh LA015ts "$remote_command" <<'REMOTE'
+# Forward the local SSH agent so LA015 can authenticate the GitHub pull.
+ssh -A LA015ts "$remote_command" <<'REMOTE'
 set -euo pipefail
 # Make mise available in the non-interactive SSH shell and enter its checkout.
 export PATH="$HOME/.local/bin:$PATH"
 cd "$HOME/.config/mise"
+# reuse 1password ssh agent
+export SSH_AUTH_SOCK="/run/user/$(id -u)/ssh-agent/agent.sock"
 
 # Refuse to change branches or overwrite remote edits.
 if [[ "$(git symbolic-ref --short HEAD)" != "$1" ]]; then
@@ -66,4 +69,7 @@ done
 
 # Update the remote T3 service to the installed version.
 mise exec -- t3 service install
+# check status
+mise exec -- t3 service status
+systemctl --user status t3code.service
 REMOTE
