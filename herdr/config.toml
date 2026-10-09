@@ -4,8 +4,8 @@ onboarding = false
 delivery = "terminal"
 
 [theme]
-name = "rose-pine-dawn"
-auto_switch = true
+name = "terminal"
+auto_switch = false
 
 [ui]
 show_agent_labels_on_pane_borders = true
