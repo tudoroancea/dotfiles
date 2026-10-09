@@ -44,7 +44,7 @@ session content out of public files. Wait for approval of each row.
 
 ## Apply
 
-Apply each approved fix separately. A code or check change goes through `implement-issue`. A skill
+Apply each approved fix separately. A code or check change goes through `implement`. A skill
 edit or a change to the model list is made directly once approved. Keep the table pairing each rule
 with what enforces it current in the project's `AGENTS.md`.
 
