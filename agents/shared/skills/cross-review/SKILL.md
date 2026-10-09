@@ -14,7 +14,7 @@ global `AGENTS.md`.
    review round is never spent on them.
 2. **Choose the reviewer by risk**, from the family that did not write the change:
    - compiler internals (for Scaly: IR, differentiation, code generation): the strongest reviewer
-     at high effort, asked to reproduce each finding with a command or a test
+     at xhigh effort, asked to reproduce each finding with a command or a test
    - other code: a mid-size reviewer at medium effort
    - documentation, tooling, tracker and CI changes: a cheap reviewer at low effort, or CI alone for
      a one-line change
