@@ -375,5 +375,10 @@
   {
     "key": "mod+shift+t",
     "command": "view.reopenClosed"
+  },
+  {
+    "key": "mod+f",
+    "command": "chat.find",
+    "when": "!terminalFocus && !previewFocus"
   }
 ]

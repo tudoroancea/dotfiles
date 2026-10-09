@@ -7,6 +7,7 @@
   "permissions": {
     "deny": [
       "Bash(gh pr merge:*)",
+      "Bash(gh stack merge:*)",
       "Bash(git tag:*)",
       "Bash(gh release create:*)",
       "Bash(gh workflow run:*)"
