@@ -191,21 +191,25 @@ specifiers = ["latest"]
 
 [[tools."npm:oxfmt"]]
 version = "0.72.0"
+aube = { path = "locks/mise.dev/npm-oxfmt/0.72.0", digest = "sha256:8cff19be82a82e83efe243f08fd8bf1a2a2f635f10384d070d7956209ddd9b44" }
 backend = "npm:oxfmt"
 specifiers = ["latest"]
 
 [[tools."npm:oxlint"]]
 version = "1.87.0"
+aube = { path = "locks/mise.dev/npm-oxlint/1.87.0", digest = "sha256:fa3fe0a7d1858a740522115c9608e956f0759c35d487a1eb3822b98033a19d38" }
 backend = "npm:oxlint"
 specifiers = ["latest"]
 
 [[tools."npm:skills"]]
 version = "1.7.2"
+aube = { path = "locks/mise.dev/npm-skills/1.7.2", digest = "sha256:40fa4e04bc830080478cf881307d5497a093a4e2c34835d41dbad624877a6042" }
 backend = "npm:skills"
 specifiers = ["latest"]
 
 [[tools."npm:wrangler"]]
 version = "4.149.0"
+aube = { path = "locks/mise.dev/npm-wrangler/4.149.0", digest = "sha256:0d8856a5761c1ff9e9a8f1184931d9f1d3cb63b3abc22d681b522da32eabaee5" }
 backend = "npm:wrangler"
 specifiers = ["latest"]
 
