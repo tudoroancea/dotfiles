@@ -3,17 +3,17 @@
 lockfile_version = 3
 
 [[tools."github:vercel-labs/fx"]]
-version = "0.0.12"
+version = "0.0.13"
 backend = "github:vercel-labs/fx"
 specifiers = ["latest"]
 
 [tools."github:vercel-labs/fx"."platforms.macos-arm64"]
-checksum = "sha256:c59dae590fd1244af5f02d3bfaf86a83f9d738e1f3dfb8d0bfab7ff15fb8ce20"
-url = "https://github.com/vercel-labs/fx/releases/download/v0.0.12/fx-macos-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/vercel-labs/fx/releases/assets/600281498"
+checksum = "sha256:9dbed465d6c56e09a399576c98bfc804a67d1c2a24dfaef896a762565592f96e"
+url = "https://github.com/vercel-labs/fx/releases/download/v0.0.13/fx-macos-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/vercel-labs/fx/releases/assets/610768411"
 
 [[tools."llama.cpp"]]
-version = "11371"
+version = "11552"
 backend = "github:ggml-org/llama.cpp"
 specifiers = ["latest"]
 
@@ -21,7 +21,7 @@ specifiers = ["latest"]
 version_prefix = "b"
 
 [tools."llama.cpp"."platforms.macos-arm64"]
-checksum = "sha256:92d7743775964bfecd576db2a24c41fc58a34877bd3c36f6ccf7e8bd735a8c4c"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b11371/llama-b11371-bin-macos-arm64.tar.gz"
-url_api = "https://api.github.com/repos/ggml-org/llama.cpp/releases/assets/607459301"
+checksum = "sha256:f4b33fe40d098033fb1a19a8a4a84383c4ca84c37b6a60d9f9a253f349b48c07"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b11552/llama-b11552-bin-macos-arm64.tar.gz"
+url_api = "https://api.github.com/repos/ggml-org/llama.cpp/releases/assets/628856298"
 provenance = "github-attestations"
