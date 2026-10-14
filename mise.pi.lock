@@ -4,6 +4,6 @@ lockfile_version = 3
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
 version = "1.2.0"
-aube = { path = "locks/mise.pi/npm-earendil-works-pi-coding-agent/1.2.0", digest = "sha256:d694d154c1d25c8090f01f22ac1678a3d2fcb032ab62f4877edd327b41dac9cb" }
+aube = { path = "locks/mise.pi/npm-earendil-works-pi-coding-agent/1.2.0", digest = "sha256:3aa0d147eb20675dbcfc09676abbbc45fbdba2811a364af9a01885f3c58447e8" }
 backend = "npm:@earendil-works/pi-coding-agent"
 specifiers = ["latest"]

@@ -10,42 +10,42 @@ importers:
     dependencies:
       t3:
         specifier: nightly
-        version: 0.0.46-nightly.20261013.3042
+        version: 0.0.46-nightly.20261014.3093
 
 packages:
 
-  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261013.3042':
-    resolution: {integrity: sha512-zY1LtBQPetpLzN8rT/eyBq/nH8mCXd8OzHRBWVnum/Kxv6AZVu0IPtIZePgrwVua5dEx5oVUaYuVEVVBjXcQhQ==}
+  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261014.3093':
+    resolution: {integrity: sha512-XsJ12hsaxTlCS914oPXZ0tv3D+MKc9Yxz6ad+Pv+6C9VFshokRbqRjUrih4TAhmsMOnNpEVwKm3NXiHPe41+KQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@t3code/t3-linux-arm64@0.0.46-nightly.20261013.3042':
-    resolution: {integrity: sha512-KmT8tG0lWDuf7hPK5dn2DeL6yQcOU0LlHThO7vvLUEUTdQq6RFKCZI1xycIQ2sIrmrF0v2wKEhMp/pBF3wHRTw==}
+  '@t3code/t3-linux-arm64@0.0.46-nightly.20261014.3093':
+    resolution: {integrity: sha512-MylWQiH/SZBah3JiWYUleLQ/qviNTcw+jcXinhk+u2fIPZgqt1vNoa/9XL6ob9SON0eyUXGGbazsnnvI2wjY6g==}
     cpu: [arm64]
     os: [linux]
 
-  '@t3code/t3-linux-x64@0.0.46-nightly.20261013.3042':
-    resolution: {integrity: sha512-ZPFAvj/672LuYKit4D5qdJ/z5RTpENNfYCEeVFuhmd5Qx8d0qVKxJPJwAuSOeu3cL+3iQkKcZQWA1sDK6mk7vg==}
+  '@t3code/t3-linux-x64@0.0.46-nightly.20261014.3093':
+    resolution: {integrity: sha512-/xlc1S/V/sJtTs13rGoUiFckCq27n5BilnrXrbT22rrb4XYFznSQXGUi/nnf6SjWD7c4wjMygjdKrbVRyHKkVg==}
     cpu: [x64]
     os: [linux]
 
-  '@t3code/t3-win32-arm64@0.0.46-nightly.20261013.3042':
-    resolution: {integrity: sha512-epR90jx0NZHv+YfqtuwdeWHl4gaeotFuy+SsOad4WNYTRZmYVk62ke2QOMvSeKAKbEzFIzYZpQG71juQTHgRrA==}
+  '@t3code/t3-win32-arm64@0.0.46-nightly.20261014.3093':
+    resolution: {integrity: sha512-aPoXmFvE0amHmVlccptOCsLF1Gu8pF7PEiepArSyJmAac3i+qhq+YljMBEHp3ijzb/4nr++1iZHLf8Z6u2acJQ==}
     cpu: [arm64]
     os: [win32]
 
-  '@t3code/t3-win32-x64@0.0.46-nightly.20261013.3042':
-    resolution: {integrity: sha512-VnundbkFV1WeLm5JZlB0XpDB2mZLoXsFCP8YPi3RyTm4/4YLMl24mYsXjlgmXqlUzWONx03KfIyotQL4x81jyQ==}
+  '@t3code/t3-win32-x64@0.0.46-nightly.20261014.3093':
+    resolution: {integrity: sha512-OfGVw+nYRZrXyXoh7Z4ohx3EXrLzg+OqlK5t8HMc4pVmhEUFw/rdhjXJdVA9IwJrQ7woPUVzO/OVz2AcxnMxtw==}
     cpu: [x64]
     os: [win32]
 
-  t3@0.0.46-nightly.20261013.3042:
-    resolution: {integrity: sha512-gn2kSK+OZ76uVWbyb5rR05xUxqnYgsiIGFl/s2aYT4hgwmrRwFg37zScKNOyWxe2Mk2tt4YhdpODUW4z+YXdJw==}
+  t3@0.0.46-nightly.20261014.3093:
+    resolution: {integrity: sha512-RSVK7mGl8XUh8G8AhmUjyVgceSThxwab9njhL9oZpJBZ7PAgfnEc5zd7Cv5UNtJ++/fr0jIWkS3TFFmhXWoh8g==}
     hasBin: true
 
 snapshots:
 
-  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261013.3042':
+  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261014.3093':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -66,7 +66,7 @@ snapshots:
       - playwright-core
       - zod
 
-  '@t3code/t3-linux-arm64@0.0.46-nightly.20261013.3042':
+  '@t3code/t3-linux-arm64@0.0.46-nightly.20261014.3093':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -88,7 +88,7 @@ snapshots:
       - playwright-core
       - zod
 
-  '@t3code/t3-linux-x64@0.0.46-nightly.20261013.3042':
+  '@t3code/t3-linux-x64@0.0.46-nightly.20261014.3093':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -110,7 +110,7 @@ snapshots:
       - playwright-core
       - zod
 
-  '@t3code/t3-win32-arm64@0.0.46-nightly.20261013.3042':
+  '@t3code/t3-win32-arm64@0.0.46-nightly.20261014.3093':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -130,7 +130,7 @@ snapshots:
       - playwright-core
       - zod
 
-  '@t3code/t3-win32-x64@0.0.46-nightly.20261013.3042':
+  '@t3code/t3-win32-x64@0.0.46-nightly.20261014.3093':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -152,10 +152,10 @@ snapshots:
       - playwright-core
       - zod
 
-  t3@0.0.46-nightly.20261013.3042:
+  t3@0.0.46-nightly.20261014.3093:
     optionalDependencies:
-      '@t3code/t3-darwin-arm64': 0.0.46-nightly.20261013.3042
-      '@t3code/t3-linux-arm64': 0.0.46-nightly.20261013.3042
-      '@t3code/t3-linux-x64': 0.0.46-nightly.20261013.3042
-      '@t3code/t3-win32-arm64': 0.0.46-nightly.20261013.3042
-      '@t3code/t3-win32-x64': 0.0.46-nightly.20261013.3042
+      '@t3code/t3-darwin-arm64': 0.0.46-nightly.20261014.3093
+      '@t3code/t3-linux-arm64': 0.0.46-nightly.20261014.3093
+      '@t3code/t3-linux-x64': 0.0.46-nightly.20261014.3093
+      '@t3code/t3-win32-arm64': 0.0.46-nightly.20261014.3093
+      '@t3code/t3-win32-x64': 0.0.46-nightly.20261014.3093
