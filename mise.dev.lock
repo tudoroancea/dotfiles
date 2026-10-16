@@ -93,19 +93,19 @@ checksum = "sha256:80afd4c069b46a6fa8f3ec520bebc750a7843e4a8d5b9583d29ad436c00a3
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.300"
+version = "2.1.301"
 backend = "aqua:anthropics/claude-code"
 specifiers = ["latest"]
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:11e459c4368a48554d5aa5eabf7f6d84a2ff7ae2f7210795394f60ded6633f56"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.300/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/640630305"
+checksum = "sha256:40d2cbbd74a43e9ed683c9f8f93afdadeed09d16d56095fe1e46dedaa1728082"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.301/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/644133245"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:c18b0721712908fbeeb16f5a95338a4968db7f98c3031b684e402f472b923751"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.300/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/640629982"
+checksum = "sha256:f25bc45464024006c042b0342b5f0afea4eab949d56c53cc9513a29900f510e2"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.301/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/644133000"
 
 [[tools.herdr]]
 version = "0.9.3"
@@ -169,8 +169,8 @@ backend = "npm:npm"
 specifiers = ["latest"]
 
 [[tools."npm:@openai/codex"]]
-version = "0.162.1"
-aube = { path = "locks/mise.dev/npm-openai-codex/0.162.1", digest = "sha256:99ad7a775d73d3c9db9e1aa65d8394cfccac336f913a0695935f95266e72ed4d" }
+version = "0.163.0"
+aube = { path = "locks/mise.dev/npm-openai-codex/0.163.0", digest = "sha256:4af0e1f21460d257cd753ed486e7f7eee03fdc539209e5deb765956c46144aaf" }
 backend = "npm:@openai/codex"
 specifiers = ["latest"]
 

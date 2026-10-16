@@ -10,42 +10,42 @@ importers:
     dependencies:
       t3:
         specifier: nightly
-        version: 0.0.46-nightly.20261015.3145
+        version: 0.1.1-nightly.20261016.3190
 
 packages:
 
-  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261015.3145':
-    resolution: {integrity: sha512-ylPdr8xT8Z3gcBMNEqgSYl34e+mPpMZ4gaLXZaX7ZAeAn0gYYLN2/G9m/HXIkblXPxwHjqe3ZPR9gOO/qSa0fQ==}
+  '@t3code/t3-darwin-arm64@0.1.1-nightly.20261016.3190':
+    resolution: {integrity: sha512-PXauKQYQSFRLbPd6c3KaC7/KPNTaK2H6nv5PbX3CSHa96ZEaDiQlV5N7UkBTDLvQwfi6LaoB/Nn6l8hd4eXL2w==}
     cpu: [arm64]
     os: [darwin]
 
-  '@t3code/t3-linux-arm64@0.0.46-nightly.20261015.3145':
-    resolution: {integrity: sha512-3pK2OlGJu5eHK+6cr46K+4pFV2cy0mDkTmQKnnWB2jUdWWa7lc0I+cW2TFbXQ4PBATRYdaTEGrdnSE45/kjkYg==}
+  '@t3code/t3-linux-arm64@0.1.1-nightly.20261016.3190':
+    resolution: {integrity: sha512-gbCIlZXgiCsr2975Vwtm6DnUUHq9pOnY/GJHO5XJnKCmdqABEwBXVdOlzE4wLiA4PhVhQCCDqIJCW/KVgcXDLw==}
     cpu: [arm64]
     os: [linux]
 
-  '@t3code/t3-linux-x64@0.0.46-nightly.20261015.3145':
-    resolution: {integrity: sha512-kaBGFRXpvlEn9zyPl7d1DmmJCPK9laHcmAA4bZKzszz4i1ELX9qrlVv57gi72eWf4xqEyKPMgMSjMPxc/8fvQg==}
+  '@t3code/t3-linux-x64@0.1.1-nightly.20261016.3190':
+    resolution: {integrity: sha512-1s1XaTjPxjHn4daTYsPs1zDCjjXvxrzNc/iwLRDs2IZ+IPsHMlLAcmG44HgLUIlaYgd3ECpWQeqvUgDvcn1a/A==}
     cpu: [x64]
     os: [linux]
 
-  '@t3code/t3-win32-arm64@0.0.46-nightly.20261015.3145':
-    resolution: {integrity: sha512-mr/enf3olYNVWBWbK5o68kbOPmTa9GLp25acaC/VErIZPQNndoGOqjV++srZUG6Ftbv/PyBKjrvVqOO/r8sjPQ==}
+  '@t3code/t3-win32-arm64@0.1.1-nightly.20261016.3190':
+    resolution: {integrity: sha512-uDMhhvF1s5DsMV5tHuTJRxSk4rTMbkRw4yKIGqBLq4ZPgCp9fZ3bnkMjz4plkNtI3uOnDXGTyaRa+bwhGzhGYA==}
     cpu: [arm64]
     os: [win32]
 
-  '@t3code/t3-win32-x64@0.0.46-nightly.20261015.3145':
-    resolution: {integrity: sha512-XUlfaj0ev6dNn0pLmtMDg1y6eTahi2BCHHGbHqQIY9Kzc1pgKOKtYtOYI1zBps5tkm4eVttz+5jUriLBEsr2YQ==}
+  '@t3code/t3-win32-x64@0.1.1-nightly.20261016.3190':
+    resolution: {integrity: sha512-Ws6CltYNZS4si3j3MTMyRTa0q17B3zl0RpDHCB84USpYKX0+iweiEZ9IOQZpwx8JDHPpUDeUQAp36KnBM52yOQ==}
     cpu: [x64]
     os: [win32]
 
-  t3@0.0.46-nightly.20261015.3145:
-    resolution: {integrity: sha512-VPhJJ6AvLc4KB8r2nJp+IDHB9d1mafumFryujrKLAs+OcGLRjbV0iuaYD9vX5IoANUr6zoTjf7SGntOiiXnlew==}
+  t3@0.1.1-nightly.20261016.3190:
+    resolution: {integrity: sha512-PibphtRVSe/7vDbhrgGvJyHAMbfE3I3XK/+pFrnhduSu5aFwI05uFofa7p2UlSL8ucjAYZ9XlhVAfYITVeb5KQ==}
     hasBin: true
 
 snapshots:
 
-  '@t3code/t3-darwin-arm64@0.0.46-nightly.20261015.3145':
+  '@t3code/t3-darwin-arm64@0.1.1-nightly.20261016.3190':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -64,9 +64,10 @@ snapshots:
       - node-addon-api
       - node-pty
       - playwright-core
+      - undici
       - zod
 
-  '@t3code/t3-linux-arm64@0.0.46-nightly.20261015.3145':
+  '@t3code/t3-linux-arm64@0.1.1-nightly.20261016.3190':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -86,9 +87,10 @@ snapshots:
       - node-addon-api
       - node-pty
       - playwright-core
+      - undici
       - zod
 
-  '@t3code/t3-linux-x64@0.0.46-nightly.20261015.3145':
+  '@t3code/t3-linux-x64@0.1.1-nightly.20261016.3190':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -108,9 +110,10 @@ snapshots:
       - node-addon-api
       - node-pty
       - playwright-core
+      - undici
       - zod
 
-  '@t3code/t3-win32-arm64@0.0.46-nightly.20261015.3145':
+  '@t3code/t3-win32-arm64@0.1.1-nightly.20261016.3190':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -128,9 +131,10 @@ snapshots:
       - node-addon-api
       - node-pty
       - playwright-core
+      - undici
       - zod
 
-  '@t3code/t3-win32-x64@0.0.46-nightly.20261015.3145':
+  '@t3code/t3-win32-x64@0.1.1-nightly.20261016.3190':
     optional: true
     bundledDependencies:
       - '@bufbuild/protobuf'
@@ -150,12 +154,13 @@ snapshots:
       - node-addon-api
       - node-pty
       - playwright-core
+      - undici
       - zod
 
-  t3@0.0.46-nightly.20261015.3145:
+  t3@0.1.1-nightly.20261016.3190:
     optionalDependencies:
-      '@t3code/t3-darwin-arm64': 0.0.46-nightly.20261015.3145
-      '@t3code/t3-linux-arm64': 0.0.46-nightly.20261015.3145
-      '@t3code/t3-linux-x64': 0.0.46-nightly.20261015.3145
-      '@t3code/t3-win32-arm64': 0.0.46-nightly.20261015.3145
-      '@t3code/t3-win32-x64': 0.0.46-nightly.20261015.3145
+      '@t3code/t3-darwin-arm64': 0.1.1-nightly.20261016.3190
+      '@t3code/t3-linux-arm64': 0.1.1-nightly.20261016.3190
+      '@t3code/t3-linux-x64': 0.1.1-nightly.20261016.3190
+      '@t3code/t3-win32-arm64': 0.1.1-nightly.20261016.3190
+      '@t3code/t3-win32-x64': 0.1.1-nightly.20261016.3190

@@ -4,6 +4,6 @@ lockfile_version = 3
 
 [[tools."npm:t3"]]
 version = "nightly"
-aube = { path = "locks/mise.linux/npm-t3/nightly", digest = "sha256:cf62472da8f87789f623b74284a4b85fac912042b98796079ed4f9a9f4e3a660" }
+aube = { path = "locks/mise.linux/npm-t3/nightly", digest = "sha256:b794557f7415e333ef8deb9b636ae80fe20c3805b4bf14176f2090ae7e4199eb" }
 backend = "npm:t3"
 specifiers = ["nightly"]
